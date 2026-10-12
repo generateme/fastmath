@@ -1,178 +1,210 @@
 (ns fastmath.signal
-  "Signal processing (effect) and generation (oscillators).
+  "Signal processing: effects (filters), spectral analysis, convolution, filtering, smoothing and signal generation.
 
-  Singal is any sequence with double values.
+  A signal is any sequence of doubles.
 
-  ## Signal processing
+  ## Effects
 
-  To process signal use [[apply-effects]] or [[apply-effects-raw]] (operates on `double-array` only) function.
+  An effect is a stateful sample-by-sample filter created by the [[effect]] multimethod. Apply effects with [[apply-effects]] (any sequence) or [[apply-effects-raw]] (`double-array` only), compose them with [[compose-effects]], reset them with [[reset-effects]]. An effect can be called as a function: with a sample it returns the effect with the next state, without arguments it returns the last output.
 
-  Effect is signal filter, created by [[effect]] multimethod. Effects can be composed with [[compose-effects]]. Effect can be treated as function and can be called for given sample.
-
-  Each effect has it's own parametrization which should be passed during creation.
-  
-  List of all available effects is under [[effects-list]] value.
-
-  ### Effects parametrization
-
-  Each effect has its own parameters.
+  Every effect is created with `(effect name)` (default parameters) or `(effect name params)`. All names are listed in [[effects-list]]. Unknown keyword options (`:kind`, `:tan`, `:method`) throw `ex-info`. Effects which keep a mutable buffer (`:echo`, `:mda-thru-zero`, `:iir`) should not be shared between threads.
 
   #### :simple-lowpass, :simple-highpass
+
+  One pole RC filter (highpass is `x - lowpass(x)`).
 
   * `:rate` - sample rate (default 44100.0)
   * `:cutoff` - cutoff frequency (default 2000.0)
 
-  #### :biquad-eq
+  #### :biquad-eq, :biquad-hs, :biquad-ls, :biquad-lp, :biquad-hp, :biquad-bp
 
-  Biquad equalizer
-  
-  * `:fc` - center frequency
-  * `:gain` - gain
-  * `:bw` - bandwidth (default: 1.0)
-  * `:fs` - sampling rate (defatult: 44100.0)
+  Audio EQ Cookbook biquads (see `fastmath.signal.biquad`): peaking equalizer, high and low shelf, lowpass, highpass, bandpass.
 
-  #### :biquad-hs, :biquad-ls
-
-  Biquad highpass and lowpass shelf filters
-  
-  * `:fc` - center frequency
-  * `:gain` - gain
-  * `:slope` - shelf slope (default 1.5)
-  * `:fs` - sampling rate (default 44100.0)
-
-  #### :biquad-lp, :biquad-hp, :biquad-bp
-
-  Biquad lowpass, highpass and bandpass filters
-  
-  * `:fc` - cutoff/center frequency
-  * `:bw` - bandwidth (default 1.0)
-  * `:fs` - sampling rate (default 44100.0)
+  * `:fc` - center or corner frequency (default 1000.0)
+  * `:gain` - gain in dB for `:biquad-eq`, `:biquad-hs`, `:biquad-ls` (default 0.0)
+  * `:bw` - bandwidth in octaves for `:biquad-eq`, `:biquad-lp`, `:biquad-hp`, `:biquad-bp` (default 1.0)
+  * `:slope` - shelf slope `S` for `:biquad-hs`, `:biquad-ls` (default 1.5, `S = 1` is the steepest monotonic shelf), converted with `biquad/shelf-slope->Q`
+  * `:fs` - sample rate (default 44100.0)
 
   #### :dj-eq
 
-  * `:high` - high frequency gain (10000Hz)
-  * `:mid` - mid frequency gain (1000Hz)
-  * `:low` - low frequency gain (100Hz)
-  * `:shelf-slope` - shelf slope for high frequency (default 1.5)
-  * `:peak-bw` - peak bandwidth for mid and low frequencies (default 1.0)
-  * `:rate` - sampling rate (default 44100.0)
+  High shelf at 10 kHz, peaking equalizers at 1 kHz and 100 Hz (frequencies scaled by `rate/44100`).
+
+  * `:hi` - high frequency gain in dB (default 0.0)
+  * `:mid` - mid frequency gain in dB (default 0.0)
+  * `:low` - low frequency gain in dB (default 0.0)
+  * `:shelf-slope` - shelf slope for the high shelf (default 1.5)
+  * `:peak-bw` - bandwidth in octaves for mid and low (default 1.0)
+  * `:rate` - sample rate (default 44100.0)
 
   #### :phaser-allpass
 
-  * `:delay` - delay factor (default: 0.5)
+  First order allpass, coefficient `(1 - delay) / (1 + delay)`.
+
+  * `:delay` - delay factor (default 0.5)
 
   #### :divider
 
-  * `:denom` (long, default 2.0)
+  Octave divider, swh `divider_1186`.
+
+  * `:denom` - divisor, long at least 1 (default 2, the original 1)
 
   #### :fm
 
-  Modulate and demodulate signal using frequency
+  Modulate the signal on a cosine carrier, quantize, demodulate.
 
-   * `:quant` - quantization value (0.0 - if no quantization, default 10)
-   * `:omega` - carrier factor (default 0.014)
-   * `:phase` - deviation factor (default 0.00822)
+  * `:quant` - quantization levels (0.0 - no quantization, default 10.0)
+  * `:omega` - carrier factor (default 0.014)
+  * `:phase` - deviation factor (default 0.00822)
 
   #### :bandwidth-limit
 
-  https://searchcode.com/file/18573523/cmt/src/lofi.cpp#
+  CMT `lofi` bandwidth limiter (slew of `freq/rate` per sample).
 
   * `:rate` - sample rate (default 44100.0)
   * `:freq` - cutoff frequency (default 1000.0)
 
   #### :distort
 
+  `(1 + factor) x / (factor + |x|)`
+
   * `:factor` - distortion factor (default 1.0)
 
   #### :foverdrive
 
-  Fast overdrive
+  Fast overdrive, swh `foverdrive_1196`.
   
   * `:drive` - drive (default 2.0)
 
   #### :decimator
 
-  * `:bits` - bit depth (default 2)
+  Sample rate and bit depth reduction, swh `decimator_1202` (`bits` outside `[1, 31)` disable bit reduction, `fs >= rate` disables rate reduction).
+
+  * `:bits` - bit depth (default 2.0)
   * `:fs` - decimator sample rate (default 4410.0)
   * `:rate` - input sample rate (default 44100.0)
 
   #### :basstreble
 
-  * `:bass` - bass gain (default 1.0)
-  * `:treble` - treble gain (default 1.0)
-  * `:gain` - gain (default 0.0)
+  Audacity `BassTreble` (2.4.2) shelves.
+
+  * `:bass` - bass gain in dB (default 1.0, the original 0.0)
+  * `:treble` - treble gain in dB (default 1.0, the original 0.0)
+  * `:gain` - output gain in dB (default 0.0)
   * `:rate` - sample rate (default 44100.0)
-  * `:slope` - slope for both (default 0.4)
-  * `:bass-freq` - bass freq (default 250.0)
-  * `:treble-freq` - treble freq (default 4000.0)
+  * `:slope` - shelf slope for both (default 0.4)
+  * `:bass-freq` - bass frequency (default 250.0)
+  * `:treble-freq` - treble frequency (default 4000.0)
 
   #### :echo
 
-  * `:delay` - delay time in seconds (default 0.5)
-  * `:decay` - decay (amount echo in signal, default 0.5)
+  Audacity `Echo`.
+
+  * `:delay` - delay time in seconds, at least one sample (default 0.5)
+  * `:decay` - amount of echo in the signal (default 0.5)
   * `:rate` - sample rate (default 44100.0)
-  
-  _Warning! Echo filter uses mutable array as a internal state, don't use the same filter in paraller processing._
 
   #### :vcf303
 
+  CMT `vcf303` (TB-303 like resonant filter with envelope).
+
   * `:rate` - sample rate (default 44100.0)
-  * `:trigger` - boolean, trigger some action (default `false`), set true when you reset filter every line
-  * `:cutoff` - cutoff frequency (values 0-1, default 0.8)
-  * `:resonance` - resonance (values 0-1, default 0.8)
-  * `:env-mod` - envelope modulation (values 0-1, default 0.5)
-  * `:decay` - decay (values 0-1, default 1.0)
-  * `:gain` - gain output signal (default: 1.0)
+  * `:trigger` - when `true`, the envelope fires when the effect is created or reset (default `false`); the original fires on a rising edge of a trigger input, use the `reset` argument of [[apply-effects]] to retrigger
+  * `:cutoff` - cutoff (0-1, default 0.8)
+  * `:resonance` - resonance (0-1, default 0.8)
+  * `:env-mod` - envelope modulation (0-1, default 0.5)
+  * `:decay` - decay (0-1, default 1.0)
+  * `:gain` - output gain (default 1.0)
   
   #### :slew-limit
 
-  http://git.drobilla.net/cgit.cgi/omins.lv2.git/tree/src/slew_limiter.c
+  omins `slew_limiter`.
 
-  * `:rate` - sample rate
-  * `:maxrise` - maximum change for rising signal (in terms of 1/rate steps, default 500)
-  * `:maxfall` - maximum change for falling singal (default 500)
+  * `:rate` - sample rate (default 44100.0)
+  * `:maxrise` - maximum rise per second (default 500.0)
+  * `:maxfall` - maximum fall per second (default 500.0)
 
   #### :mda-thru-zero
 
-  * `:rate` - sample rate
-  * `:speed` - effect rate
-  * `:depth`
-  * `:mix`
-  * `:depth-mod`
-  * `:feedback`
-  
-  _Warning: internal state is kept in doubles array._
-  
-  ## Oscillators
+  mda ThruZero flanger (mda-vst3 processor, one channel, without per-block parameter smoothing and denormal guard). All parameters are in `[0, 1]`.
 
-  [[oscillator]] creates function which generates signal value for given time.
+  * `:rate` - sample rate (default 44100.0)
+  * `:speed` - modulation rate, `10^(3 speed - 2)` seconds per period, below 0.01 the modulation stops (default 0.3)
+  * `:depth` - depth (default 0.43)
+  * `:mix` - wet amount, the wet signal is subtracted (default 0.47)
+  * `:depth-mod` - depth modulation (default 1.0)
+  * `:feedback` - feedback (default 0.3)
 
-  To sample generated wave to signal, call [[oscillator->signal]] with following parameters:
+  #### :iir
 
-  * `f` - oscillator
-  * `samplerate` - sample rate (samples per second)
-  * `seconds` - duration
+  `(effect :iir filter)` wraps an IIR filter created in `fastmath.signal.iir`. The filter is reset when the effect is created or reset. There is no 1-arity (throws `ex-info`).
 
-  To convert signal to oscillator (using interpolation) use [[signal->oscillator]] passing signal and duration.
+  #### :gain
 
-  Add oscillators using [[oscillators-sum]].
+  `(effect :gain g)` or `(effect :gain {:gain g})` multiplies the signal by `g` (default 1.0).
 
-  ## Smoothing filter
+  #### :clipping
 
-  Savitzky-Golay smoothing filter [[savgol-filter]].
-  
+  * `:method` - `:hard` (clamp to `[-1, 1]`), `:hyperbolic` (`tanh`), `:soft` (cubic `x - x^3/3`, `±2/3` outside `[-1, 1]`), default `:hard`
+  * `:pregain` - gain applied before clipping (default 1.0)
+
+  #### :svf1
+
+  State variable filter, swh `svf_1214` (LADSPA). Faithful to the original: `:allpass` is `low - high` (not a unit gain allpass), when oversampling the output of the previous pass is the input of the next one, the input is scaled by `sqrt(q/2 + 0.01)` (so the lowpass DC gain is below 1), `Q` above about 1.0655 gives `NaN` in the original and throws `ex-info` here.
+
+  * `:rate` - sample rate (default 44100.0)
+  * `:cutoff` - cutoff frequency (default 1000.0)
+  * `:kind` - `:lowpass` (default), `:highpass`, `:bandpass`, `:notch`, `:allpass`
+  * `:Q` - resonance in `[0, 1.0655]` (default 0.5)
+  * `:oversamples` - oversampling, at least 1 (default 1, the original 3)
+  * `:resonance` - feedback of the band output (default 0.01, the original 0.0)
+
+  #### :svf2
+
+  State variable filter, Mutable Instruments stmlib `Svf`.
+
+  * `:rate` - sample rate (default 44100.0)
+  * `:cutoff` - cutoff frequency (default 1000.0)
+  * `:Q` - quality factor (default 0.5)
+  * `:kind` - `:lowpass` (default), `:highpass`, `:bandpass`, `:bandpass-normalized` (bandpass divided by `Q`, unit gain at `cutoff`), `:notch` (lowpass + highpass)
+  * `:tan` - `tan` approximation: `:exact` (default), `:dirty`, `:fast`, `:accurate`
+
+  #### :svf3
+
+  Linear trapezoidal state variable filter by Andrew Simper (Cytomic), Common-DSP `SvfLinearTrapOptimised2`.
+
+  * `:rate` - sample rate (default 44100.0)
+  * `:cutoff` - cutoff frequency (default 1000.0)
+  * `:Q` - quality factor (default 0.5)
+  * `:kind` - `:lowpass` (default), `:bandpass`, `:highpass`, `:notch`, `:peak` (`high - low`, as Common-DSP), `:allpass`, `:bell`, `:lowshelf`, `:highshelf`
+  * `:gaindb` - gain in dB for `:bell`, `:lowshelf`, `:highshelf` (default 0.0)
+  * `:tan` - as in `:svf2`
+
+  ## Spectral analysis
+
+  [[fft-energy]], [[fft-magnitude]], [[fft-amplitude]], [[fft-power]] scale coefficients from `fastmath.transform/fft`; [[spectrum]], [[stft]] and [[periodogram]] analyse a signal.
+
+  ## Convolution and filtering
+
+  [[convolve]], [[correlate]] (direct), [[fft-convolve]], [[fft-correlate]] (FFT based), [[filter-signal]], [[filter-filter-signal]] apply FIR coefficients (`fastmath.signal.fir`) or IIR filters (`fastmath.signal.iir`).
+
+  ## Smoothing
+
+  Savitzky-Golay [[savgol-filter]], [[moving-average-filter]], [[kernel-smoothing-filter]].
+
+  ## Generation
+
+  [[waveform]], [[chirp]], [[add-waveforms]], [[gain-waveform]], [[sample-waveform]].
+
   ## File operations
 
-  You can [[save-signal]] or [[load-signal]]. Representation is 16 bit signed, big endian. Use Audacity or SoX to convert to/from audio files."
+  [[save-signal]], [[load-signal]]: 16 bit signed, big endian. Use Audacity or SoX to convert to/from audio files."
   (:require [fastmath.core :as m]
             [clojure.java.io :refer [file make-parents output-stream input-stream]]
             [fastmath.vector :as v]
-            [fastmath.random :as r]
-            [fastmath.interpolation.linear :as linear-interp]
             [fastmath.transform :as trans]
             [fastmath.kernel :as ker]
             [fastmath.stats :as stats]
-            [fastmath.special :as special]
             [fastmath.complex :as cplx]
 
             [fastmath.signal.waveform :as wv]
@@ -180,13 +212,14 @@
             [fastmath.signal.pad :as pad]
             [fastmath.signal.biquad :as biquad])
   (:import [fastmath.vector Vec3]
-           [clojure.lang IFn]
+           [clojure.lang IFn IFn$OD IFn$DDDD]
            [org.apache.commons.math3.linear Array2DRowRealMatrix SingularValueDecomposition]
            [org.apache.commons.math3.util MathArrays]
            [fastmath.signal.biquad BiquadConf]
            [uk.me.berndporr.iirj Cascade]))
 
 (set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
 ;; ## Signal processing
@@ -335,15 +368,15 @@
 (deftype StateBiquad [^double x2 ^double x1 ^double y2 ^double y1])
 
 (defn- make-biquad-filter
-  "Create biquad effect based on passed configuration"
+  "Create biquad effect based on passed configuration: `y = b0 x + b1 x1 + b2 x2 - a1 y1 - a2 y2`."
   [m ^BiquadConf c]
   (effect-node m (fn
                    ([^double sample ^StateBiquad state]
                     (let [y (-> (* (.b0 c) sample)
                                 (+ (* (.b1 c) (.x1 state)))
                                 (+ (* (.b2 c) (.x2 state)))
-                                (+ (* (.a1 c) (.y1 state)))
-                                (+ (* (.a2 c) (.y2 state))))]
+                                (- (* (.a1 c) (.y1 state)))
+                                (- (* (.a2 c) (.y2 state))))]
                       (SampleAndState. y (StateBiquad. (.x1 state) sample (.y1 state) y))))
                    ([] (StateBiquad. 0.0 0.0 0.0 0.0)))))
 
@@ -355,19 +388,19 @@
        :or {fc 1000.0 gain 0.0 bw 1.0 fs 44100.0}}]
    (make-biquad-filter m (biquad/equalizer fc gain bw fs))))
 
-;; ### Biquad high/low shelf
+;; ### Biquad high/low shelf, `:slope` is the cookbook shelf slope S
 
 (defmethod effect :biquad-hs
   ([m] (effect m {}))
   ([m {:keys [fc gain slope fs]
        :or {fc 1000.0 gain 0.0 slope 1.5 fs 44100.0}}]
-   (make-biquad-filter m (biquad/highshelf fc gain slope fs))))
+   (make-biquad-filter m (biquad/highshelf fc gain (biquad/shelf-slope->Q gain slope) fs))))
 
 (defmethod effect :biquad-ls
   ([m] (effect m {}))
   ([m {:keys [fc gain slope fs]
        :or {fc 1000.0 gain 0.0 slope 1.5 fs 44100.0}}]
-   (make-biquad-filter m (biquad/lowshelf fc gain slope fs))))
+   (make-biquad-filter m (biquad/lowshelf fc gain (biquad/shelf-slope->Q gain slope) fs))))
 
 ;; ### Biquad lowpass/highpass/bandpass
 
@@ -413,29 +446,32 @@
 
 ;; ### Divider
 
-(deftype StateDivider [^double out ^double amp ^double count ^double lamp ^double last ^int zeroxs])
+(deftype StateDivider [^double out ^double amp ^double count ^double lamp ^double last ^long zeroxs])
 
 (defmethod effect :divider
   ([m] (effect m {}))
-  ([m {:keys [^long denom]
-       :or {denom 2.0}}]
-   (effect-node m
-                (fn
-                  ([^double sample ^StateDivider state]
-                   (let [count (inc (.count state))
-                         ^StateDivider s1 (if (or (and (> sample 0.0) (<= (.last state) 0.0))
-                                                  (and (neg? sample) (>= (.last state) 0.0)))
-                                            (if (== denom 1)
-                                              (StateDivider. (if (pos? (.out state)) -1.0 1.0) 0.0 0.0 (/ (.amp state) count) (.last state) 0)
-                                              (StateDivider. (.out state) (.amp state) count (.lamp state) (.last state) (inc (.zeroxs state))))
-                                            (StateDivider. (.out state) (.amp state) count (.lamp state) (.last state) (.zeroxs state)))
-                         amp (+ (.amp s1) (m/abs sample))
-                         ^StateDivider s2 (if (and (> denom 1)
-                                                   (== ^long (rem (.zeroxs s1) denom) (dec denom)))
-                                            (StateDivider. (if (pos? (.out s1)) -1.0 1.0) 0.0 0 (/ amp (.count s1)) (.last s1) 0)
-                                            (StateDivider. (.out s1) amp (.count s1) (.lamp s1) (.last s1) (.zeroxs s1)))]
-                     (SampleAndState. (* (.out s2) (.lamp s2)) (StateDivider. (.out s2) (.amp s2) (.count s2) (.lamp s2) sample (.zeroxs s2)))))
-                  ([] (StateDivider. 1.0 0.0 0.0 0.0 0.0 0.0))))))
+  ([m {:keys [denom]
+       :or {denom 2}}]
+   (let [denom (long denom)]
+     (when (< denom 1)
+       (throw (ex-info "Divider denominator should be at least 1." {:denom denom})))
+     (effect-node m
+                  (fn
+                    ([^double sample ^StateDivider state]
+                     (let [count (inc (.count state))
+                           ^StateDivider s1 (if (or (and (> sample 0.0) (<= (.last state) 0.0))
+                                                    (and (neg? sample) (>= (.last state) 0.0)))
+                                              (if (== denom 1)
+                                                (StateDivider. (if (pos? (.out state)) -1.0 1.0) 0.0 0.0 (/ (.amp state) count) (.last state) 0)
+                                                (StateDivider. (.out state) (.amp state) count (.lamp state) (.last state) (inc (.zeroxs state))))
+                                              (StateDivider. (.out state) (.amp state) count (.lamp state) (.last state) (.zeroxs state)))
+                           amp (+ (.amp s1) (m/abs sample))
+                           ^StateDivider s2 (if (and (> denom 1)
+                                                     (== (rem (.zeroxs s1) denom) (dec denom)))
+                                              (StateDivider. (if (pos? (.out s1)) -1.0 1.0) 0.0 0.0 (/ amp (.count s1)) (.last s1) 0)
+                                              (StateDivider. (.out s1) amp (.count s1) (.lamp s1) (.last s1) (.zeroxs s1)))]
+                       (SampleAndState. (* (.out s2) (.lamp s2)) (StateDivider. (.out s2) (.amp s2) (.count s2) (.lamp s2) sample (.zeroxs s2)))))
+                    ([] (StateDivider. 1.0 0.0 0.0 0.0 0.0 0)))))))
 
 ;; ### FM filter
 
@@ -445,9 +481,9 @@
   ([m] (effect m {}))
   ([m {:keys [^double quant ^double omega ^double phase]
        :or {quant 10.0 omega 0.014 phase 0.00822}}]
-   (let [lp-chain (compose-effects (effect :simple-lowpass {:rate 100000 :cutoff 25000})
-                                   (effect :simple-lowpass {:rate 100000 :cutoff 10000})
-                                   (effect :simple-lowpass {:rate 100000 :cutoff 1000}))]
+   (let [lp-chain (compose-effects (effect :simple-lowpass {:rate 100000.0 :cutoff 25000.0})
+                                   (effect :simple-lowpass {:rate 100000.0 :cutoff 10000.0})
+                                   (effect :simple-lowpass {:rate 100000.0 :cutoff 1000.0}))]
      (effect-node m
                   (fn
                     ([^double sample ^StateFm state]
@@ -507,7 +543,7 @@
                          (SampleAndState. res state)))
                       ([]))))))
 
-;; ### Decimator
+;; ### Decimator (swh `decimator_1202`)
 
 (deftype StateDecimator [^double count ^double last])
 
@@ -515,18 +551,15 @@
   ([m] (effect m {}))
   ([m {:keys [^double bits ^double fs ^double rate]
        :or {bits 2.0 fs 4410.0 rate 44100.0}}]
-   (let [step (m/pow 0.5 (- bits 0.9999))
-         stepr (/ step)
-         ratio (/ fs rate)]
+   (let [step (if (or (>= bits 31.0) (< bits 1.0)) 0.0 (m/pow 0.5 (- bits 0.999)))
+         stepr (if (zero? step) 1.0 (/ step))
+         ratio (if (>= fs rate) 1.0 (/ fs rate))]
      (effect-node m (fn
                       ([^double sample ^StateDecimator state]
                        (let [ncount (+ (.count state) ratio)]
                          (if (>= ncount 1.0)
-                           (let [delta (* step ^double (m/remainder (->> sample
-                                                                         m/sgn
-                                                                         (* step 0.5)
-                                                                         (+ sample)
-                                                                         (* stepr)) 1.0))
+                           (let [y (* stepr (+ sample (* (if (neg? sample) -1.0 1.0) step 0.5)))
+                                 delta (* step (- y (m/trunc y))) ;; C `modf` fractional part
                                  last (- sample delta)]
                              (SampleAndState. last (StateDecimator. (dec ncount) last)))
                            (SampleAndState. (.last state) (StateDecimator. ncount (.last state))))))
@@ -560,11 +593,11 @@
          b0b (* ab (+ (- ab+ (* ab- cwb)) bswb))
          b1b (* 2.0 ab (- ab- (* ab+ cwb)))
          b2b (* ab (- (- ab+ (* ab- cwb)) bswb))
-         a0b (+ (+ ab+ (* ab- cwb)) bswb)
+         a0b (+ ab+ (* ab- cwb) bswb)
          a1b (* -2.0 (+ ab- (* ab+ cwb)))
          a2b (- (+ ab+ (* ab- cwb)) bswb)
 
-         b0t (* at (+ (+ at+ (* at- cwt)) bswt))
+         b0t (* at (+ at+ (* at- cwt) bswt))
          b1t (* -2.0 at (+ at- (* at+ cwt)))
          b2t (* at (- (+ at+ (* at- cwt)) bswt))
          a0t (+ (- at+ (* at- cwt)) bswt)
@@ -590,24 +623,28 @@
 
 ;; ### Echo (audacity)
 
-(deftype StateEcho [^doubles buffer ^int position])
+(deftype StateEcho [^doubles buffer ^long position])
 
 (defmethod effect :echo
   ([m] (effect m {}))
   ([m {:keys [^double delay ^double decay ^double rate]
        :or {delay 0.5 decay 0.5 rate 44100.0}}]
-   (let [buffer-len (int (min 10000000 (* delay rate)))]
+   (let [buffer-len (long (min 1.0e7 (* delay rate)))]
+     (when (< buffer-len 1)
+       (throw (ex-info "Echo delay should be at least one sample long." {:delay delay :rate rate})))
      (effect-node m (fn
                       ([^double sample ^StateEcho state]
-                       (let [result (+ sample (* decay (aget ^doubles (.buffer state) (.position state))))]
-                         (aset ^doubles (.buffer state) (.position state) result)
-                         (SampleAndState. result (StateEcho. (.buffer state) (rem (inc (.position state)) buffer-len)))))
+                       (let [^doubles buffer (.buffer state)
+                             position (.position state)
+                             result (+ sample (* decay (aget buffer position)))]
+                         (aset buffer position result)
+                         (SampleAndState. result (StateEcho. buffer (rem (inc position) buffer-len)))))
                       ([]
                        (StateEcho. (double-array buffer-len 0.0) 0)))))))
 
 ;; ### Vcf303
 ;;
-(deftype StateVcf303 [^double d1 ^double d2 ^double c0 ^int env-pos ^Vec3 abc])
+(deftype StateVcf303 [^double d1 ^double d2 ^double c0 ^long env-pos ^Vec3 abc])
 
 (defmethod effect :vcf303
   ([m] (effect m {}))
@@ -671,14 +708,15 @@
                       ([] 0.0))))))
 
 
-;; 
+;; ### mda ThruZero (mda-vst3 `mdaThruZeroProcessor`), one channel
+
 (deftype StateMdaThruZero [^doubles buffer ^double ph ^long bp ^double f])
 
 (defmethod effect :mda-thru-zero
   ([m] (effect m {}))
   ([m {:keys [^double rate ^double speed ^double depth ^double mix ^double depth-mod ^double feedback]
        :or {rate 44100.0 speed 0.3 depth 0.43 mix 0.47 feedback 0.3 depth-mod 1.0}}]
-   (let [rat (/ (* (m/pow 10.0 (- 2.0 (* 3.0 speed))) 2.0) rate)
+   (let [rat (if (< speed 0.01) 0.0 (/ (* (m/pow 10.0 (- (* 3.0 speed) 2.0)) 2.0) rate))
          dep (* 2000.0 (m/sq depth))
          dem (- dep (* dep depth-mod))
          dep (- dep dem)
@@ -687,32 +725,40 @@
          fb (- (* 1.9 feedback) 0.95)]
      (effect-node m (fn
                       ([^double sample ^StateMdaThruZero state]
-                       (let [ph (+ (.ph state) rat)
+                       (let [^doubles buffer (.buffer state)
+                             ph (+ (.ph state) rat)
                              ph (if (> ph 1.0) (- ph 2.0) ph)
                              bp (bit-and (dec (.bp state)) 0x7ff)]
-                         (aset ^doubles (.buffer state) bp (+ sample (* fb (.f state))))
+                         (aset buffer bp (+ sample (* fb (.f state))))
                          (let [tmpf (+ dem (* dep (- 1.0 (m/sq ph))))
-                               tmp (unchecked-int tmpf)
+                               tmp (long tmpf)
                                tmpf (- tmpf tmp)
                                tmp (bit-and (+ tmp bp) 0x7ff)
                                tmpi (bit-and (inc tmp) 0x7ff)
-                               f (aget ^doubles (.buffer state) tmp)
-                               f (+ (* tmpf (- (aget ^doubles (.buffer state) tmpi) f)) f)
-                               result (+ (* sample dry) (* f wet))]
-                           (SampleAndState. result (StateMdaThruZero. (.buffer state) ph bp f)))))
+                               f (aget buffer tmp)
+                               f (+ (* tmpf (- (aget buffer tmpi) f)) f)
+                               result (- (* sample dry) (* f wet))]
+                           (SampleAndState. result (StateMdaThruZero. buffer ph bp f)))))
                       ([] (StateMdaThruZero. (double-array 2048) 0.0 0 0.0)))))))
 
+;; ### IIR filter, gain and clipping
 
 (defmethod effect :iir
-  [m ^Cascade iir]
-  (effect-node m (fn ([^double sample ^Cascade state]
-                     (SampleAndState. (.filter state sample) state))
-                   ([] (.reset iir) iir))))
+  ([m] (throw (ex-info "The :iir effect requires an IIR filter, see `fastmath.signal.iir`." {:effect m})))
+  ([m iir]
+   (when-not (instance? Cascade iir)
+     (throw (ex-info "The :iir effect requires an IIR filter, see `fastmath.signal.iir`." {:effect m :filter iir})))
+   (let [^Cascade iir iir]
+     (effect-node m (fn ([^double sample ^Cascade state]
+                        (SampleAndState. (.filter state sample) state))
+                      ([] (.reset iir) iir))))))
 
 (defmethod effect :gain
   ([m] (effect m 1.0))
-  ([m ^double gain] (effect-node m (fn ([^double sample _] (SampleAndState. (m/* gain sample) nil))
-                                     ([] nil)))))
+  ([m gain]
+   (let [gain (double (if (map? gain) (get gain :gain 1.0) gain))]
+     (effect-node m (fn ([^double sample _] (SampleAndState. (* gain sample) nil))
+                      ([] nil))))))
 
 (defmethod effect :clipping
   ([m] (effect m {}))
@@ -722,189 +768,205 @@
              :hard (fn ^double [^double v] (m/constrain v -1.0 1.0))
              :hyperbolic (fn ^double [^double v] (m/tanh v))
              :soft (fn ^double [^double v] (cond
-                                            (m/< v -1.0) -0.6666666666666666
-                                            (m/> v 1.0) 0.6666666666666666
-                                            :else (m/- v (m/* m/THIRD (m/cb v))))))]
+                                            (< v -1.0) -0.6666666666666666
+                                            (> v 1.0) 0.6666666666666666
+                                            :else (- v (* m/THIRD (m/cb v)))))
+             (throw (ex-info "Unknown clipping method." {:method method :allowed [:hard :hyperbolic :soft]})))]
      (effect-node m (fn ([^double sample _]
-                        (let [gsample (m/* pregain sample)] 
-                          (SampleAndState. (f gsample) nil)))
+                        (SampleAndState. (f (* pregain sample)) nil))
                       ([] nil))))))
 
-;; LADSPA version
+;; ### State variable filters
+
+(defn- svf-unknown
+  [what v allowed]
+  (throw (ex-info (str "Unknown " what ".") {what v :allowed allowed})))
+
+;; swh `svf_1214` (LADSPA)
 
 (deftype SVF1State [^double h ^double b ^double l ^double p ^double n])
 
 (defmethod effect :svf1
   ([m] (effect m {}))
-  ([m {:keys [^double rate ^double cutoff kind ^double Q ^long oversamples ^double resonance]
-       :or {rate 44100 cutoff 1000 kind :lowpass Q 0.5 oversamples 1 resonance 0.01}}]
-   (let [fun (case kind
+  ([m {:keys [rate cutoff kind Q oversamples resonance]
+       :or {rate 44100.0 cutoff 1000.0 kind :lowpass Q 0.5 oversamples 1 resonance 0.01}}]
+   (let [rate (double rate)
+         cutoff (double cutoff)
+         Q (double Q)
+         oversamples (long oversamples)
+         resonance (double resonance)
+         ^IFn$OD fun (case kind
                :lowpass (fn ^double [^SVF1State s] (.l s))
                :highpass (fn ^double [^SVF1State s] (.h s))
                :bandpass (fn ^double [^SVF1State s] (.b s))
                :notch (fn ^double [^SVF1State s] (.n s))
-               :allpass (fn ^double [^SVF1State s] (.p s)))
-         f (m/* 2.0 (m/sinpi (m// cutoff (m/* rate oversamples))))
-         q (m/* 2.0 (m/cos (m/* m/HALF_PI (m/pow Q 0.1))))
-         qn (m/sqrt (m/+ (m/* 0.5 q) 0.01))]
-     (effect-node m (fn ([^double sample ^SVF1State state]
-                        (loop [i (long 0)
-                               in (m/* qn (m/+ sample (m/* (.b state) resonance)))
-                               ^SVF1State state state]
-                          (if (m/== i oversamples)
-                            (SampleAndState. (fun state) state)
-                            (let [b (m/- (.b state) (m/* 0.001 (m/cb (.b state))))
-                                  h (m/- in (.l state) (m/* b q))
-                                  b (m/+ b (m/* f h))
-                                  l (m/+ (.l state) (m/* f b))
-                                  n (m/+ l h)
-                                  p (m/- l h)
-                                  nstate (SVF1State. h b l p n)]
-                              (recur (m/inc i) (fun nstate) nstate)))))
-                      ([] (SVF1State. 0.0 0.0 0.0 0.0 0.0)))))))
+               :allpass (fn ^double [^SVF1State s] (.p s))
+               (svf-unknown :kind kind [:lowpass :highpass :bandpass :notch :allpass]))
+         f (* 2.0 (m/sinpi (/ cutoff (* rate oversamples))))
+         q (* 2.0 (m/cos (* m/HALF_PI (m/pow Q 0.1))))
+         qn2 (+ (* 0.5 q) 0.01)]
+     (when (neg? qn2)
+       (throw (ex-info "Q is too large for :svf1 (the original filter returns NaN), maximum is about 1.0655." {:Q Q})))
+     (when (< oversamples 1)
+       (throw (ex-info "Oversampling should be at least 1." {:oversamples oversamples})))
+     (let [qn (m/sqrt qn2)]
+       (effect-node m (fn ([^double sample ^SVF1State state]
+                          (loop [i 0
+                                 in (* qn (+ sample (* (.b state) resonance)))
+                                 ^SVF1State state state]
+                            (if (== i oversamples)
+                              (SampleAndState. (.invokePrim fun state) state)
+                              (let [b (- (.b state) (* 0.001 (m/cb (.b state))))
+                                    h (- in (.l state) (* b q))
+                                    b (+ b (* f h))
+                                    l (+ (.l state) (* f b))
+                                    n (+ l h)
+                                    p (- l h)
+                                    nstate (SVF1State. h b l p n)]
+                                (recur (inc i) (.invokePrim fun nstate) nstate)))))
+                        ([] (SVF1State. 0.0 0.0 0.0 0.0 0.0))))))))
 
-;; https://github.com/genmeblog/soundsynth/blob/master/src/sound/filter.clj
+;; stmlib `Svf` (Mutable Instruments), https://github.com/pichenettes/stmlib/blob/master/dsp/filter.h
 
-(def ^:const ^:private SVF2-M_PI_POW_2  (m/* m/M_PI m/M_PI))
-(def ^:const ^:private SVF2-M_PI_POW_3  (m/* SVF2-M_PI_POW_2 m/M_PI))
-(def ^:const ^:private SVF2-M_PI_POW_5  (m/* SVF2-M_PI_POW_3 SVF2-M_PI_POW_2))
-(def ^:const ^:private SVF2-M_PI_POW_7  (m/* SVF2-M_PI_POW_5 SVF2-M_PI_POW_2))
-(def ^:const ^:private SVF2-M_PI_POW_9  (m/* SVF2-M_PI_POW_7 SVF2-M_PI_POW_2))
-(def ^:const ^:private SVF2-M_PI_POW_11 (m/* SVF2-M_PI_POW_9 SVF2-M_PI_POW_2))
+(def ^:const ^:private SVF2-M_PI_POW_2  (* m/M_PI m/M_PI))
+(def ^:const ^:private SVF2-M_PI_POW_3  (* SVF2-M_PI_POW_2 m/M_PI))
+(def ^:const ^:private SVF2-M_PI_POW_5  (* SVF2-M_PI_POW_3 SVF2-M_PI_POW_2))
+(def ^:const ^:private SVF2-M_PI_POW_7  (* SVF2-M_PI_POW_5 SVF2-M_PI_POW_2))
+(def ^:const ^:private SVF2-M_PI_POW_9  (* SVF2-M_PI_POW_7 SVF2-M_PI_POW_2))
+(def ^:const ^:private SVF2-M_PI_POW_11 (* SVF2-M_PI_POW_9 SVF2-M_PI_POW_2))
 
-(def ^:const ^:private SVF2-DIRTY_A    (m/* 3.739e-01 SVF2-M_PI_POW_3))
-(def ^:const ^:private SVF2-FAST_A     (m/* 3.26e-01 SVF2-M_PI_POW_3))
-(def ^:const ^:private SVF2-FAST_B     (m/* 1.823e-01 SVF2-M_PI_POW_5))
-(def ^:const ^:private SVF2-ACCURATE_A (m/* 3.333314036e-01 SVF2-M_PI_POW_3))
-(def ^:const ^:private SVF2-ACCURATE_B (m/* 1.333923995e-01 SVF2-M_PI_POW_5))
-(def ^:const ^:private SVF2-ACCURATE_C (m/* 5.33740603e-02 SVF2-M_PI_POW_7))
-(def ^:const ^:private SVF2-ACCURATE_D (m/* 2.900525e-03 SVF2-M_PI_POW_9))
-(def ^:const ^:private SVF2-ACCURATE_E (m/* 9.5168091e-03 SVF2-M_PI_POW_11))
+(def ^:const ^:private SVF2-DIRTY_A    (* 3.736e-01 SVF2-M_PI_POW_3))
+(def ^:const ^:private SVF2-FAST_A     (* 3.260e-01 SVF2-M_PI_POW_3))
+(def ^:const ^:private SVF2-FAST_B     (* 1.823e-01 SVF2-M_PI_POW_5))
+(def ^:const ^:private SVF2-ACCURATE_A (* 3.333314036e-01 SVF2-M_PI_POW_3))
+(def ^:const ^:private SVF2-ACCURATE_B (* 1.333923995e-01 SVF2-M_PI_POW_5))
+(def ^:const ^:private SVF2-ACCURATE_C (* 5.33740603e-02 SVF2-M_PI_POW_7))
+(def ^:const ^:private SVF2-ACCURATE_D (* 2.900525e-03 SVF2-M_PI_POW_9))
+(def ^:const ^:private SVF2-ACCURATE_E (* 9.5168091e-03 SVF2-M_PI_POW_11))
 
 (defn- tan-exact
   ^double [^double f]
-  (m/tan (m/* m/M_PI (m/min f 0.497))))
+  (m/tan (* m/M_PI (min f 0.497))))
 
 (defn- tan-dirty
   ^double [^double f]
-  (m/* f (m/+ m/M_PI (m/* f f SVF2-DIRTY_A))))
+  (* f (+ m/M_PI (* f f SVF2-DIRTY_A))))
 
 (defn- tan-fast
   ^double [^double f]
-  (let [f2 (m/* f f)]
+  (let [f2 (* f f)]
     (->> SVF2-FAST_B
-         (m/* f2)
-         (m/+ SVF2-FAST_A)
-         (m/* f2)
-         (m/+ m/M_PI)
-         (m/* f))))
+         (* f2)
+         (+ SVF2-FAST_A)
+         (* f2)
+         (+ m/M_PI)
+         (* f))))
 
 (defn- tan-accurate
   ^double [^double f]
-  (let [f2 (m/* f f)]
+  (let [f2 (* f f)]
     (->> SVF2-ACCURATE_E
-         (m/* f2)
-         (m/+ SVF2-ACCURATE_D)
-         (m/* f2)
-         (m/+ SVF2-ACCURATE_C)
-         (m/* f2)
-         (m/+ SVF2-ACCURATE_B)
-         (m/* f2)
-         (m/+ SVF2-ACCURATE_A)
-         (m/* f2)
-         (m/+ m/M_PI)
-         (m/* f))))
+         (* f2)
+         (+ SVF2-ACCURATE_D)
+         (* f2)
+         (+ SVF2-ACCURATE_C)
+         (* f2)
+         (+ SVF2-ACCURATE_B)
+         (* f2)
+         (+ SVF2-ACCURATE_A)
+         (* f2)
+         (+ m/M_PI)
+         (* f))))
 
-(deftype SVF2State [^double state1 ^double state2 ^double lp ^double bp ^double bpn ^double hp])
+(defn- svf-g
+  "stmlib `tan` approximations of `tan(pi f)`."
+  ^double [tan ^double ratio]
+  (case tan
+    :exact (tan-exact ratio)
+    :dirty (tan-dirty ratio)
+    :fast (tan-fast ratio)
+    :accurate (tan-accurate ratio)
+    (svf-unknown :tan tan [:exact :dirty :fast :accurate])))
+
+(deftype SVF2State [^double state1 ^double state2])
 
 (defmethod effect :svf2
   ([m] (effect m {}))
-  ([m {:keys [^double rate ^double cutoff ^double Q kind tan]
-       :or {rate 44100 cutoff 1000 kind :lowpass Q 0.5 tan :exact}}]
-   (let [fun (case kind
-               :lowpass (fn ^double [^SVF2State s] (.lp s))
-               :highpass (fn ^double [^SVF2State s] (.hp s))
-               :bandpass (fn ^double [^SVF2State s] (.bp s))
-               :notch (fn ^double [^SVF2State s] (.bpn s)))
-         ratio (m// cutoff rate)
-         g (case tan
-             :exact (tan-exact ratio)
-             :dirty (tan-dirty ratio)
-             :fast (tan-fast ratio)
-             :accurate (tan-accurate ratio))
-         r (m// Q)
-         h (m// (m/+ 1.0 (m/* g (m/+ r g))))]
+  ([m {:keys [rate cutoff Q kind tan]
+       :or {rate 44100.0 cutoff 1000.0 kind :lowpass Q 0.5 tan :exact}}]
+   (let [g (svf-g tan (/ (double cutoff) (double rate)))
+         r (/ (double Q))
+         h (/ (+ 1.0 (* g (+ r g))))
+         ^IFn$DDDD out (case kind
+               :lowpass (fn ^double [^double lp ^double _bp ^double _hp] lp)
+               :highpass (fn ^double [^double _lp ^double _bp ^double hp] hp)
+               :bandpass (fn ^double [^double _lp ^double bp ^double _hp] bp)
+               :bandpass-normalized (fn ^double [^double _lp ^double bp ^double _hp] (* r bp))
+               :notch (fn ^double [^double lp ^double _bp ^double hp] (+ lp hp))
+               (svf-unknown :kind kind [:lowpass :highpass :bandpass :bandpass-normalized :notch]))]
      (effect-node m (fn ([^double sample ^SVF2State state]
-                        (let [hp (m/* h
-                                      (m/- sample
-                                           (m/* r (.state1 state))
-                                           (m/* g (.state1 state))
-                                           (.state2 state)))
-                              bp (m/+ (m/* g hp)
-                                      (.state1 state))
-                              lp (m/+ (m/* g bp)
-                                      (.state2 state))
-                              nstate (SVF2State. (m/+ (m/* g hp) bp)
-                                                 (m/+ (m/* g bp) lp)
-                                                 lp bp (m/* r bp) hp)]
-                          (SampleAndState. (fun nstate) nstate)))
-                      ([] (SVF2State. 0.0 0.0 0.0 0.0 0.0 0.0)))))))
+                        (let [s1 (.state1 state)
+                              s2 (.state2 state)
+                              hp (* h (- sample (* r s1) (* g s1) s2))
+                              bp (+ (* g hp) s1)
+                              lp (+ (* g bp) s2)]
+                          (SampleAndState. (.invokePrim out lp bp hp)
+                                           (SVF2State. (+ (* g hp) bp) (+ (* g bp) lp)))))
+                      ([] (SVF2State. 0.0 0.0)))))))
 
 
+;; Cytomic (Andrew Simper) linear trapezoidal SVF,
 ;; https://github.com/FredAntonCorvest/Common-DSP/blob/master/Filter/SvfLinearTrapOptimised2.hpp
 
 (deftype SVF3State [^double ic1 ^double ic2])
 
 (defn- compute-a
   ^Vec3 [^double g ^double k]
-  (let [a1 (m// (m/+ 1.0 (m/* g (m/+ g k))))
-        a2 (m/* g a1)]
-    (Vec3. a1 a2 (m/* g a2))))
+  (let [a1 (/ (+ 1.0 (* g (+ g k))))
+        a2 (* g a1)]
+    (Vec3. a1 a2 (* g a2))))
 
 (defn- compute-m
   ^Vec3 [kind ^double k ^double A]
   (case kind
     :lowpass (Vec3. 0.0 0.0 1.0)
-    :bandpass (Vec3. 0.0 1.0 1.0)
-    :highpass (Vec3. 1.0 (m/- k) -1.0)
-    :notch (Vec3. 1.0 (m/- k) 0.0)
-    :peak (Vec3. 1.0 (m/- k) -2.0)
-    :allpass (Vec3. 1.0 (m/* -2.0 k) 0.0)
-    :bell (Vec3. 1.0 (m/* k (m/dec (m/* A A))) 0.0)
-    :lowshelf (Vec3. 1.0 (m/* k (m/dec A)) (m/dec (m/* A A)))
-    :highshelf (Vec3. (m/* A A) (m/* k (m/- 1.0 A) A) (m/- 1.0 (m/* A A)))))
+    :bandpass (Vec3. 0.0 1.0 0.0)
+    :highpass (Vec3. 1.0 (- k) -1.0)
+    :notch (Vec3. 1.0 (- k) 0.0)
+    :peak (Vec3. 1.0 (- k) -2.0)
+    :allpass (Vec3. 1.0 (* -2.0 k) 0.0)
+    :bell (Vec3. 1.0 (* k (dec (* A A))) 0.0)
+    :lowshelf (Vec3. 1.0 (* k (dec A)) (dec (* A A)))
+    :highshelf (Vec3. (* A A) (* k (- 1.0 A) A) (- 1.0 (* A A)))
+    (svf-unknown :kind kind [:lowpass :bandpass :highpass :notch :peak :allpass :bell :lowshelf :highshelf])))
 
 (defmethod effect :svf3
   ([m] (effect m {}))
-  ([m {:keys [^double rate ^double cutoff ^double Q kind tan ^double gaindb]
-       :or {rate 44100 cutoff 1000 kind :lowpass Q 0.5 tan :exact gaindb 0.0}}]
-   (let [A (m/exp10 (m// gaindb 40.0))
+  ([m {:keys [rate cutoff Q kind tan gaindb]
+       :or {rate 44100.0 cutoff 1000.0 kind :lowpass Q 0.5 tan :exact gaindb 0.0}}]
+   (let [Q (double Q)
+         A (m/exp10 (/ (double gaindb) 40.0))
          Asqrt (m/sqrt A)
-         ratio (m// cutoff rate)
-         g (case tan
-             :exact (tan-exact ratio)
-             :dirty (tan-dirty ratio)
-             :fast (tan-fast ratio)
-             :accurate (tan-accurate ratio))
-         k (if (= kind :BELL) (m// (m/* A Q)) (m// Q))
+         g (svf-g tan (/ (double cutoff) (double rate)))
+         k (if (= kind :bell) (/ (* A Q)) (/ Q))
+         ^Vec3 mv (compute-m kind k A)
          ^Vec3 av (case kind
-                    :lowshelf (compute-a (m// g Asqrt) k)
-                    :highshelf (compute-a (m/* g Asqrt) k)
-                    (compute-a g k))
-         ^Vec3 mv (compute-m kind k A)]
+                    :lowshelf (compute-a (/ g Asqrt) k)
+                    :highshelf (compute-a (* g Asqrt) k)
+                    (compute-a g k))]
      (effect-node m (fn ([^double sample ^SVF3State state]
-                        (let [v3 (m/- sample (.ic2 state))
-                              v1 (m/+ (m/* (.x av) (.ic1 state))
-                                      (m/* (.y av) v3))
-                              v2 (m/+ (.ic2 state)
-                                      (m/* (.y av) (.ic1 state))
-                                      (m/* (.z av) v3))]
-                          (SampleAndState. (m/+ (m/* sample (.x mv))
-                                                (m/* v1 (.y mv))
-                                                (m/* v2 (.z mv)))
-                                           (SVF3State. (m/- (m/* 2.0 v1) (.ic1 state))
-                                                       (m/- (m/* 2.0 v2) (.ic2 state))))))
-                      ([] (SVF3State. 0.0 0.0 )))))))
+                        (let [v3 (- sample (.ic2 state))
+                              v1 (+ (* (.x av) (.ic1 state))
+                                    (* (.y av) v3))
+                              v2 (+ (.ic2 state)
+                                    (* (.y av) (.ic1 state))
+                                    (* (.z av) v3))]
+                          (SampleAndState. (+ (* sample (.x mv))
+                                              (* v1 (.y mv))
+                                              (* v2 (.z mv)))
+                                           (SVF3State. (- (* 2.0 v1) (.ic1 state))
+                                                       (- (* 2.0 v2) (.ic2 state))))))
+                      ([] (SVF3State. 0.0 0.0)))))))
 
 
 (def ^{:doc "List of effects."}
@@ -915,8 +977,10 @@
 (defn save-signal
   "Save signal to file.
 
-  Representation is: 16 bit signed, big endian file
-  You can use Audacity/SOX utilities to convert files to audio."
+  Representation is 16 bit signed, big endian. Values are clipped to `[-1, 1]` and mapped linearly onto `[-32768, 32767]` (so `0.0` reads back as about `1.5e-5`).
+  You can use Audacity/SOX utilities to convert files to audio.
+
+  Returns the signal as `double-array`."
   [sig filename]
   (make-parents filename)
   (let [^java.io.DataOutputStream out (java.io.DataOutputStream. (output-stream filename))
@@ -929,58 +993,86 @@
     s))
 
 (defn load-signal
-  "Read signal from file
+  "Read signal from file.
 
-  Expected representation is 16 bit signed, big endian file."
+  Expected representation is 16 bit signed, big endian, mapped linearly from `[-32768, 32767]` onto `[-1, 1]` (see [[save-signal]]). A trailing odd byte is ignored.
+
+  Returns the signal as `double-array`."
   [filename]
   (let [^java.io.File f (file filename)
-        len (/ (.length f) 2)
+        len (m/long-quot (.length f) 2)
         ^java.io.DataInputStream in (java.io.DataInputStream. (input-stream filename))
         ^doubles buffer (double-array len)]
     (try
       (dotimes [i len]
-        (aset ^doubles buffer (int i) (double (m/cnorm (.readShort in) Short/MIN_VALUE Short/MAX_VALUE -1.0 1.0))))
+        (aset buffer i (m/cnorm (.readShort in) Short/MIN_VALUE Short/MAX_VALUE -1.0 1.0)))
       (finally (. in clojure.core/close)))
     buffer))
 
 ;; convolution / correlation
 
-(defn- get-slice
-  [mode xs ^long size1 ^long size2]
-  (cond
-    (#{:all :full} mode) xs
-    (#{:same :first} mode) (->> xs (drop (m// (m/- (count xs) size1) 2)) (take size1))
-    :else (let [s (m/inc (m/abs (m/- size1 size2)))]
-            (->> xs (drop (m// (m/- (count xs) s) 2)) (take s)))))
+(defn- non-empty-signals!
+  [sig1 sig2]
+  (when (or (empty? sig1) (empty? sig2))
+    (throw (ex-info "Signals should not be empty." {:size1 (count sig1) :size2 (count sig2)}))))
+
+(defn- convolution-slice
+  "Part of the full convolution `full` for `mode`, as `scipy.signal.convolve`."
+  [mode ^doubles full ^long size1 ^long size2]
+  (let [len (alength full)
+        [^long start ^long n] (case mode
+                                (:full :all) [0 len]
+                                (:same :first) [(m/long-quot (m/long-sub len size1) 2) size1]
+                                :valid (let [s (m/long-inc (m/long-sub (m/long-max size1 size2) (m/long-min size1 size2)))]
+                                         [(m/long-quot (m/long-sub len s) 2) s])
+                                (throw (ex-info "Unknown convolution mode." {:mode mode :allowed [:full :same :valid]})))]
+    (vec (java.util.Arrays/copyOfRange full start (m/long-add start n)))))
 
 (defn convolve
-  "Perform direct convolution with zero padding."
+  "Perform direct convolution of two signals (zero padding).
+
+  `mode` (as `scipy.signal.convolve`):
+
+  * `:full` (default, alias `:all`) - full convolution, length `N1 + N2 - 1`
+  * `:same` (alias `:first`) - length `N1`, centred with respect to `:full`
+  * `:valid` - length `|N1 - N2| + 1`, values computed without zero padding
+
+  Returns a vector. Throws `ex-info` for an empty signal or an unknown mode."
   ([sig1 sig2] (convolve sig1 sig2 :full))
   ([sig1 sig2 mode]
+   (non-empty-signals! sig1 sig2)
    (let [a1 (m/seq->double-array sig1)
          a2 (m/seq->double-array sig2)]
-     (get-slice mode (MathArrays/convolve a1 a2) (alength a1) (alength a2)))))
+     (convolution-slice mode (MathArrays/convolve a1 a2) (alength a1) (alength a2)))))
 
 (defn fft-convolve
-  "Perform convolution using fft method."
+  "Perform convolution using FFT (zero padding to a power of two).
+
+  `mode` as in [[convolve]]. Returns a vector. Throws `ex-info` for an empty signal or an unknown mode."
   ([sig1 sig2] (fft-convolve sig1 sig2 :full))
   ([sig1 sig2 mode]
+   (non-empty-signals! sig1 sig2)
    (let [s1 (count sig1)
          s2 (count sig2)
-         tsize (m/dec (m/+ s1 s2))
+         tsize (dec (+ s1 s2))
          size (m/round-up-pow2 tsize)
          fft1 (trans/fft (pad/zero (m/seq->double-array sig1) size :right))
-         fft2 (trans/fft (pad/zero (m/seq->double-array sig2) size :right))]
-     (get-slice mode (take tsize (trans/ifft (with-meta (mapv cplx/mult fft1 fft2) (meta fft1)))) s1 s2))))
+         fft2 (trans/fft (pad/zero (m/seq->double-array sig2) size :right))
+         full (trans/ifft (with-meta (mapv cplx/mult fft1 fft2) (meta fft1)))]
+     (convolution-slice mode (m/seq->double-array (subvec full 0 tsize)) s1 s2))))
 
 (defn correlate
-  "Perform direct correlation with zero padding"
+  "Perform direct cross-correlation of two real signals (zero padding): convolution of `sig1` with reversed `sig2`, as `scipy.signal.correlate`.
+
+  `mode` as in [[convolve]]. Returns a vector."
   ([sig1 sig2] (correlate sig1 sig2 :full))
   ([sig1 sig2 mode]
    (convolve sig1 (reverse sig2) mode)))
 
 (defn fft-correlate
-  "Perform correlation using fft method"
+  "Perform cross-correlation of two real signals using FFT, see [[correlate]].
+
+  `mode` as in [[convolve]]. Returns a vector."
   ([sig1 sig2] (fft-correlate sig1 sig2 :full))
   ([sig1 sig2 mode]
    (fft-convolve sig1 (reverse sig2) mode)))
@@ -988,11 +1080,17 @@
 ;; filtering
 
 (defn filter-signal
-  "Apply FIR coefficients or IIR filter to a signal."
+  "Apply FIR coefficients or an IIR filter to a signal.
+
+  * FIR coefficients (a sequence of numbers, see `fastmath.signal.fir`) - centred convolution, mode `:same` of [[convolve]] (as `numpy.convolve(xs, fir, 'same')` for `N >= M`, not a causal `lfilter`); direct for short signals, FFT otherwise.
+  * IIR filter (see `fastmath.signal.iir`) - causal filtering, sample by sample. The filter is mutable and keeps its state between calls, reset it with [[reset-IIR!]].
+
+  Returns a vector."
   [FIR-or-IIR xs]
   (if (instance? Cascade FIR-or-IIR)
-    (map (fn [^double x] (.filter ^Cascade FIR-or-IIR x)) xs)
-    (let [cf (if (m/< 2048 (m/+ (count xs) (count FIR-or-IIR)))
+    (let [^Cascade iir FIR-or-IIR]
+      (mapv (fn [^double x] (.filter iir x)) xs))
+    (let [cf (if (< (+ (count xs) (count FIR-or-IIR)) 2048)
                convolve fft-convolve)]
       (cf xs FIR-or-IIR :same))))
 
@@ -1010,45 +1108,57 @@
   IIR)
 
 (defn- maybe-reset-filter!
-  [FIR-or-IIR xs]
-  (when (instance? Cascade FIR-or-IIR) (.reset FIR-or-IIR))
-  xs)
+  [FIR-or-IIR]
+  (when (instance? Cascade FIR-or-IIR)
+    (.reset ^Cascade FIR-or-IIR)))
 
 (defn filter-filter-signal
-  "Apply filter twice (forward and backward) to align phase."
+  "Apply filter twice, forward and backward, to cancel the phase shift (zero-phase filtering).
+
+  See [[filter-signal]]. An IIR filter is reset between the passes (not before the forward pass); there is no edge padding (unlike `scipy.signal.filtfilt`).
+
+  Returns a vector."
   [FIR-or-IIR xs]
-  (->> (filter-signal FIR-or-IIR xs)
-       (reverse)
-       (maybe-reset-filter! FIR-or-IIR)
-       (filter-signal FIR-or-IIR)
-       (reverse)))
+  (let [forward (filter-signal FIR-or-IIR xs)]
+    (maybe-reset-filter! FIR-or-IIR)
+    (vec (rseq (filter-signal FIR-or-IIR (rseq forward))))))
 
 ;; signal smoothing
 
 (defn- perform-convolution
-  [coeffs fc signal]
-  (->> (convolve signal coeffs)
-       (drop fc)
-       (take (count signal))))
+  "Correlation of `signal` with odd length `coeffs` centred at sample, zero padding."
+  [^doubles coeffs ^long fc signal]
+  (let [full (convolve signal (reverse coeffs))]
+    (subvec full fc (+ fc (count signal)))))
 
 (defn savgol-filter
-  "Creates Savitzky-Golay smoothing filter.
+  "Creates Savitzky-Golay smoothing (or differentiating) filter.
 
   Arguments:
 
-  * length - length of the kernel (default: 5)
-  * order - polynomial order (default: 2)
-  * derivative - signal derivative (default: 0)
+  * length - odd length of the kernel (default: 5)
+  * order - polynomial order, less than `length` (default: 2)
+  * derivative - order of the derivative, `0 <= derivative <= order` (default: 0)
+  * delta - spacing of the samples, used for derivatives (default: 1.0)
 
-  Boundary rule is to pad with zeros.  
+  Boundary rule is to pad with zeros (as `scipy.signal.savgol_filter` with `mode='constant'`).
 
-  Returns filtering function which accepts collection of numbers and returns filtered signal."
+  Returns filtering function which accepts collection of numbers and returns filtered signal (a vector). Throws `ex-info` for invalid arguments."
   ([] (savgol-filter 5))
   ([^long length] (savgol-filter length 2))
   ([^long length ^long order] (savgol-filter length order 0))
-  ([^long length ^long order ^long derivative]
-   (assert (odd? length) "Length must be odd!")
-   (let [fc (/ (dec length) 2)
+  ([^long length ^long order ^long derivative] (savgol-filter length order derivative 1.0))
+  ([^long length ^long order ^long derivative ^double delta]
+   (when-not (and (pos? length) (odd? length))
+     (throw (ex-info "Length should be positive and odd." {:length length})))
+   (when-not (< -1 order length)
+     (throw (ex-info "Order should be non-negative and less than length." {:length length :order order})))
+   (when-not (<= 0 derivative order)
+     (throw (ex-info "Derivative should be between 0 and order." {:order order :derivative derivative})))
+   (when-not (pos? delta)
+     (throw (ex-info "Delta should be positive." {:delta delta})))
+   (let [fc (m/long-quot (dec length) 2)
+         factor (/ (m/factorial derivative) (m/pow delta derivative))
          coeffs (-> (for [v (range (- fc) (inc fc))]
                       (map #(m/pow v %) (range (inc order))))
                     (m/seq->double-double-array)
@@ -1056,41 +1166,42 @@
                     (SingularValueDecomposition.)
                     (.getSolver)
                     (.getInverse)
-                    (.getRow derivative))]
+                    (.getRow derivative))
+         coeffs (double-array (map (fn [^double c] (* factor c)) coeffs))]
      (fn [signal]
-       (let [ns (perform-convolution coeffs fc signal)]
-         (if (even? derivative)
-           ns
-           (map (fn [^double v] (* -1.0 v)) ns)))))))
+       (perform-convolution coeffs fc signal)))))
 
 (defn moving-average-filter
-  "Creates moving average filter.
+  "Creates moving average filter (zero padding).
 
   Arguments:
 
-  * length - length of the kernel (default: 5)
+  * length - odd length of the kernel (default: 5)
 
   Returns filtering function. See also [[savgol-filter]]."
   ([] (moving-average-filter 5))
   ([^long length] (savgol-filter length 1 0)))
 
 (defn kernel-smoothing-filter
-  "Creates Nadaraya-Watson kernel-weighted average
+  "Creates Nadaraya-Watson kernel-weighted average.
 
   Arguments:
 
-  * kernel - [[kernel]] function (default `gaussian`)
-  * length - length of the kernel (default: 5)
+  * kernel - function of two numbers `(kernel x y)`, e.g. `(fastmath.kernel/kernel :gaussian)`
+  * length - odd length of the kernel (default: 5)
   * step - distance between consecutive samples (default: 1.0)
 
-  Returns filtering function. See also [[savgol-filter]]."
+  Weights `kernel(0, i step)`, `i = -(length-1)/2, ..., (length-1)/2`, are normalized to sum 1. Boundary rule is to pad with zeros (weights are not renormalized at edges).
+
+  Returns filtering function which returns a vector. See also [[savgol-filter]]."
   ([kernel] (kernel-smoothing-filter kernel 5))
   ([kernel ^long length] (kernel-smoothing-filter kernel length 1.0))
   ([kernel ^long length ^double step]
-   (assert (odd? length) "Length must be odd!")
-   (let [fc (/ (dec length) 2)
+   (when-not (and (pos? length) (odd? length))
+     (throw (ex-info "Length should be positive and odd." {:length length})))
+   (let [fc (m/long-quot (dec length) 2)
          coeffs (map (fn [^long v]
-                       (kernel 0 (* step v))) (range (- fc) (inc fc)))
+                       (kernel 0.0 (* step v))) (range (- fc) (inc fc)))
          ^double sum (reduce m/+ coeffs)
          coeffs (double-array (map (fn [^double v]
                                      (/ v sum)) coeffs))]
@@ -1098,246 +1209,277 @@
 
 (m/unuse-primitive-operators)
 
-;; https://appliedacousticschalmers.github.io/scaling-of-the-dft/AES2020_eBrief/
-;; https://dewesoft.com/blog/guide-to-fft-analysis
-;; a book: https://brianmcfee.net/dstbook-site/content/intro.html
+;; Spectral core.
+;; Coefficients are scaled back to the unnormalized DFT (`:norm :backward`); bins of a one-sided spectrum
+;; which stand for two coefficients (all except DC and Nyquist) are doubled, as in `scipy.signal.periodogram`.
 
+(defn- fft-layout
+  "Layout of the coefficients `txs`: `{:one-sided? :n :scale}`.
+
+  Read from the `:fastmath.transform/fft` metadata, `options` (`:kind`, `:n`, `:nyquist?`, `:norm`) override it. `:scale` converts coefficients to the unnormalized DFT."
+  [txs options]
+  (let [given (into {} (filter (comp some? val)) (select-keys options [:kind :n :nyquist? :norm]))
+        {:keys [kind n nyquist? norm]
+         :or {kind :real nyquist? true norm :backward}} (merge (::trans/fft (meta txs)) given)
+        cnt (count txs)
+        one-sided? (case kind
+                     :real true
+                     :complex false
+                     (throw (ex-info "Unknown spectrum kind." {:kind kind :allowed [:real :complex]})))
+        n (long (or n (cond
+                        (not one-sided?) cnt
+                        nyquist? (m/long-mult 2 (m/long-dec cnt))
+                        :else (m/long-dec (m/long-mult 2 cnt)))))]
+    (when (m/zero? cnt)
+      (throw (ex-info "Spectrum is empty." {})))
+    (when-not (m/== cnt (if one-sided? (m/long-inc (m/long-quot n 2)) n))
+      (throw (ex-info "Signal length :n does not match the number of coefficients." {:n n :count cnt :kind kind})))
+    {:one-sided? one-sided?
+     :n n
+     :scale (case norm
+              :backward 1.0
+              :ortho (m/sqrt n)
+              :forward (double n)
+              (throw (ex-info "Unknown norm." {:norm norm :allowed [:backward :ortho :forward]})))}))
+
+(defn- one-sided-weight
+  "2 for bins of a one-sided spectrum which stand for two coefficients, 1 otherwise."
+  ^double [one-sided? ^long n ^long k]
+  (if (and one-sided?
+           (m/pos? k)
+           (not (and (m/even? n) (m/== k (m/long-quot n 2)))))
+    2.0 1.0))
+
+(defn- magnitudes
+  [txs {:keys [one-sided? ^long n ^double scale]}]
+  (vec (map-indexed (fn [^long k z]
+                      (m/* (one-sided-weight one-sided? n k) scale (v/mag z))) txs)))
+
+(defn- energies
+  [txs {:keys [one-sided? ^long n ^double scale]}]
+  (vec (map-indexed (fn [^long k z]
+                      (m/* (one-sided-weight one-sided? n k) (m/sq (m/* scale (v/mag z))))) txs)))
+
+(defn- scale-values
+  [xs ^double factor]
+  (mapv (fn [^double x] (m/* factor x)) xs))
+
+(defn- spectral-values
+  "Values of `method` for the coefficients `txs` of a segment windowed by a window with sum `wsum` and sum of squares `wsum2` (both `n` without window)."
+  [method txs layout fs wsum wsum2]
+  (let [fs (double fs)
+        wsum (double wsum)
+        wsum2 (double wsum2)]
+    (case method
+      :magnitude (magnitudes txs layout)
+      :amplitude (scale-values (magnitudes txs layout) (m// wsum))
+      :energy (energies txs layout)
+      :power (scale-values (energies txs layout) (m// (m/sq wsum)))
+      :psd (scale-values (energies txs layout) (m// (m/* fs wsum2)))
+      :asd (mapv m/sqrt (scale-values (energies txs layout) (m// (m/* fs wsum2))))
+      :phase (mapv v/heading txs)
+      :real (mapv first txs)
+      :imag (mapv second txs)
+      :complex (vec txs)
+      (throw (ex-info "Unknown spectrum method." {:method method
+                                                  :allowed [:magnitude :amplitude :energy :power :psd :asd
+                                                            :phase :real :imag :complex]})))))
+
+(defn- ->db
+  "Decibels: `10 log10` for power quantities, `20 log10` for amplitude quantities (values floored at `EPSILON`), other methods unchanged."
+  [method xs]
+  (case method
+    (:energy :power :psd) (mapv (fn [^double x] (m/* 10.0 (m/log10 (m/max x m/EPSILON)))) xs)
+    (:magnitude :amplitude :asd) (mapv (fn [^double x] (m/* 20.0 (m/log10 (m/max x m/EPSILON)))) xs)
+    xs))
 
 (defn fft-energy
-  "Returns the energy spectrum (magnitude squared) of a transformed signal.
+  "Returns the energy spectrum `|X_k|^2` of the coefficients `txs` (from `fastmath.transform/fft`).
 
-  Computes the energy for each frequency bin in a signal's Fourier representation. For real-valued signals, this function automatically accounts for energy conservation in single-sided spectra by doubling the energy of all bins except the DC component and the Nyquist frequency.
+  For a one-sided spectrum the bins standing for two coefficients (all but DC and, for even `N`, Nyquist) are doubled, so the sum equals the sum over the two-sided spectrum (Parseval).
 
-  Input parameters:
+  Options (default: the `:fastmath.transform/fft` metadata of `txs`):
 
-  * `txs` - A sequence of complex coefficients (frequency domain), typically `Vec2` objects produced by `fastmath.transform/fft`.
-  * `options` - A map of configuration keys to override or provide metadata:
-    * `:kind` - The type of the input spectrum: `:real` (default) or `:complex`.
-    * `:nyquist?` - For real signals, a boolean indicating if the original time-domain signal length was even (required to correctly identify the Nyquist bin).
+  * `:kind` - `:real` for a one-sided spectrum (`N/2+1` coefficients of a real signal), `:complex` for a two-sided spectrum (`N` coefficients)
+  * `:n` - signal length `N`
+  * `:nyquist?` - without `:n` and metadata, `true` (default) when `N` is even (`N = 2(count-1)`), `false` for odd `N` (`N = 2 count - 1`)
+  * `:norm` - normalization used by `fft`: `:backward` (default), `:ortho`, `:forward`; values are computed for the unnormalized DFT
 
-  Output:
-  Returns a sequence of doubles representing the energy (squared magnitude) for each frequency bin."
-  [txs options]
-  (let [{:keys [kind nyquist?] :or {kind :real nyquist? true}} (merge (::fft (meta txs)) options)]
-    (if (= :complex kind)
-      (map v/magsq txs)
-      (let [len- (m/dec (count txs))]
-        (map-indexed (fn [^long id v]
-                       (if (or (m/zero? id) (and nyquist? (m/== len- id)))
-                         (v/magsq v)
-                         (m/* 2.0 (v/magsq v)))) txs)))))
+  Returns a vector of doubles. Throws `ex-info` when `:n` does not match the number of coefficients."
+  ([txs] (fft-energy txs nil))
+  ([txs options] (energies txs (fft-layout txs options))))
 
 (defn fft-magnitude
-  "Returns the magnitude spectrum of a transformed signal.
+  "Returns the magnitude spectrum `|X_k|` of the coefficients `txs` (from `fastmath.transform/fft`).
 
-  Computes the absolute value (magnitude) for each frequency bin in a signal's Fourier representation. For real-valued signals, this function accounts for the single-sided spectrum representation by scaling coefficients (except DC and Nyquist) to ensure the magnitude correctly reflects the amplitude of the signal components.
+  For a one-sided spectrum the bins standing for two coefficients (all but DC and, for even `N`, Nyquist) are doubled, so a sine of amplitude `A` at bin `k` gives `A N`.
 
-  Input parameters:
-
-  * `txs` - A sequence of complex coefficients (frequency domain), typically `Vec2` objects produced by `fastmath.transform/fft`.
-  * `options` - A map of configuration keys to override or provide metadata:
-    * `:kind` - The type of the input spectrum: `:real` (default) or `:complex`.
-    * `:nyquist?` - For real signals, a boolean indicating if the original time-domain signal length was even (required to correctly identify the Nyquist bin).
-
-  Output:
-  Returns a sequence of doubles representing the magnitude (absolute value) for each frequency bin."
-  [txs options]
-  (-> txs (fft-energy options) (v/mult 2.0) v/sqrt))
-
-(defn- fft-infer-N
-  ^long [txs options]
-  (let [options (merge (::fft (meta txs)) options)
-        {:keys [kind nyquist?] :or {kind :real nyquist? true}} options
-        N (count txs)]
-    (if (= :real kind)
-      (if nyquist? (m/* 2.0 (m/dec N)) (m/+ N (m/dec N)))
-      N)))
+  Options as in [[fft-energy]]. Returns a vector of doubles."
+  ([txs] (fft-magnitude txs nil))
+  ([txs options] (magnitudes txs (fft-layout txs options))))
 
 (defn fft-amplitude
-  "Returns the amplitude spectrum of a transformed signal.
+  "Returns the amplitude spectrum, [[fft-magnitude]] divided by the signal length `N`: a one-sided spectrum gives the peak amplitude of each sinusoidal component (and the mean at DC).
 
-  Computes the peak amplitude for each frequency bin by normalizing the magnitude spectrum. In Fourier analysis, raw FFT coefficients are proportional to the signal length $N$; this function divides the magnitudes by $N$ (and accounts for single-sided scaling in real signals) so that the resulting values correspond to the actual amplitudes of the sinusoidal components in the original time-domain signal.
-
-  Input parameters:
-
-  * `txs` - A sequence of complex coefficients (frequency domain), typically `Vec2` objects produced by `fastmath.transform/fft`.
-  * `options` - A map of configuration keys to override or provide metadata:
-    * `:kind` - The type of the input spectrum: `:real` (default) or `:complex`.
-    * `:nyquist?` - For real signals, a boolean indicating if the original time-domain signal length was even (required to correctly calculate the normalization factor $N$).
-
-  Output:
-  Returns a sequence of doubles representing the normalized peak amplitude for each frequency bin."
-  [txs options]
-  (v/div (fft-magnitude txs options) (fft-infer-N txs options)))
+  Options as in [[fft-energy]]. Returns a vector of doubles."
+  ([txs] (fft-amplitude txs nil))
+  ([txs options] (let [layout (fft-layout txs options)]
+                   (scale-values (magnitudes txs layout) (m// (double (:n layout)))))))
 
 (defn fft-power
-  "Returns the power spectrum of a transformed signal.
+  "Returns the power spectrum, [[fft-energy]] divided by `N^2`: the mean square of each component, sums to the mean square of the signal (`scipy.signal.periodogram` with `scaling='spectrum'`).
 
-  Computes the power distribution for each frequency bin by normalizing the energy spectrum by the square of the signal length $N$. This representation describes how much power (mean square amplitude) is contained in each frequency component. For real-valued signals, it automatically accounts for the single-sided spectrum scaling before normalization.
-
-  Input parameters:
-
-  * `txs` - A sequence of complex coefficients (frequency domain), typically `Vec2` objects produced by `fastmath.transform/fft`.
-  * `options` - A map of configuration keys to override or provide metadata:
-    * `:kind` - The type of the input spectrum: `:real` (default) or `:complex`.
-    * `:nyquist?` - For real signals, a boolean indicating if the original time-domain signal length was even (required to correctly calculate the normalization factor $N$).
-
-  Output:
-  Returns a sequence of doubles representing the power (mean square) for each frequency bin."
-  [txs options]
-  (v/div (fft-energy txs options) (m/sq (fft-infer-N txs options))))
+  Options as in [[fft-energy]]. Returns a vector of doubles."
+  ([txs] (fft-power txs nil))
+  ([txs options] (let [layout (fft-layout txs options)]
+                   (scale-values (energies txs layout) (m// (m/sq (:n layout)))))))
 
 (defn fft-frequencies
-  "Returns a sequence of frequency values corresponding to FFT bins.
+  "Returns the frequencies of the `N` DFT bins for sample rate `fs`: `k fs / N` for `k = 0, ..., N-1` (from 0 up to `fs - fs/N`; bins above `N/2` stand for negative frequencies `(k - N) fs / N`).
 
-  Generates the frequency axis for a signal's Fourier representation. It maps discrete bin indices to their physical frequency values based on the sampling rate and the signal length, facilitating the interpretation of the spectrum in Hertz (or the reciprocal units of the sampling interval).
-
-  Input parameters:
-
-  * `fs` - Sampling frequency (samples per second) of the original time-domain signal.
-  * `N` - Total number of points in the FFT (typically the signal or window length).
-
-  Output:
-  Returns a sequence of `N` doubles representing the center frequency of each bin, starting from 0 (DC) up to the sampling frequency."
+  For a one-sided spectrum take the first `N/2+1` values. Returns a vector of doubles."
   [^double fs ^long N]
-  (let [z (m// fs N)] (v/mult (range N) z)))
+  (let [step (m// fs N)]
+    (mapv (fn [^long k] (m/* k step)) (range N))))
 
 (defn- fft-times
-  ([^double fs ^long shift] (fft-times fs shift 0))
-  ([^double fs ^long shift ^long wlen]
-   (let [step (m// shift fs)
-         mid (m// wlen 2 fs)]
-     (map (fn [^long n]
-            (m/+ mid (m/* n step))) (range)))))
+  "Times of the segment centres, `(wlen/2 + i shift) / fs` (as `scipy.signal.spectrogram`)."
+  [^double fs ^long shift ^long wlen]
+  (map (fn [^long i] (m// (m/+ (m/* 0.5 wlen) (m/* i shift)) fs)) (range)))
 
 (defn stft
   "Computes the Short-Time Fourier Transform (STFT) of a 1D signal.
 
-  The STFT provides a time-frequency representation of a signal by performing Fourier transforms over short, overlapping windowed segments of the data. This process captures how the frequency content of a non-stationary signal evolves over time, providing the underlying data structure for spectrograms.
+  The signal is split into segments of the window length, shifted by `round((1 - overlap) wlen)` samples (at least 1); the last partial segment is dropped. Each segment is multiplied by the window and transformed.
 
   Input parameters:
 
-  * `xs` - Input time-domain signal (sequence of doubles).
+  * `xs` - Input time-domain signal (sequence of doubles), not shorter than the window.
   * `options` - A map of configuration keys:
-    * `:window` - A sequence of coefficients representing the window function (e.g., from `fastmath.kernel/window`). If not provided, a Gaussian window is automatically generated.
-    * `:overlap` - The fraction of overlap between adjacent segments, typically between 0.0 and 1.0. Default is `0.5`.
-    * `:fs` - The sampling frequency of the original signal. Default is `1.0`.
-    * `:method` - The type of spectral values to return for each segment: `:magnitude`, `:amplitude`, `:energy`, `:power`, `:psd` (Power Spectral Density), `:phase`, or `nil` (returns raw `Vec2` complex coefficients). Default is `:power`.
+    * `:window` - A sequence of window coefficients (e.g., from `fastmath.kernel/window`). Default: Gaussian window of length `max(5, round(0.05 N))`.
+    * `:overlap` - The fraction of overlap between adjacent segments, in `[0, 1)`. Default is `0.5`.
+    * `:fs` - The sampling frequency. Default is `1.0`.
+    * `:method` - Values for each segment, as in [[spectrum]] with the window taken into account (`scipy.signal.spectrogram` scaling): `:magnitude`, `:amplitude` (magnitude / sum of window), `:energy`, `:power` (energy / (sum of window)^2, `scaling='spectrum'`), `:psd` (energy / (fs sum of squared window), `scaling='density'`), `:asd` (`sqrt(psd)`), `:phase`, `:real`, `:imag`, `:complex` (coefficients). Default is `:power`.
+    * `:db?` - convert values to decibels: `10 log10` for `:energy`, `:power`, `:psd`, `20 log10` for `:magnitude`, `:amplitude`, `:asd` (values floored at `EPSILON`); other methods unchanged. Default `false`.
+    * `:spectrum`, `:norm` - passed to `fastmath.transform/fft` (one-sided by default).
 
   Returns a map containing:
 
-  * `:N` - The total number of samples in the input signal.
-  * `:spectrum` - A sequence of sequences, where each inner sequence represents the frequency spectrum of a time-localized window.
-  * `:freqs` - A sequence of frequency values corresponding to the bins in the spectrum.
-  * `:times` - A sequence of time values corresponding to the center of each windowed segment."
-  ([xs {:keys [window ^double overlap ^double fs method db?]
+  * `:N` - The number of samples in the input signal.
+  * `:spectrum` - A vector of spectra (vectors), one for each segment.
+  * `:freqs` - Frequencies of the bins.
+  * `:times` - Times of the segment centres, `(wlen/2 + i shift) / fs`.
+
+  Throws `ex-info` for an empty window, a signal shorter than the window or an unknown method."
+  ([xs] (stft xs nil))
+  ([xs {:keys [window overlap fs method db?]
         :or {overlap 0.5 fs 1.0 method :power}
         :as options}]
    (let [N (count xs)
-         window (or window (ker/window :gaussian (m/max 5 (m/round (m/* 0.05 N)))))
+         fs (double fs)
+         window (vec (or window (ker/window :gaussian (m/long-max 5 (m/round (m/* 0.05 N))))))
          wlen (count window)
-         shift (m/max 1 (m/round (m/* (m/- 1.0 overlap) wlen)))
-         scale (v/sum window)
-         scale-sq (m/sq scale)
-         scale2 (m/* fs (v/sum (v/sq window)))
-         xxs (->> (partition wlen shift xs)
-                  (map (fn [xs]
-                         (let [txs (-> (v/emult window xs)
-                                       (trans/fft options))
-                               s (case method
-                                   :magnitude (fft-magnitude txs options)
-                                   :amplitude (v/div (fft-magnitude txs options) scale)
-                                   :energy (fft-energy txs options)
-                                   :power (v/div (fft-energy txs options) scale-sq)
-                                   :psd (v/div (fft-energy txs options) scale2)
-                                   :phase (map v/heading txs)
-                                   txs)]
-                           (if (and db? (not (#{:phase} method)))
-                             (map (fn [^double x] (m/* 10.0 (m/log10 (m/max x m/EPSILON)))) s)
-                             s)))))]
+         _ (when (m/zero? wlen)
+             (throw (ex-info "Window is empty." {})))
+         _ (when (m/< N wlen)
+             (throw (ex-info "Signal is shorter than the window." {:N N :window-length wlen})))
+         shift (m/long-max 1 (m/round (m/* (m/- 1.0 (double overlap)) wlen)))
+         wsum (double (reduce m/+ 0.0 window))
+         wsum2 (double (reduce (fn [^double acc ^double w] (m/+ acc (m/* w w))) 0.0 window))
+         fft-options (select-keys options [:spectrum :norm])
+         spectra (mapv (fn [segment]
+                         (let [txs (trans/fft (mapv (fn [^double w ^double x] (m/* w x)) window segment) fft-options)
+                               s (spectral-values method txs (fft-layout txs nil) fs wsum wsum2)]
+                           (if db? (->db method s) s)))
+                       (partition wlen shift xs))]
      {:N N
-      :spectrum xxs
-      :freqs (take (count (first xxs)) (fft-frequencies fs wlen))
-      :times (take (count xxs) (fft-times fs shift wlen))})))
+      :spectrum spectra
+      :freqs (vec (take (count (first spectra)) (fft-frequencies fs wlen)))
+      :times (vec (take (count spectra) (fft-times fs shift wlen)))})))
 
 (defn spectrum
   "Returns the frequency spectrum of a signal using FFT.
 
-  Analyzes the frequency content of a time-domain signal or processes existing Fourier coefficients to produce various spectral representations. The function handles the necessary normalization and scaling to ensure the output reflects physical quantities such as peak amplitude, power, or spectral density.
+  Values follow `scipy.signal.periodogram` with a boxcar window and no detrending.
 
   Input parameters:
 
-  * `xs` - Input signal. Can be a sequence of doubles (time-domain) or a sequence of `fastmath.vector.Vec2` complex coefficients (frequency-domain).
+  * `xs` - Input signal. Can be a sequence of doubles (time-domain) or a sequence of `Vec2` coefficients from `fastmath.transform/fft` (frequency-domain).
   * `options` - A map of configuration keys:
-    * `:method` - The type of spectral values to return. Options: `:magnitude`, `:amplitude` (default), `:energy`, `:power`, `:psd` (Power Spectral Density), `:asd` (Amplitude Spectral Density), `:phase` (angle in radians), `:real` (real part only), `:imag` (imaginary part only) or `:complex` (transformed data).
-    * `:db?` - Boolean flag; if true, converts the resulting spectrum values to decibels using $10\\log_{10}(x)$. Default is `false`.
-    * `:fs` - The sampling frequency of the signal. Default is `1.0`.
-    * `:domain` - Specifies if the input `xs` is in the `:time` domain (requires performing an FFT) or already in the `:frequency` domain. Default is `:time`.
+    * `:method` - `:magnitude` (`|X_k|`), `:amplitude` (default, magnitude / N), `:energy` (`|X_k|^2`), `:power` (energy / N^2, `scaling='spectrum'`), `:psd` (power spectral density, energy / (N fs), `scaling='density'`), `:asd` (amplitude spectral density, `sqrt(psd)`), `:phase` (angle in radians), `:real`, `:imag` or `:complex` (coefficients). For a one-sided spectrum magnitude and energy of the bins standing for two coefficients (all but DC and, for even `N`, Nyquist) are doubled.
+    * `:db?` - convert to decibels: `10 log10` for `:energy`, `:power`, `:psd`, `20 log10` for `:magnitude`, `:amplitude`, `:asd` (values floored at `EPSILON`); other methods unchanged. Default `false`.
+    * `:fs` - The sampling frequency. Default is `1.0`.
+    * `:domain` - `:time` (default, `xs` is transformed with `fastmath.transform/fft`, `options` are passed to it, e.g. `:spectrum :double-sided`, `:norm`) or `:frequency` (`xs` are coefficients).
+    * `:kind`, `:n`, `:nyquist?`, `:norm` - layout of coefficients for `:domain :frequency` when they have no `fft` metadata, see [[fft-energy]].
 
   Returns a map containing:
 
-  * `:N` - The number of samples in the original signal.
-  * `:spectrum` - A sequence of doubles representing the calculated spectral values.
-  * `:freqs` - A sequence of frequency values (in the same units as `:fs`) corresponding to each bin in the spectrum."
+  * `:N` - The number of samples of the signal.
+  * `:spectrum` - A vector of spectral values.
+  * `:freqs` - Frequencies of the bins (see [[fft-frequencies]]).
+
+  Throws `ex-info` for an empty signal, an unknown `:method` or `:domain`."
   ([xs] (spectrum xs nil))
-  ([xs {:keys [method db? ^double fs domain]
+  ([xs {:keys [method db? fs domain]
         :or {method :amplitude db? false fs 1.0 domain :time}
         :as options}]
-   (let [N (count xs)
-         step (m// fs N)
-         sp (let [txs (if (= :time domain)
-                        (trans/fft xs options)
-                        xs)]
-              (case method
-                :magnitude (fft-magnitude txs options)
-                :amplitude (fft-amplitude txs options)
-                :energy (fft-energy txs options)
-                :power (fft-power txs options)
-                :psd (v/div (fft-power txs options) step)
-                :asd (v/div (fft-amplitude txs options) step)
-                :phase (map v/heading txs)
-                :real (map first txs)
-                :imag (map second txs)
-                :complex txs))
-         sp (if (and db? (not (#{:phase :real :imag :complex} method)))
-              (map (fn [^double x] (m/* 10.0 (m/log10 (m/max x m/EPSILON)))) sp)
-              sp)]
-     {:N N
+   (let [fs (double fs)
+         [txs layout-options] (case domain
+                                :time [(trans/fft xs options) nil]
+                                :frequency [xs options]
+                                (throw (ex-info "Unknown domain." {:domain domain :allowed [:time :frequency]})))
+         layout (fft-layout txs layout-options)
+         n (double (:n layout))
+         sp (spectral-values method txs layout fs n n)
+         sp (if db? (->db method sp) sp)]
+     {:N (:n layout)
       :spectrum sp
-      :freqs (take (count sp) (fft-frequencies fs N))})))
+      :freqs (vec (take (count sp) (fft-frequencies fs (:n layout))))})))
 
-;; https://arxiv.org/pdf/gr-qc/0509116
 (defn- median-bias
-  [^long n]
-  (let [n+ (m/inc n)]
-    (- (special/digamma n+)
-       (special/digamma (m/* 0.5 n+)))))
+  "Bias of the median of `n` chi-squared(2) estimates, as `scipy.signal._spectral_py._median_bias`."
+  ^double [^long n]
+  (loop [i 1
+         acc 1.0]
+    (if (m/> i (m/long-quot (m/long-dec n) 2))
+      acc
+      (let [i2 (m/* 2.0 i)]
+        (recur (m/long-inc i) (m/+ acc (m/- (m// (m/inc i2)) (m// i2))))))))
 
 (defn periodogram
-  "Estimate the spectral density of a signal using windowed averaging.
+  "Estimate the spectral density of a signal with Welch's method.
 
-  Calculates the periodogram (an estimate of the spectral density) of a 1D signal by dividing the data into overlapping segments, computing the spectrum for each segment, and aggregating the results. This technique, based on Welch's method, reduces the noise and variance of the spectral estimate compared to a single FFT of the entire signal.
+  The signal is split into windowed segments (see [[stft]]), spectral values are calculated for each segment and averaged. It equals `scipy.signal.welch` with `detrend=False` and `noverlap = wlen - round((1 - overlap) wlen)`.
 
   Input parameters:
-  * `xs` - Input time-domain signal (sequence of doubles).
+
+  * `xs` - Input time-domain signal (sequence of doubles), not shorter than the window.
   * `options` - A map of configuration keys:
-    * `:method` - The type of spectral values to calculate for segments: `:psd` (Power Spectral Density, default), `:power`, `:magnitude`, `:amplitude`, `:energy`, or `:phase`.
-    * `:average` - Aggregation method for segments: `:mean` (default), `:median` (more robust to outliers) or `:umedian` (unbiased median, like in SciPy).
-    * `:window` - A sequence of coefficients for the window function.
-    * `:overlap` - Fraction of overlap between segments.
-    * `:fs` - Sampling frequency of the signal.
+    * `:method` - values calculated for segments, as in [[stft]]: `:psd` (default, `scaling='density'`), `:power` (`scaling='spectrum'`), `:energy`, `:magnitude`, `:amplitude`, `:asd`, `:phase`, `:real`, `:imag`.
+    * `:average` - aggregation of segments: `:mean` (default), `:median` or `:umedian` (median divided by the bias of the median for the number of segments, `average='median'` in scipy).
+    * `:db?` - convert the averaged values to decibels, as in [[stft]].
+    * `:window`, `:overlap`, `:fs`, `:spectrum`, `:norm` - as in [[stft]].
 
   Returns a map containing:
-  * `:freqs` - A sequence of frequency values (bins).
-  * `:spectrum` - A sequence of aggregated spectral values corresponding to the frequencies."
+
+  * `:freqs` - Frequencies of the bins.
+  * `:spectrum` - Averaged spectral values.
+
+  Throws `ex-info` for a signal shorter than the window, an unknown `:method` (also `:complex`) or `:average`."
   ([xs] (periodogram xs nil))
-  ([xs {:keys [method average] :or {method :psd average :mean} :as options}]
-   (let [{:keys [freqs spectrum]} (stft xs (assoc options :method method))]
+  ([xs {:keys [method average db?] :or {method :psd average :mean} :as options}]
+   (when (= :complex method)
+     (throw (ex-info "Complex coefficients can't be averaged." {:method method})))
+   (let [{:keys [freqs spectrum]} (stft xs (assoc options :method method :db? false))
+         columns (apply mapv vector spectrum)
+         avg (case average
+               :mean (mapv stats/mean columns)
+               :median (mapv (fn [col] (stats/median col :r7)) columns)
+               :umedian (let [bias (median-bias (count spectrum))]
+                          (mapv (fn [col] (m// (stats/median col :r7) bias)) columns))
+               (throw (ex-info "Unknown average." {:average average :allowed [:mean :median :umedian]})))]
      {:freqs freqs
-      :spectrum (case average
-                  :mean (v/average-vectors spectrum)
-                  :umedian (v/div (map stats/median (apply map vector spectrum)) (median-bias (count spectrum)))
-                  :median (map stats/median (apply map vector spectrum)))})))
+      :spectrum (if db? (->db method avg) avg)})))
 
 ;; Waveforms
 
@@ -1436,17 +1578,20 @@
 (defn sample-waveform
   "Discretize a continuous waveform function into a sequence of samples.
 
-  Evaluates a time-dependent function at regular intervals to produce a discrete-time signal.
+  Evaluates a time-dependent function at `t = i / fs` for `i = 0, ..., round(fs time) - 1` (the end point `time` is excluded).
 
   Input parameters:
   * `waveform-fn` - A function `(fn [t])` that accepts time as a double and returns the signal amplitude. Usually created via [[waveform]] or [[chirp]].
-  * `fs` - Sampling frequency in Hz (samples per second).
+  * `fs` - Sampling frequency in Hz (samples per second), positive.
   * `time` - The total duration of the signal to generate in seconds. Defaults to `1.0`.
 
-  Returns a sequence of doubles representing the sampled signal in the time domain."
+  Returns a vector of doubles. Throws `ex-info` when `fs` is not positive."
   ([waveform-fn ^double fs] (sample-waveform waveform-fn fs 1.0))
   ([waveform-fn ^double fs ^double time]
-   (m/sample waveform-fn 0.0 time (m/* fs time))))
+   (when-not (m/pos? fs)
+     (throw (ex-info "Sampling frequency should be positive." {:fs fs})))
+   (mapv (fn [^long i] (double (waveform-fn (m// i fs))))
+         (range (m/long-max 0 (m/round (m/* fs time)))))))
 
 ;; padding
 
@@ -1494,7 +1639,9 @@
 ;;
 
 (defn hilbert
-  "Calculates analytical signal."
+  "Calculates the analytic signal `x + i H(x)` (`H` - Hilbert transform) with FFT, as `scipy.signal.hilbert`.
+
+  Returns a vector of complex numbers (`Vec2`)."
   [xs]
   (let [t (trans/fft xs {:spectrum :double-sided})
         cnt (count t)
@@ -1509,19 +1656,21 @@
         (trans/ifft {:kind :complex :real? false}))))
 
 (defn amplitude-envelope
-  "Calculate envelope of the signal."
+  "Calculate envelope of the signal, the absolute value of [[hilbert]]."
   [xs]
   (->> (hilbert xs) (map cplx/abs)))
 
 (defn instantaneous-phase
-  "Calculate instantaneous phase."
+  "Calculate instantaneous phase, the argument of [[hilbert]], unwrapped by default."
   ([xs] (instantaneous-phase xs true))
   ([xs unwrap?]
    (let [args (->> (hilbert xs) (map cplx/arg))]
      (if unwrap? (v/unwrap args m/TWO_PI) args))))
 
 (defn instantaneous-frequency
-  "Calculate instantaneous phase."
+  "Calculate instantaneous frequency: differences of the unwrapped [[instantaneous-phase]] times `fs / (2 pi)` (default `fs` 1.0).
+
+  Returns `N - 1` values."
   ([xs] (instantaneous-frequency xs 1.0))
   ([xs ^double fs]
    (-> (instantaneous-phase xs)
@@ -1532,7 +1681,7 @@
 ;;
 
 (defn zero-phase
-  "Set phase to zero"
+  "Set phase of the signal spectrum to zero (keep magnitudes), returns the inverse transform as a vector."
   [xs]
   (let [X (trans/fft xs)]
     (trans/ifft (with-meta (mapv (comp cplx/complex cplx/abs) X) (meta X)))))
@@ -1540,142 +1689,23 @@
 ;;
 
 (defn resample
-  "Resample signal using FFT interpolation."
+  "Resample signal to `nsize` samples using FFT interpolation (as `scipy.signal.resample`; the signal is assumed periodic).
+
+  Returns a vector of doubles. Throws `ex-info` for an empty signal or `nsize` less than 1."
   [xs ^long nsize]
   (let [size (count xs)]
+    (when (m/zero? size)
+      (throw (ex-info "Signal should not be empty." {})))
+    (when (m/< nsize 1)
+      (throw (ex-info "New size should be positive." {:nsize nsize})))
     (if (m/== nsize size)
-      xs
+      (mapv double xs)
       (let [ratio (m// (double nsize) size)
-            m (m/min size nsize)
-            m2 (m/inc (m// m 2))
+            m (m/long-min size nsize)
+            m2 (m/long-inc (m/long-quot m 2))
             X (as-> (vec (take m2 (trans/fft xs))) X
-                (if (m/odd? m) X (update X (m// m 2) cplx/scale (if (m/< nsize size) 2.0 0.5)))
+                (if (m/odd? m) X (update X (m/long-quot m 2) cplx/scale (if (m/< nsize size) 2.0 0.5)))
                 (if (m/< nsize size) X
-                    (concat X (repeat (if (m/even? size)
-                                        (m// (m/- nsize size) 2)
-                                        (m// (m/inc (m/- nsize size)) 2)) cplx/ZERO)))
+                    (concat X (repeat (m/long-sub (m/long-quot nsize 2) (m/long-quot size 2)) cplx/ZERO)))
                 (map #(cplx/scale % ratio) X))]
         (trans/ifft X {:kind :real :n nsize})))))
-
-
-
-;; DEPRECATED
-
-;; ## Signal generators
-;;
-;; Here you have defined multimethods to create waves from various oscilators
-;;
-;; Parameters are:
-;;
-;; * oscilator name (see `oscillators` variable)
-;; * frequency
-;; * amplitude
-;; * phase (0-1)
-;;
-;; Multimethod creates oscillator function accepting `double` (time) and resulting `double` from [-1.0 1.0] range.
-
-(defmulti oscillator
-  "Create oscillator.
-
-  Parameters are:
-
-  * oscilator name (see `oscillators` variable)
-  * frequency
-  * amplitude
-  * phase (0-1)
-  
-  Multimethod creates oscillator function accepting `double` (as time) and returns `double` from [-1.0 1.0] range.
-
-  To convert `oscillator` to signal, call [[signal-from-oscillator]].
-
-  To add oscillators, call [[sum-oscillators]]."
-  {:deprecated "Use `waveform` and `chirp` functions."}
-  (fn [f _ _ _] f))
-
-(defmethod oscillator :sin [_ ^double f ^double a ^double p]
-  (fn ^double [^double x]
-    (* a
-       (m/sin (+ (* p m/TWO_PI) (* x m/TWO_PI f))))))
-
-(def ^:private snoise (r/fbm-noise {:noise-type :simplex
-                                  :octaves 1                                    
-                                  :normalize? false}))
-
-(defmethod oscillator :noise [_ ^double f ^double a ^double p]
-  (fn ^double [^double x]
-    (* a ^double (snoise (* (+ p x) f) 1.23456789))))
-
-(defmethod oscillator :saw [_ ^double f ^double a ^double p] 
-  (fn ^double [^double x]
-    (let [rp (* 2.0 a)
-          p2 (* f (m/mod (+ (* a p) a x) 1.0))]
-      (* rp (- p2 (m/floor p2) 0.5)))))
-
-(defmethod oscillator :square [_ ^double f ^double a ^double p]
-  (fn ^double [^double x]
-    (if (< (m/mod (+ p (* x f)) 1.0) 0.5)
-      a
-      (- a))))
-
-(defmethod oscillator :triangle [_ ^double f ^double a ^double p]
-  (let [saw (oscillator :saw f a p)]
-    (fn ^double [^double x]
-      (- (* 2.0 (m/abs (double (saw x)))) a))))
-
-(defmethod oscillator :cut-triangle [_ ^double f ^double a ^double p]
-  (let [tri (oscillator :triangle f a p)]
-    (fn ^double [^double x]
-      (let [namp (* 0.5 a)]
-        (* 2.0 (m/constrain (double (tri x)) (- namp) namp))))))
-
-(defmethod oscillator :constant [_ _ ^double a _] (constantly a))
-
-(def ^{:doc "List of oscillator names used with [[oscillator]]"
-       :deprecated true}
-  oscillators (sort (keys (methods oscillator))))
-
-(defn oscillators-sum
-  "Create oscillator which is sum of all oscillators."
-  {:deprecated "Use `add-waveforms`."}
-  [& fs]
-  (reduce #(fn ^double [^double x] (+ ^double (%1 x) ^double (%2 x))) fs))
-
-(defn oscillator-gain
-  {:deprecated "Use `gain-waveform`."}
-  [fs ^double gain]
-  (fn ^double [^double x]
-    (* gain ^double (fs x))))
-
-(defn oscillator->signal
-  "Create signal from oscillator.
-
-  Parameters are:
-
-  * f - oscillator
-  * samplerate - in Hz
-  * seconds - duration
-
-  Returns sampled signal as double array."
-  {:deprecated "Use `sample-waveform`"}
-  [f ^double samplerate ^double seconds]
-  (let [len (* samplerate seconds)
-        ^doubles buffer (double-array len)]
-    (dotimes [i len]
-      (aset ^doubles buffer i (m/constrain ^double (f (m/norm i 0 len 0 seconds)) -1.0 1.0)))
-    buffer))
-
-(defn signal->oscillator
-  "Create oscillator from signal.
-
-  Parameters:
-
-  * sig - signal as sequence
-  * seconds - duration
-  * interpolator - interpolation (see [[fastmath.interpolation]]). Default: [[linear-smile]]."
-  {:deprecated true}
-  ([sig ^double seconds] (signal->oscillator sig seconds linear-interp/linear))
-  ([sig ^double seconds interpolator]
-   (let [c (count sig)
-         step (/ seconds c)] 
-     (interpolator (for [^long i (range c)]
-                     (* i step)) sig))))
