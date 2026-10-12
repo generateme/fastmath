@@ -137,8 +137,8 @@
 (def ^:private himmelblau-minima [[3.0 2.0] [-2.805118 3.131313] [-3.779310 -3.283186] [3.584428 -1.848126]])
 (def ^:private hb (p/himmelblau-bounds))
 (def ^:private multivariate-methods [:lbfgsb :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :powell :conjugate-gradient :non-linear-conjugate-gradient])
-;; :sceua is stochastic: the tests of the method matrices use a seeded generator for it.
-(defn- seeded [method opts] (cond-> opts (= :sceua method) (assoc :rng (r/rng :jdk 1))))
+;; :sceua and :cmaes are stochastic: the tests of the method matrices use a seeded generator for them.
+(defn- seeded [method opts] (cond-> opts (#{:sceua :cmaes} method) (assoc :rng (r/rng :jdk 1))))
 (def ^:private all-methods (conj multivariate-methods :brent))
 
 (defn- near-minimum? [pt] (boolean (some #(v/delta-eq (vec pt) % 1.0e-3) himmelblau-minima)))
@@ -341,7 +341,7 @@
                                                 {:bounds hb :vector-arg? false :gradient himmelblau-gradient}))) (str method)))
     ;; methods which do not use the gradient ignore it
     (doseq [method [:bobyqa :cmaes :nelder-mead :multidirectional-simplex :powell]]
-      (t/is (near-minimum? (first (sut/minimize method p/himmelblau {:bounds hb :gradient (fn [_] (throw (RuntimeException. "not used")))}))) (str method)))
+      (t/is (near-minimum? (first (sut/minimize method p/himmelblau (seeded method {:bounds hb :gradient (fn [_] (throw (RuntimeException. "not used")))})))) (str method)))
     ;; gradient with scan
     (t/is (near-minimum? (first (sut/scan-and-minimize :lbfgsb p/himmelblau {:bounds hb :gradient himmelblau-gradient}))))))
 

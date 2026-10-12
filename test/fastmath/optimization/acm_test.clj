@@ -13,6 +13,7 @@
 ;; maximum 0.119 at 4.1966 (https://infinity77.net/global_optimization/test_functions_1d.html).
 ;; Tolerances: the optimizers are checked only for sanity, 1e-3 on values (cmaes and the fast-stopping
 ;; settings 1e-2), 1e-3 on points close to a known minimum.
+;; CMA-ES is stochastic: every run uses a seeded generator (unseeded runs occasionally ended 1.3e-3 from a minimum).
 
 (def ^:private val-tol 1.0e-3)
 (def ^:private himmelblau-minima [[3.0 2.0] [-2.805118 3.131313] [-3.779310 -3.283186] [3.584428 -1.848126]])
@@ -24,12 +25,17 @@
   [(m/+ (m/* 4.0 x (m/+ (m/* x x) y -11.0)) (m/* 2.0 (m/+ x (m/* y y) -7.0)))
    (m/+ (m/* 2.0 (m/+ (m/* x x) y -11.0)) (m/* 4.0 y (m/+ x (m/* y y) -7.0)))])
 
+(defn- seeded-cmaes
+  "CMA-ES with a generator seeded with 42 unless `opts` has `:rng`."
+  [f opts]
+  (sut/cmaes f (merge {:rng (r/rng :jdk 42)} opts)))
+
 (defn- ex-data-of [thunk]
   (try (thunk) nil (catch clojure.lang.ExceptionInfo e (ex-data e))))
 
 (def ^:private multivariate
   {:bobyqa sut/bobyqa
-   :cmaes sut/cmaes
+   :cmaes seeded-cmaes
    :nelder-mead sut/nelder-mead
    :multidirectional-simplex sut/multidirectional-simplex
    :powell sut/powell
@@ -184,7 +190,7 @@
     (t/is (thrown? TooManyIterationsException (himmelblau-min (multivariate nm) {:max-iters 1})) (str nm)))
   ;; BOBYQA does not count iterations, CMA-ES stops at the limit and returns the best point
   (t/is (= 0 (:iterations (himmelblau-min sut/bobyqa {:max-iters 1 :stats? true}))))
-  (let [s (himmelblau-min sut/cmaes {:max-iters 3 :stats? true})]
+  (let [s (himmelblau-min seeded-cmaes {:max-iters 3 :stats? true})]
     (t/is (<= (:iterations s) 3))
     (t/is (vector? (:point s))))
   ;; generous limits are fine
@@ -217,18 +223,22 @@
 (t/deftest cmaes-options
   (doseq [opts [{:sigma 0.5} {:sigma 0.05} {:population-size 6} {:population-size 40} {:active-cma? false} {:diagonal-only 5}
                 {:check-feasible-count 3} {:rel 1.0e-6 :abs 1.0e-6} {:initial [1 1]}]]
-    (let [[pt val] (himmelblau-min sut/cmaes opts)]
+    (let [[pt val] (himmelblau-min seeded-cmaes opts)]
       (t/is (near-minimum? pt) (pr-str opts))
       (t/is (< val 1.0e-2) (pr-str opts))))
   ;; stop-fitness: stops as soon as the value is below it
-  (let [[_ val] (himmelblau-min sut/cmaes {:stop-fitness 1.0})]
+  (let [[_ val] (himmelblau-min seeded-cmaes {:stop-fitness 1.0})]
     (t/is (< val 1.0)))
   ;; the generator makes the run reproducible: same seed, same result, other seed, other result
   (let [run (fn [seed] (himmelblau-min sut/cmaes {:rng (r/rng :jdk seed) :stats? true}))]
     (t/is (= (run 42) (run 42)))
     (t/is (not= (:point (run 42)) (:point (run 43)))))
   (let [run #(himmelblau-min sut/cmaes {:rng (r/rng :isaac 1) :stats? true})]
-    (t/is (= (run) (run)))))
+    (t/is (= (run) (run))))
+  ;; without :rng a new unseeded generator is used: only the shape is checked, the point is random
+  (let [[pt val] (himmelblau-min sut/cmaes {})]
+    (t/is (= 2 (count pt)))
+    (t/is (double? val))))
 
 ;; simplex
 
