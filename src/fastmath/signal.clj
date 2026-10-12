@@ -1352,14 +1352,16 @@
       * Analog-style: `:analog-sine`, `:analog-saw`, `:analog-triangle`.
       * Band-limited: `:band-limited-square`, `:band-limited-saw`, `:band-limited-triangle`.
   * `options` - A map of configuration keys:
-      * `:f` - Frequency in Hz. Can be a number or a function `(fn [t])` for frequency modulation. Default: `1.0`.
+      * `:f` - Frequency in Hz (number, default `1.0`), or a phase function `(fn [t])` returning the phase in cycles (used instead of `f t`), for frequency modulation as in [[chirp]].
       * `:phase` - Phase offset in cycles [0.0 to 1.0]. Can be a number or a function `(fn [t])`. Default: `0.0`.
       * `:amplitude` - Peak amplitude. Can be a number or a function `(fn [t])` for amplitude modulation. Default: `1.0`.
       * `:duty` - Duty cycle for `:square` waves, ranging from 0.0 to 1.0 or `(fn [t])` for modulation. Default: `0.5`.
       * `:up?` - Boolean for `:saw` and `:analog-saw` waves. Set to `true` (default) for a rising ramp, `false` for a falling ramp.
       * `:bands` - Number of harmonics for `:band-limited-*` types. Increasing this value improves shape accuracy but increases computation. Default: `5`.
 
-  Returns a function `(fn [t])` that accepts time `t` as a double and returns the signal value as a double."
+  The waves are periodic also for negative time; shapes and their relation to `scipy.signal.square` / `sawtooth` are described in `fastmath.signal.waveform`.
+
+  Returns a function `(fn [t])` that accepts time `t` as a double and returns the signal value as a double. Throws `ex-info` for an unknown `wave-type`."
   ([wave-type] (waveform wave-type nil))
   ([wave-type options]
    (case wave-type
@@ -1372,7 +1374,10 @@
      :band-limited-saw (wv/->band-limited-saw options)
      :triangle (wv/->triangle options)
      :analog-triangle (wv/->analog-triangle options)
-     :band-limited-triangle (wv/->band-limited-triangle options))))
+     :band-limited-triangle (wv/->band-limited-triangle options)
+     (throw (ex-info "Unknown wave type." {:wave-type wave-type
+                                           :allowed [:sine :analog-sine :square :band-limited-square :saw :analog-saw
+                                                     :band-limited-saw :triangle :analog-triangle :band-limited-triangle]})))))
 
 (defn chirp
   "Create a frequency-swept sine wave (chirp) oscillator.
@@ -1380,20 +1385,24 @@
   Generates a signal where the instantaneous frequency changes over a specified time interval according to a defined modulation profile. Chirps are essential in radar, sonar, and system identification to analyze frequency-dependent responses and impulse behavior.
 
   Input parameters:
-  * `chirp-type` - A keyword specifying the sweep profile:
+  * `chirp-type` - A keyword specifying the sweep profile (see `fastmath.signal.chirp`):
       * `:linear` - Frequency changes linearly with time.
-      * `:quadratic-up` - Frequency increases quadratically.
-      * `:quadratic-down` - Frequency decreases quadratically.
-      * `:logarithmic` - Frequency changes exponentially (geometric sweep).
-      * `:hyperbolic` - Frequency follows a hyperbolic curve.
+      * `:quadratic-up` - Frequency changes quadratically, parabola vertex at $t=0$.
+      * `:quadratic-down` - Frequency changes quadratically, parabola vertex at $t=time$.
+      * `:logarithmic` - Frequency changes exponentially (geometric sweep), frequencies must be positive.
+      * `:hyperbolic` - Frequency follows a hyperbolic curve, frequencies must be positive.
+      * `:constant` - Constant frequency `:f0`.
   * `options` - A map of configuration keys:
-      * `:f0` - Starting frequency in Hz at $t=0$.
-      * `:f1` - Ending frequency in Hz at $t=time$.
-      * `:time` - The time duration (in seconds) over which the sweep from `:f0` to `:f1` occurs.
+      * `:f0` - Starting frequency in Hz at $t=0$ (default 0.0; 1e-10 for `:logarithmic` and `:hyperbolic`).
+      * `:f1` - Ending frequency in Hz at $t=time$ (default 5.0).
+      * `:time` - The time (in seconds) at which the frequency reaches `:f1` (default 1.0, must be positive).
+      * `:phase0` - Phase offset of the sweep in cycles (default 0.0).
       * `:amplitude` - Peak amplitude. Can be a number or a modulation function `(fn [t])`.
-      * `:phase` - Initial phase offset in cycles [0.0 to 1.0].
+      * `:phase` - Additional phase offset in cycles, as for [[waveform]].
 
-  Returns a stateless function `(fn [t])` that accepts time `t` as a double and returns the signal value as a double."
+  The value is `amplitude * sin(2 pi phase(t))`; it equals `scipy.signal.chirp(t, f0, time, f1, method, phi=-90 + 360 phase0)` (`:quadratic-up`/`-down` are `method='quadratic'` with `vertex_zero` true/false).
+
+  Returns a stateless function `(fn [t])` that accepts time `t` as a double and returns the signal value as a double. Throws `ex-info` for an unknown `chirp-type` or invalid options."
   ([chirp-type] (chirp chirp-type nil))
   ([chirp-type options]
    (let [modulation (case chirp-type
@@ -1401,7 +1410,11 @@
                       :quadratic-up (chirp/->quadratic-up options)
                       :quadratic-down (chirp/->quadratic-down options)
                       :logarithmic (chirp/->logarithmic options)
-                      :hyperbolic (chirp/->hyperbolic options))]
+                      :hyperbolic (chirp/->hyperbolic options)
+                      :constant (chirp/->constant options)
+                      (throw (ex-info "Unknown chirp type." {:chirp-type chirp-type
+                                                             :allowed [:linear :quadratic-up :quadratic-down
+                                                                       :logarithmic :hyperbolic :constant]})))]
      (waveform :sine (merge options {:f modulation})))))
 
 (defn add-waveforms
