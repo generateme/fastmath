@@ -1,364 +1,265 @@
 (ns fastmath.transform.wavelets
+  "Wavelet filter banks and the discrete wavelet transform engine used by `fastmath.transform`.
+
+  A wavelet is a filter bank `[dec_lo dec_hi rec_lo rec_hi]` in PyWavelets orientation, see [[wavelet]] and [[wavelet-names]]. The transforms follow PyWavelets: [[dwt-level]] / [[idwt-level]] is one level of `pywt.dwt` / `pywt.idwt` (convolution with the decomposition filters and downsampling), with the signal extended at both ends according to a boundary `mode`:
+
+  * `:symmetric` (default in `fastmath.transform`), `:reflect`, `:periodic`, `:zero`, `:constant`, `:smooth`, `:antisymmetric`, `:antireflect` - output length `floor((N + L - 1) / 2)` for a signal of length `N` and filters of length `L`; the extension is done by `fastmath.signal.pad`
+  * `:periodization` - output length `ceil(N / 2)`, an odd-length signal is extended by its last value
+
+  Multi-level transforms, wavelet packets and their inverses are in `fastmath.transform` ([[fastmath.transform/dwt]], [[fastmath.transform/wpt]]).
+
+  [[scaling-function]] and [[wavelet-function]] approximate the functions phi and psi by the cascade algorithm."
   (:require [clojure.java.io :as io]
+            [clojure.edn :as edn]
             [fastmath.core :as m]
             [fastmath.protocols.wavelets :as prot]
             [fastmath.vector :as v]
+            [fastmath.signal.pad :as pad]
             [fastmath.interpolation.linear :as il])
-  (:import [fastmath.java Array]
-           [java.util Arrays]))
+  (:import [fastmath.java Array]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(defrecord Wavelet [name ^long length ^doubles de-low ^doubles de-high ^doubles re-low ^doubles re-high]
+(defrecord Wavelet [name ^long length ^doubles dec-lo ^doubles dec-hi ^doubles rec-lo ^doubles rec-hi]
   prot/WaveletProto
-  (phi [_] de-low)
+  (phi [_] dec-lo)
   (phi [_ kind] (case kind
-                  (:deconstruction :de :dec :d) de-low
-                  (:reconstruction :re :rec :r) re-low
+                  (:deconstruction :de :dec :d) dec-lo
+                  (:reconstruction :re :rec :r) rec-lo
                   (throw (ex-info "Unknown phi kind. Can be :rec or :dec." {:kind kind}))))
-  (psi [_] de-high)
+  (psi [_] dec-hi)
   (psi [_ kind] (case kind
-                  (:deconstruction :de :dec :d) de-high
-                  (:reconstruction :re :rec :r) re-high
-                  (throw (ex-info "Unknown phi kind. Can be :rec or :dec." {:kind kind}))))
-
+                  (:deconstruction :de :dec :d) dec-hi
+                  (:reconstruction :re :rec :r) rec-hi
+                  (throw (ex-info "Unknown psi kind. Can be :rec or :dec." {:kind kind}))))
   (coeffs-size [_] length)
-  (wavelet-name [_] name)
-  (wavelet-forward [_ signal len] (let [len (long len)
-                                        target (double-array len)
-                                        h (m/>> len 1)]
-                                    (dotimes [i h]
-                                      (let [i2 (m/<< i 1)]
-                                        (loop [j (long 0)
-                                               ai (double 0.0)
-                                               aih (double 0.0)]
-                                          (if (m/== j length)
-                                            (do
-                                              (Array/aset target i ai)
-                                              (Array/aset target (+ i h) aih))
-                                            (let [k (m/mod (m/+ i2 j) len)
-                                                  v (Array/aget ^doubles signal k)]
-                                              (recur (m/inc j)
-                                                     (m/+ ai (m/* v (Array/aget de-low j)))
-                                                     (m/+ aih (m/* v (Array/aget de-high j)))))))))
-                                    target))
-  
-  (wavelet-reverse [_ coeffs len] (let [len (long len)
-                                        target (double-array len)
-                                        h (m/>> len 1)]                                    
-                                    (dotimes [i h]
-                                      (let [i2 (m/<< i 1)
-                                            ai (Array/aget ^doubles coeffs i)
-                                            aih (Array/aget ^doubles coeffs (m/+ i h))]
-                                        (dotimes [j length]
-                                          (let [k (m/mod (m/+ i2 j) len)]
-                                            (Array/aset target k (m/+ (Array/aget target k)
-                                                                      (m/* ai (Array/aget re-low j))
-                                                                      (m/* aih (Array/aget re-high j))))))))
-                                    target)))
+  (wavelet-name [_] name))
 
 (defn qmf
-  "Quadrature mirror filter used to create scaling coefficients from wavelet coefficients.
+  "Quadrature mirror filter of `coeffs`, as `pywt.qmf`: the filter reversed, with every odd element negated.
 
-  If `inverse?` is true, creates wavelet coefficients from scaling coefficients."
-  ([coeffs] (qmf coeffs false))
-  ([coeffs inverse?]
-   (map-indexed (if inverse?
-                  (fn [^long id ^double x] (if (m/odd? id) (m/- x) x))
-                  (fn [^long id ^double x] (if (m/even? id) (m/- x) x))) (reverse coeffs))))
+  For an orthogonal wavelet the reconstruction high-pass filter is `(qmf rec-lo)`."
+  [coeffs]
+  (vec (map-indexed (fn [^long id ^double x] (if (m/odd? id) (m/- x) x)) (reverse coeffs))))
 
 (defn ->wavelet
-  "Creates wavelet object from coeffients."
-  ([nm de-low] (->wavelet nm de-low (qmf de-low true)))
-  ([nm de-low de-high] (->wavelet nm de-low de-high de-low de-high))
-  ([nm de-low de-high re-low re-high] (->wavelet nm (count de-low) de-low de-high re-low re-high))
-  ([nm length de-low de-high re-low re-high]
-   (->Wavelet nm length
-              (m/seq->double-array de-low)
-              (m/seq->double-array de-high)
-              (m/seq->double-array re-low)
-              (m/seq->double-array re-high))))
+  "Creates a wavelet (filter bank) object, PyWavelets orientation.
 
-(extend jwave.transforms.wavelets.Wavelet
-  prot/WaveletProto
-  {:coeffs-size (fn [^jwave.transforms.wavelets.Wavelet w] (.getMotherWavelength w))
-   :wavelet-name (fn [^jwave.transforms.wavelets.Wavelet w] (.getName w))
-   :phi (fn ([^jwave.transforms.wavelets.Wavelet w]
-            (.getScalingDeComposition w))
-          ([^jwave.transforms.wavelets.Wavelet w kind]
-           (case kind
-             (:deconstruction :de :dec :d) (.getScalingDeComposition w)
-             (:reconstruction :re :rec :r) (.getScalingReConstruction w)
-             (throw (ex-info "Unknown phi kind. Can be :rec or :dec." {:kind kind})))))
-   :psi (fn ([^jwave.transforms.wavelets.Wavelet w]
-            (.getWaveletDeComposition w))
-          ([^jwave.transforms.wavelets.Wavelet w kind]
-           (case kind
-             (:deconstruction :de :dec :d) (.getWaveletDeComposition w)
-             (:reconstruction :re :rec :r) (.getWaveletReConstruction w)
-             (throw (ex-info "Unknown phi kind. Can be :rec or :dec." {:kind kind})))))
-   :wavelet-forward (fn [^jwave.transforms.wavelets.Wavelet w signal len]
-                      (.forward w signal (int len)))
-   :wavelet-reverse (fn [^jwave.transforms.wavelets.Wavelet w coeffs len]
-                      (.reverse w coeffs (int len)))})
+  * `[name dec-lo]` - orthogonal wavelet from its decomposition low-pass filter: `rec-lo` is `dec-lo` reversed, `rec-hi` is `(qmf rec-lo)`, `dec-hi` is `rec-hi` reversed
+  * `[name dec-lo dec-hi]` - orthogonal wavelet, reconstruction filters are the reversed decomposition filters
+  * `[name dec-lo dec-hi rec-lo rec-hi]` - general (biorthogonal) filter bank
 
-(extend jwave.transforms.BasicTransform
-  prot/TransformProto
-  {:forward-1d (fn ([^jwave.transforms.BasicTransform t xs] (.forward t (m/seq->double-array xs)))
-                 ([^jwave.transforms.BasicTransform t xs {:keys [^long level]}]
-                  (.forward t (m/seq->double-array xs) level)))
-   :reverse-1d (fn ([^jwave.transforms.BasicTransform t xs] (.reverse t (m/seq->double-array xs)))
-                 ([^jwave.transforms.BasicTransform t xs {:keys [^long level]}]
-                  (.reverse t (m/seq->double-array xs) level)))
-   :forward-2d (fn ([^jwave.transforms.BasicTransform t xss]
-                   (.forward t (m/seq->double-double-array xss)))
-                 ([^jwave.transforms.BasicTransform t xss {[^long l1 ^long l2] :levels}]
-                  (.forward t (m/seq->double-double-array xss) l1 l2)))
-   :reverse-2d (fn ([^jwave.transforms.BasicTransform t xss] (.reverse t (m/seq->double-double-array xss)))
-                 ([^jwave.transforms.BasicTransform t xss {[^long l1 ^long l2] :levels}]
-                  (.reverse t (m/seq->double-double-array xss) l1 l2)))})
+  All filters must have the same length."
+  ([nm dec-lo] (let [rec-lo (reverse dec-lo)
+                     rec-hi (qmf rec-lo)]
+                 (->wavelet nm dec-lo (reverse rec-hi) rec-lo rec-hi)))
+  ([nm dec-lo dec-hi] (->wavelet nm dec-lo dec-hi (reverse dec-lo) (reverse dec-hi)))
+  ([nm dec-lo dec-hi rec-lo rec-hi]
+   (let [lengths (map count [dec-lo dec-hi rec-lo rec-hi])]
+     (when-not (apply = lengths)
+       (throw (ex-info "All filters should have the same length." {:lengths lengths})))
+     (->Wavelet nm (count dec-lo)
+                (m/seq->double-array dec-lo)
+                (m/seq->double-array dec-hi)
+                (m/seq->double-array rec-lo)
+                (m/seq->double-array rec-hi)))))
 
 (defn coeffs-size
-  "Returns number of wavelet coefficients."
+  "Returns the filter length of a wavelet."
   ^long [wv] (prot/coeffs-size wv))
 
 (defn wavelet-name
-  "Returns wavelet name."
+  "Returns the wavelet name."
   [wv] (prot/wavelet-name wv))
 
 (defn phi
-  "Returns scaling (low-pass) wavelet coefficients, default deconstruction.
+  "Returns the scaling (low-pass) filter, decomposition by default.
 
   Kind can be:
   
-  * `:deconstruction`, `:dec`, `:de` or `:d` - for deconstrunction (default)
-  * `:reconstruction`, `:rec`, `:re` or `:r` - for reconstrunction"
+  * `:deconstruction`, `:dec`, `:de` or `:d` - decomposition filter (default)
+  * `:reconstruction`, `:rec`, `:re` or `:r` - reconstruction filter"
   ([wv] (prot/phi wv))
   ([wv kind] (prot/phi wv kind)))
 
 (defn psi
-  "Returns wavelet (high-pass) wavelet coefficients, default deconstruction.
+  "Returns the wavelet (high-pass) filter, decomposition by default.
 
   Kind can be:
   
-  * `:deconstruction`, `:dec`, `:de` or `:d` - for deconstrunction (default)
-  * `:reconstruction`, `:rec`, `:re` or `:r` - for reconstrunction"
+  * `:deconstruction`, `:dec`, `:de` or `:d` - decomposition filter (default)
+  * `:reconstruction`, `:rec`, `:re` or `:r` - reconstruction filter"
   ([wv] (prot/psi wv))
   ([wv kind] (prot/psi wv kind)))
 
-;; matlab and R wavelets coeffs 
+;; filter table
 
-(defn- read-wavelets []
-  (->> (for [[nm [dl dh rl rh]] (read-string (slurp (io/resource "wavelets/coeffs.edn")))
-             :let [s (double-array dl)
-                   w (double-array dh)]]
-         [nm (if rl
-               (->Wavelet nm (alength s) s w (double-array rl) (double-array rh))
-               (->Wavelet nm (alength s) s w s w))])
-       (into {})))
+(def ^:private filter-table
+  (delay (into {} (for [[nm [dl dh rl rh]] (edn/read-string (slurp (io/resource "wavelets/coeffs.edn")))]
+                    [nm (->wavelet nm dl dh rl rh)]))))
 
-;; jwave
+(def ^:private aliases
+  "Names resolved to an entry of the filter table."
+  (merge {"la8" "sym4" "la10" "sym5" "la12" "sym6" "la14" "sym7" "la16" "sym8" "la18" "sym9" "la20" "sym10"
+          :haar "haar" :haar-orthogonal "haar" :legendre-1 "haar"
+          :cdf-53 "bior2.2" :cdf-97 "bior4.4" :battle-23 "battle3" :discrete-mayer "dmey"}
+         (into {} (for [n (range 2 21)] [(keyword (str "daubechies-" n)) (str "db" n)]))
+         (into {} (for [n (range 2 21)] [(keyword (str "symlet-" n)) (str "sym" n)]))
+         (into {} (for [n (range 1 6)] [(keyword (str "coiflet-" n)) (str "coif" n)]))
+         (into {} (for [nm ["11" "13" "15" "22" "24" "26" "28" "31" "33" "35" "37" "39" "44" "55" "68"]]
+                    [(keyword (str "biorthogonal-" nm)) (str "bior" (subs nm 0 1) "." (subs nm 1))]))))
 
-(def ^:private jwave-wavelets
-  '{:haar jwave.transforms.wavelets.haar.Haar1
-    :haar-orthogonal jwave.transforms.wavelets.haar.Haar1Orthogonal
-    :biorthogonal-11 jwave.transforms.wavelets.biorthogonal.BiOrthogonal11
-    :biorthogonal-13 jwave.transforms.wavelets.biorthogonal.BiOrthogonal13
-    :biorthogonal-15 jwave.transforms.wavelets.biorthogonal.BiOrthogonal15
-    :biorthogonal-22 jwave.transforms.wavelets.biorthogonal.BiOrthogonal22
-    :biorthogonal-24 jwave.transforms.wavelets.biorthogonal.BiOrthogonal24
-    :biorthogonal-26 jwave.transforms.wavelets.biorthogonal.BiOrthogonal26
-    :biorthogonal-28 jwave.transforms.wavelets.biorthogonal.BiOrthogonal28
-    :biorthogonal-31 jwave.transforms.wavelets.biorthogonal.BiOrthogonal31
-    :biorthogonal-33 jwave.transforms.wavelets.biorthogonal.BiOrthogonal33
-    :biorthogonal-35 jwave.transforms.wavelets.biorthogonal.BiOrthogonal35
-    :biorthogonal-37 jwave.transforms.wavelets.biorthogonal.BiOrthogonal37
-    :biorthogonal-39 jwave.transforms.wavelets.biorthogonal.BiOrthogonal39
-    :biorthogonal-44 jwave.transforms.wavelets.biorthogonal.BiOrthogonal44
-    :biorthogonal-55 jwave.transforms.wavelets.biorthogonal.BiOrthogonal55
-    :biorthogonal-68 jwave.transforms.wavelets.biorthogonal.BiOrthogonal68
-    :coiflet-1 jwave.transforms.wavelets.coiflet.Coiflet1
-    :coiflet-2 jwave.transforms.wavelets.coiflet.Coiflet2
-    :coiflet-3 jwave.transforms.wavelets.coiflet.Coiflet3
-    :coiflet-4 jwave.transforms.wavelets.coiflet.Coiflet4
-    :coiflet-5 jwave.transforms.wavelets.coiflet.Coiflet5
-    :daubechies-2 jwave.transforms.wavelets.daubechies.Daubechies2
-    :daubechies-3 jwave.transforms.wavelets.daubechies.Daubechies3
-    :daubechies-4 jwave.transforms.wavelets.daubechies.Daubechies4
-    :daubechies-5 jwave.transforms.wavelets.daubechies.Daubechies5
-    :daubechies-6 jwave.transforms.wavelets.daubechies.Daubechies6
-    :daubechies-7 jwave.transforms.wavelets.daubechies.Daubechies7
-    :daubechies-8 jwave.transforms.wavelets.daubechies.Daubechies8
-    :daubechies-9 jwave.transforms.wavelets.daubechies.Daubechies9
-    :daubechies-10 jwave.transforms.wavelets.daubechies.Daubechies10
-    :daubechies-11 jwave.transforms.wavelets.daubechies.Daubechies11
-    :daubechies-12 jwave.transforms.wavelets.daubechies.Daubechies12
-    :daubechies-13 jwave.transforms.wavelets.daubechies.Daubechies13
-    :daubechies-14 jwave.transforms.wavelets.daubechies.Daubechies14
-    :daubechies-15 jwave.transforms.wavelets.daubechies.Daubechies15
-    :daubechies-16 jwave.transforms.wavelets.daubechies.Daubechies16
-    :daubechies-17 jwave.transforms.wavelets.daubechies.Daubechies17
-    :daubechies-18 jwave.transforms.wavelets.daubechies.Daubechies18
-    :daubechies-19 jwave.transforms.wavelets.daubechies.Daubechies19
-    :daubechies-20 jwave.transforms.wavelets.daubechies.Daubechies20
-    :legendre-1 jwave.transforms.wavelets.legendre.Legendre1
-    :legendre-2 jwave.transforms.wavelets.legendre.Legendre2
-    :legendre-3 jwave.transforms.wavelets.legendre.Legendre3
-    :symlet-2 jwave.transforms.wavelets.symlets.Symlet2
-    :symlet-3 jwave.transforms.wavelets.symlets.Symlet3
-    :symlet-4 jwave.transforms.wavelets.symlets.Symlet4
-    :symlet-5 jwave.transforms.wavelets.symlets.Symlet5
-    :symlet-6 jwave.transforms.wavelets.symlets.Symlet6
-    :symlet-7 jwave.transforms.wavelets.symlets.Symlet7
-    :symlet-8 jwave.transforms.wavelets.symlets.Symlet8
-    :symlet-9 jwave.transforms.wavelets.symlets.Symlet9
-    :symlet-10 jwave.transforms.wavelets.symlets.Symlet10
-    :symlet-11 jwave.transforms.wavelets.symlets.Symlet11
-    :symlet-12 jwave.transforms.wavelets.symlets.Symlet12
-    :symlet-13 jwave.transforms.wavelets.symlets.Symlet13
-    :symlet-14 jwave.transforms.wavelets.symlets.Symlet14
-    :symlet-15 jwave.transforms.wavelets.symlets.Symlet15
-    :symlet-16 jwave.transforms.wavelets.symlets.Symlet16
-    :symlet-17 jwave.transforms.wavelets.symlets.Symlet17
-    :symlet-18 jwave.transforms.wavelets.symlets.Symlet18
-    :symlet-19 jwave.transforms.wavelets.symlets.Symlet19
-    :symlet-20 jwave.transforms.wavelets.symlets.Symlet20
-    :battle-23 jwave.transforms.wavelets.other.Battle23
-    :cdf-53 jwave.transforms.wavelets.other.CDF53
-    :cdf-97 jwave.transforms.wavelets.other.CDF97
-    :discrete-mayer jwave.transforms.wavelets.other.DiscreteMayer})
+(def ^{:doc "Names of all available wavelets.
 
-(defmacro ^:private build-case
-  [wavelet]
-  `(case ~wavelet
-     ~@(mapcat (fn [[k c]]
-                 [k `(new ~c)]) jwave-wavelets)))
+  Strings are the filter table, in PyWavelets / MATLAB naming:
 
-(defn- jwave-wavelet
-  [wavelet]
-  (build-case wavelet))
+  * from PyWavelets (exact copy): `haar`, `db1`-`db38`, `sym2`-`sym20`, `coif1`-`coif5`, `bior1.1`-`bior6.8`, `rbio1.1`-`rbio6.8`, `dmey` (62 taps)
+  * computed by spectral factorisation (double precision): `db39`-`db45`, `sym21`-`sym45` (root choice as in MATLAB)
+  * `la8`-`la20` - least asymmetric, equal to `sym4`-`sym10`
+  * `battle3` - cubic Battle-Lemarie scaling filter truncated to 161 symmetric taps and one zero (162 taps)
+  * MATLAB values copied by hand, lower precision: `beyl`, `bl7`, `bl9`, `bl10`, `fk4`, `fk6`, `fk8`, `fk14`, `fk18`, `fk22`, `han2.3`, `han3.3`, `han4.5`, `han5.5`, `mb4.2`, `mb8.2`, `mb8.3`, `mb8.4`, `mb10.3`, `mb12.3`, `mb14.3`, `mb16.3`, `mb18.3`, `mb24.3`, `mb32.3`, `vaid`
 
-(def ^:private matlab-wavelets
-  (let [wv (read-wavelets)]
-    (-> (assoc wv "haar" (wv "db1")))))
+  Perfect reconstruction (`idwt` of `dwt`, any mode, default level) holds to about `1e-14` for most filters. Measured maximum errors (signals of length 301 and 512) above `1e-10`: `dmey` 1.3e-1 (truncated filter, about 1e-2 except in `:smooth` mode; the same in PyWavelets), `mb14.3` 3.9e-4, `mb8.2` 7.5e-6, `mb8.4` 5.9e-6, `mb4.2` 4.1e-6, `mb16.3` 2.4e-6, `mb10.3` 2.2e-6, `mb12.3` 1.4e-6, `mb24.3` 9.1e-7, `mb8.3` 5.4e-7, `mb32.3` 5.2e-7, `mb18.3` 3.6e-7, `vaid` 3.6e-8, `fk8` 2.4e-8, `fk22` 1.4e-8, `bl10` 1.4e-8, `bl9` 5.1e-9, `bl7` 4.9e-10, `sym20` 1.6e-10 (PyWavelets table precision). Above the maximum useful level (filters long compared to the signal) reconstruction is not exact, as in PyWavelets.
 
-(defonce wavelet-names (sort-by name (concat (keys jwave-wavelets)
-                                             (keys matlab-wavelets))))
+  Keywords are former JWave names, aliases of the strings: `:haar`, `:daubechies-2`...`:daubechies-20` (`dbN`), `:symlet-2`...`:symlet-20` (`symN`), `:coiflet-1`...`:coiflet-5`, `:biorthogonal-11`...`:biorthogonal-68` (`biorX.Y`), `:discrete-mayer` (`dmey`), `:cdf-53` (`bior2.2`), `:cdf-97` (`bior4.4`), `:battle-23` (`battle3`), `:haar-orthogonal` and `:legendre-1` (`haar`)."}
+  wavelet-names (sort-by str (concat (keys @filter-table) (keys aliases))))
 
 (defn wavelet
-  "Returns wavelet object containing coefficients"
+  "Returns a wavelet (filter bank) object for a name from [[wavelet-names]] (string or keyword); a wavelet object is returned as is.
+
+  Throws `ex-info` for an unknown name."
   [wavelet-name]
-  (try
-    (or (matlab-wavelets wavelet-name) (jwave-wavelet wavelet-name)
-        (throw (ex-info "Unknown wavelet." {:wavelet wavelet-name})))
-    (catch Exception _ (throw (ex-info "Unknown wavelet." {:wavelet wavelet-name})))))
+  (if (instance? Wavelet wavelet-name)
+    wavelet-name
+    (let [nm (get aliases wavelet-name wavelet-name)]
+      (or (@filter-table nm)
+          (throw (ex-info "Unknown wavelet." {:wavelet wavelet-name}))))))
 
-(defn dwt-forward-1d
-  ([wv ^doubles signal] (dwt-forward-1d wv signal (m/log2int (alength signal))))
-  ([wv ^doubles signal ^long level] (dwt-forward-1d wv signal 0 level))
-  ([wv ^doubles signal ^long starting-level ^long level]
-   (let [len (alength signal)
-         target (Arrays/copyOf signal len)]
-     (loop [h (m/>> len starting-level)
-            l (long starting-level)]
-       (if (or (m/one? h) (m/== l level))
-         target
-         (let [^doubles step (prot/wavelet-forward wv target h)]
-           (System/arraycopy step 0 target 0 h)
-           (recur (m/>> h 1) (m/inc l))))))))
+;; engine
 
-(defn dwt-reverse-1d
-  ([wv ^doubles signal]
-   (dwt-reverse-1d wv signal (m/log2int (alength signal))))
-  ([wv ^doubles signal ^long level]
-   (let [len (alength signal)
-         max-level (m/round (m/log2 (alength signal)))
-         target (Arrays/copyOf signal len)]
-     (loop [h (m/<< 2 (m/max 0 (m/- max-level level)))]
-       (if (m/> h len)
-         target
-         (let [^doubles step (prot/wavelet-reverse wv target h)]
-           (System/arraycopy step 0 target 0 h)
-           (recur (m/<< h 1))))))))
+(def ^:private extension-modes
+  {:zero pad/zero :constant pad/edge :symmetric pad/symmetric :reflect pad/reflect
+   :periodic pad/periodic :smooth pad/linear :antisymmetric pad/antisymmetric :antireflect pad/antireflect})
 
-(defn wpt-forward-1d
-  ([wv ^doubles signal] (wpt-forward-1d wv signal (m/log2int (alength signal))))
-  ([wv ^doubles signal ^long level] (wpt-forward-1d wv signal 0 level))
-  ([wv ^doubles signal ^long starting-level ^long level]
-   (let [len (alength signal)
-         target (Arrays/copyOf signal len)
-         tmp (double-array len)]
-     (loop [h (m/>> len starting-level)
-            l (long starting-level)]
-       (if (or (m/one? h) (m/== l level))
-         target
-         (do (dotimes [p (m// len h)]
-               (let [pos (m/* p h)]
-                 (System/arraycopy target pos tmp 0 h)
-                 (let [^doubles step (prot/wavelet-forward wv tmp h)]
-                   (System/arraycopy step 0 target pos h))))
-             (recur (m/>> h 1) (m/inc l))))))))
+(def ^{:doc "Boundary modes accepted by the transforms."} modes (conj (set (keys extension-modes)) :periodization))
 
-(defn wpt-reverse-1d
-  ([wv ^doubles signal]
-   (wpt-reverse-1d wv signal (m/log2int (alength signal))))
-  ([wv ^doubles signal ^long level]
-   (let [len (alength signal)
-         max-level (m/round (m/log2 (alength signal)))
-         target (Arrays/copyOf signal len)
-         tmp (double-array len)]
-     (loop [h (m/<< 2 (m/max 0 (m/- max-level level)))]
-       (if (m/> h len)
-         target
-         (do (dotimes [p (m// len h)]
-               (let [pos (m/* p h)]
-                 (System/arraycopy target pos tmp 0 h)
-                 (let [^doubles step (prot/wavelet-reverse wv tmp h)]
-                   (System/arraycopy step 0 target pos h))))
-             (recur (m/<< h 1))))))))
+(defn- check-mode!
+  [mode]
+  (when-not (modes mode)
+    (throw (ex-info "Unknown wavelet mode." {:mode mode :allowed (sort modes)}))))
 
-(defn- call-transform
-  ([f wv signal level] (call-transform f wv signal nil level))
-  ([f wv signal starting-level level]
-   (let [len (count signal)]
-     (if-not (m/power-of-two? len)
-       (throw (ex-info "Length of the signal should be power of 2." {:length len}))
-       (let [s (double-array signal)]
-         (if level (if starting-level (f wv s starting-level level) (f wv s level)) (f wv s)))))))
+(defn coeffs-length
+  "Length of the coefficient bands after one level of [[dwt-level]] for a signal of length `n`, filter length `filter-length` and `mode`."
+  ^long [^long n ^long filter-length mode]
+  (if (= mode :periodization)
+    (m/long-quot (m/long-inc n) 2)
+    (m/long-quot (m/long-add n (m/long-dec filter-length)) 2)))
 
-(defn wavelet-reify
-  [wavelet-name type]
-  (let [wv (wavelet wavelet-name)]
-    (case type
-      :dwt (reify prot/TransformProto
-             (forward-1d [o xs] (prot/forward-1d o xs nil))
-             (forward-1d [_ xs {:keys [level starting-level]
-                                :or {starting-level 0}}]
-               (call-transform dwt-forward-1d wv xs starting-level level))
-             (reverse-1d [o xs] (prot/reverse-1d o xs nil))
-             (reverse-1d [_ xs {:keys [level]}] (call-transform dwt-reverse-1d wv xs level)))
-      :wpt (reify prot/TransformProto
-             (forward-1d [o xs] (prot/forward-1d o xs nil))
-             (forward-1d [_ xs {:keys [level starting-level]
-                                :or {starting-level 0}}]
-               (call-transform wpt-forward-1d wv xs starting-level level))
-             (reverse-1d [o xs] (prot/reverse-1d o xs nil))
-             (reverse-1d [_ xs {:keys [level]}] (call-transform wpt-reverse-1d wv xs level))))))
+(defn max-level
+  "Maximum useful decomposition level, as `pywt.dwt_max_level`: the largest `k` with `(filter-length - 1) * 2^k <= n`, 0 when `n < filter-length - 1`."
+  ^long [^long n ^long filter-length]
+  (let [l- (m/long-dec filter-length)]
+    (if (m/< n l-)
+      0
+      (loop [k 0 v l-]
+        (if (m/<= (m/long-mult v 2) n) (recur (m/long-inc k) (m/long-mult v 2)) k)))))
 
-;;
+(defn- check-signal!
+  [^doubles x mode]
+  (let [n (alength x)]
+    (when (m/zero? n) (throw (ex-info "Signal is empty." {:length 0})))
+    (when (and (m/one? n) (#{:reflect :antireflect} mode))
+      (throw (ex-info "Signal length must be greater than 1 for :reflect and :antireflect modes." {:mode mode})))))
 
+(defn dwt-level
+  "One level of the discrete wavelet transform of `signal` (a `double-array`), as `pywt.dwt`.
+
+  Returns `[cA cD]`, two `double-array`s of length [[coeffs-length]]."
+  [wv ^doubles signal mode]
+  (check-mode! mode)
+  (check-signal! signal mode)
+  (let [w (wavelet wv)
+        ^doubles lo (phi w)
+        ^doubles hi (psi w)
+        l (alength lo)
+        n (alength signal)
+        out-n (coeffs-length n l mode)
+        ca (double-array out-n)
+        cd (double-array out-n)]
+    (if (= mode :periodization)
+      (let [np (m/long-mult 2 out-n)
+            x (double-array np)
+            half (m/long-quot l 2)]
+        (System/arraycopy signal 0 x 0 n)
+        (when (m/< n np) (Array/aset x n (Array/aget signal (m/long-dec n))))
+        (dotimes [i out-n]
+          (loop [j 0 a 0.0 d 0.0]
+            (if (m/== j l)
+              (do (Array/aset ca i a) (Array/aset cd i d))
+              (let [v (Array/aget x (m/long-mod (m/long-sub (m/long-add (m/long-mult 2 i) half) j) np))]
+                (recur (m/long-inc j) (m/+ a (m/* v (Array/aget lo j))) (m/+ d (m/* v (Array/aget hi j)))))))))
+      (let [^doubles x ((extension-modes mode) signal (m/long-add n (m/long-mult 2 (m/long-dec l))) :both)]
+        (dotimes [i out-n]
+          (let [k (m/long-add l (m/long-mult 2 i))]
+            (loop [j 0 a 0.0 d 0.0]
+              (if (m/== j l)
+                (do (Array/aset ca i a) (Array/aset cd i d))
+                (let [v (Array/aget x (m/long-sub k j))]
+                  (recur (m/long-inc j) (m/+ a (m/* v (Array/aget lo j))) (m/+ d (m/* v (Array/aget hi j)))))))))))
+    [ca cd]))
+
+(defn idwt-level
+  "One level of the inverse discrete wavelet transform, as `pywt.idwt`: reconstructs a signal from bands `ca` and `cd` (`double-array`s of the same length `n`).
+
+  Returns a `double-array` of length `2n - L + 2` (`2n` for `:periodization`), which can be one longer than the original signal; the caller trims it."
+  [wv ^doubles ca ^doubles cd mode]
+  (check-mode! mode)
+  (let [w (wavelet wv)
+        ^doubles lo (phi w :rec)
+        ^doubles hi (psi w :rec)
+        l (alength lo)
+        n (alength ca)]
+    (when-not (m/== n (alength cd))
+      (throw (ex-info "Approximation and detail bands should have the same length." {:approximation n :detail (alength cd)})))
+    (if (= mode :periodization)
+      (let [m (m/long-mult 2 n)
+            out (double-array m)
+            shift (m/long-dec (m/long-quot l 2))]
+        (dotimes [i n]
+          (let [a (Array/aget ca i)
+                d (Array/aget cd i)]
+            (dotimes [j l]
+              (let [k (m/long-mod (m/long-sub (m/long-add (m/long-mult 2 i) j) shift) m)]
+                (Array/aset out k (m/+ (Array/aget out k) (m/* a (Array/aget lo j)) (m/* d (Array/aget hi j))))))))
+        out)
+      (let [m (m/long-add (m/long-sub (m/long-mult 2 n) l) 2)]
+        (when-not (m/pos? m)
+          (throw (ex-info "Bands are too short for this wavelet." {:length n :filter-length l})))
+        (let [out (double-array m)]
+          (dotimes [k m]
+            (loop [i 0 s 0.0]
+              (if (m/== i n)
+                (Array/aset out k s)
+                (let [idx (m/long-sub (m/long-add k (m/long-sub l 2)) (m/long-mult 2 i))]
+                  (recur (m/long-inc i)
+                         (if (and (m/not-neg? idx) (m/< idx l))
+                           (m/+ s (m/* (Array/aget ca i) (Array/aget lo idx)) (m/* (Array/aget cd i) (Array/aget hi idx)))
+                           s))))))
+          out)))))
+
+;; scaling and wavelet functions, cascade algorithm
 ;; https://github.com/vincentherrmann/vincentherrmann.github.io/blob/master/scripts/wavelets.js
 
 (defn- upscale
   [coeffs buff]
   (let [buff-cnt (count buff)
         coeffs-cnt (count coeffs)
-        nsize (m/+ (m/* 2 buff-cnt) coeffs-cnt -2)]
+        nsize (m/long-sub (m/long-add (m/long-mult 2 buff-cnt) coeffs-cnt) 2)]
     (mapv (fn [^long j]
             (reduce (fn [^double s ^long k]
-                      (if (m/even? (m/+ k j))
-                        (let [i (m// (m/- j k) 2)]
+                      (if (m/even? (m/long-add k j))
+                        (let [i (m/long-quot (m/long-sub j k) 2)]
                           (if (and (m/not-neg? i) (m/< i buff-cnt))
                             (m/+ s (m/* (double (coeffs k)) (double (buff i))))
                             s))
@@ -370,9 +271,9 @@
         offset (m/round (m/exp2 scale))]
     (->> coeffs
          (map-indexed (fn [^long i ^double coeff]
-                        (concat (repeat (m/* i offset) 0.0)
+                        (concat (repeat (m/long-mult i offset) 0.0)
                                 (v/mult buff coeff)
-                                (repeat (m/* (m/- coeffs-cnt i 1) offset) 0.0))))
+                                (repeat (m/long-mult (m/long-sub (m/long-dec coeffs-cnt) i) offset) 0.0))))
          (reduce v/add))))
 
 (defn- function-coeffs
@@ -384,9 +285,9 @@
 
 (defn- function-step1
   [wv ^long level reconstruction?]
-  (let [w (if (or (string? wv) (keyword? wv)) (wavelet wv) wv)
+  (let [w (wavelet wv)
         low (function-coeffs w phi reconstruction?)]
-    [w (nth (iterate (partial upscale low) [1.0]) (m/dec level)) low]))
+    [w (nth (iterate (partial upscale low) [1.0]) (m/long-dec level)) low]))
 
 (defn- function-interpolator
   [w y]
@@ -396,7 +297,13 @@
     (fn [^double x] (if (m/<= 0 x s) (i x) 0.0))))
 
 (defn scaling-function
-  "Returns approximation of scaling function, phi."
+  "Returns an approximation of the scaling function phi of a wavelet as a function of `x`, by the cascade algorithm.
+
+  * `wv` - wavelet name or object
+  * `level` - number of cascade iterations (default 8); the result is a linear interpolation of `2^level` points per unit
+  * `reconstruction?` - use the reconstruction filters (default `false`, decomposition filters)
+
+  The support is `[0, L-1]` for filter length `L`, the function is 0 outside. For orthogonal wavelets the values agree with `pywt.Wavelet.wavefun` within the cascade resolution (about `3e-2` at level 10); for biorthogonal wavelets PyWavelets uses other conventions (sign, and different results for irregular functions such as the `bior2.2` decomposition phi)."
   ([wv] (scaling-function wv 8))
   ([wv ^long level] (scaling-function wv level false))
   ([wv ^long level reconstruction?]
@@ -404,37 +311,13 @@
      (function-interpolator w (upscale-final low step-1 (m/dec level))))))
 
 (defn wavelet-function
-  "Returns approximation of wavelet function, psi."
+  "Returns an approximation of the wavelet function psi of a wavelet as a function of `x`, by the cascade algorithm.
+
+  Arguments and accuracy as in [[scaling-function]]."
   ([wv] (wavelet-function wv 8))
   ([wv ^long level] (wavelet-function wv level false))
   ([wv ^long level reconstruction?]
    (let [[w step-1] (function-step1 wv level reconstruction?)
-         ;; negate?
          high (function-coeffs w psi reconstruction?)]
      (function-interpolator w (upscale-final high step-1 (m/dec level))))))
 
-;;;;
-
-(defn- dwt-cut-and-iterate
-  [coeffs-seq ^long level]
-  (if (or (m/zero? level) (m/one? (count (first coeffs-seq))))
-    (vec coeffs-seq)
-    (let [[f & rst] coeffs-seq
-          [l r] (split-at (m// (count f) 2) f)]
-      (recur (conj rst r l) (m/dec level)))))
-
-(defn decompose-dwt
-  "Returns decomposed coefficients"
-  ([coeffs] (decompose-dwt coeffs (m/log2int (count coeffs))))
-  ([coeffs level]
-   (if-not level
-     (dwt-cut-and-iterate [coeffs] (m/log2int (count coeffs)))
-     (dwt-cut-and-iterate [coeffs] level))))
-
-(defn decompose-wpt
-  "Returns decomposed coefficients for WPT"
-  ([coeffs] (decompose-wpt coeffs (m/log2int (count coeffs))))
-  ([coeffs level]
-   (let [mlevel (m/log2int (count coeffs))
-         level (long (or level mlevel))]
-     (vec (partition (long (m/exp2 (m/- mlevel level))) coeffs)))))

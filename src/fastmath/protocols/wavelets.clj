@@ -8,10 +8,8 @@
   (reverse-2d [t xss] [t xss options] "Reverse transform of sequence of sequences."))
 
 (defprotocol WaveletProto
-  "Wavelet information and operations"
+  "Wavelet filter bank information."
   (wavelet-name [w] "Return name of the wavelet")
-  (wavelet-forward [w signal length] "Forward transform, length - how much data to transform")
-  (wavelet-reverse [w signal length] "Reverse transform, length - how much data to transform")
-  (coeffs-size [w] "Length of the coefficients")
-  (phi [w] [w kind] "Scaling, low-pass, coefficients (deconstruction or reconstruction)")
-  (psi [w] [w kind] "Wavelet, high-pass, coefficients (deconstruction or reconstruction)"))
+  (coeffs-size [w] "Length of the filters")
+  (phi [w] [w kind] "Scaling, low-pass, filter (decomposition or reconstruction)")
+  (psi [w] [w kind] "Wavelet, high-pass, filter (decomposition or reconstruction)"))

@@ -23,10 +23,8 @@
   Fourier transforms are computed by JTransforms."
   (:require [fastmath.core :as m]
             [fastmath.protocols.wavelets :as prot]
-            [fastmath.signal.pad :as pad]
             [fastmath.transform.wavelets :as wv])
-  (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform]
-           [org.apache.commons.math3.transform FastSineTransformer FastCosineTransformer FastHadamardTransformer RealTransformer DstNormalization DctNormalization TransformType]
+  (:import [org.apache.commons.math3.transform FastSineTransformer FastCosineTransformer FastHadamardTransformer RealTransformer DstNormalization DctNormalization TransformType]
            [org.jtransforms.fft DoubleFFT_1D DoubleFFT_2D]
            [org.jtransforms.dht DoubleDHT_1D DoubleDHT_2D]
            [org.jtransforms.dct DoubleDCT_1D DoubleDCT_2D]
@@ -82,7 +80,7 @@
       * `:fft` - complex FFT of interleaved `[re0 im0 re1 im1 ...]` data (1d and 2d)
       * `:fftr` (alias `:rfft`) - forward: full complex spectrum of real data; reverse: complex inverse of interleaved data
   * `:sine`, `:cosine` - with second argument `:standard` or `:orthogonal`, Apache Commons Math DST-I / DCT-I with fixed normalization
-  * `:dwt`, `:wpt` - wavelet transforms, second argument is a wavelet name, see `fastmath.transform.wavelets/wavelet-names`
+  * `:dwt`, `:wpt` - wavelet transforms ([[dwt]], [[wpt]]) with flat `double-array` coefficients, second argument is a wavelet name, see `fastmath.transform.wavelets/wavelet-names`; options `:level` and `:mode` as in [[dwt]], the reverse transform also needs the signal length `:n` (and the same `:level` and `:mode`). 1d only.
 
   JTransforms based objects take the option `:scale?` (default `true`): when `true` the reverse FFT/DHT is divided by `N` and DCT/DST are orthonormal; with `false` the raw JTransforms scaling is used (for DCT/DST it differs between power-of-two and other sizes). The high-level functions use `:norm` instead.
 
@@ -93,14 +91,6 @@
 
 (defmethod transformer :default [t _]
   (unknown :transformer t [:real :complex :sine :cosine :dwt :wpt]))
-
-(defmethod transformer :dwt [_ w] (if (keyword? w)
-                                    (FastWaveletTransform. (wv/wavelet w))
-                                    (wv/wavelet-reify w :dwt)))
-
-(defmethod transformer :wpt [_ w] (if (keyword? w)
-                                    (WaveletPacketTransform. (wv/wavelet w))
-                                    (wv/wavelet-reify w :wpt)))
 
 ;; Apache Commons Math sine/cosine (DST-I / DCT-I)
 
@@ -724,135 +714,239 @@
 
 ;; Wavelets
 
-(defn- maybe-wavelet-pad
-  [xs pad?]
-  (let [len (count xs)
-        po2? (m/power-of-two? len)]
-    (if-not (or pad? po2?)
-      (throw (ex-info "Length of the signal should be power of 2." {:length len}))
-      (if po2?
-        [xs 0]
-        (let [nlen (m/round-up-pow2 len)]
-          [(pad/zero (m/seq->double-array xs) nlen :left) (m/- nlen len)])))))
+(defn- wavelet-options
+  "Validated `[wavelet mode]` and the filter length."
+  [wavelet mode]
+  (let [w (wv/wavelet wavelet)]
+    (when-not (wv/modes mode)
+      (throw (ex-info "Unknown wavelet mode." {:mode mode :allowed (sort wv/modes)})))
+    [w (wv/coeffs-size w)]))
+
+(defn- resolve-level
+  ^long [level ^long n ^long filter-length]
+  (cond
+    (nil? level) (wv/max-level n filter-length)
+    (and (integer? level) (m/not-neg? (long level))) (long level)
+    :else (throw (ex-info "Level should be a non-negative integer." {:level level}))))
+
+(defn- signal->array
+  ^doubles [xs]
+  (let [arr (m/seq->double-array xs)]
+    (when (m/zero? (alength arr)) (throw (ex-info "Signal is empty." {:length 0})))
+    arr))
+
+(defn- dwt-bands
+  "Bands `[cA_level cD_level ... cD_1]` as `double-array`s."
+  [w ^doubles x mode ^long level]
+  (loop [a x l 0 details ()]
+    (if (m/== l level)
+      (vec (cons a details))
+      (let [[ca cd] (wv/dwt-level w a mode)]
+        (recur ca (m/long-inc l) (cons cd details))))))
+
+(defn- band-lengths
+  "Lengths of the [[dwt]] bands for a signal of length `n`."
+  [^long n ^long filter-length mode ^long level]
+  (let [cs (rest (take (m/long-inc level) (iterate #(wv/coeffs-length % filter-length mode) n)))]
+    (if (empty? cs)
+      [n]
+      (vec (cons (last cs) (reverse cs))))))
+
+(defn- split-flat
+  [coeffs lengths]
+  (when-not (== (count coeffs) (long (reduce + lengths)))
+    (throw (ex-info "Flat coefficients do not match band lengths." {:length (count coeffs) :lengths lengths})))
+  (loop [cs (vec coeffs) ls lengths acc []]
+    (if-let [l (first ls)]
+      (recur (subvec cs l) (rest ls) (conj acc (subvec cs 0 l)))
+      acc)))
+
+(defn- trim-to
+  "First `n` values of `arr` when `n` is given, otherwise `arr`."
+  ^doubles [^doubles arr n]
+  (cond
+    (nil? n) arr
+    (== (alength arr) (long n)) arr
+    (> (alength arr) (long n)) (java.util.Arrays/copyOf arr (int n))
+    :else (throw (ex-info "Reconstructed signal is shorter than the requested length." {:length (alength arr) :n n}))))
 
 (defn dwt
-  "Compute the Discrete Wavelet Transform (DWT) of a 1D signal.
+  "Computes the multilevel discrete wavelet transform of a 1d signal, as `pywt.wavedec`.
 
-  Performs a multi-resolution analysis by decomposing the input signal into approximation and detail coefficients. This allows for the analysis of signal features at different scales and positions, providing a time-frequency representation where the frequency resolution is high for low-frequency components and time resolution is high for high-frequency components.
+  * `xs` - signal, any length
+  * `wavelet` - name from `fastmath.transform.wavelets/wavelet-names` (e.g. `\"db4\"`, `\"sym8\"`, `:daubechies-4`) or a wavelet object
+  * `options`:
+      * `:level` - number of decomposition levels, default: the maximum useful level `floor(log2(N / (L - 1)))` (`pywt.dwt_max_level`)
+      * `:mode` - boundary extension, default `:symmetric`; see `fastmath.transform.wavelets` for all modes, `:periodization` keeps the total length
+      * `:flat?` - return one concatenated vector instead of bands (default `false`)
 
-  Input parameters:
-  * `xs` - Input signal as a sequence. The length must typically be a power of 2.
-  * `wavelet` - The wavelet to use for decomposition. Can be a string for built-in wavelets (e.g., \"haar\", \"db4\", \"sym5\") or a keyword for JWave-based wavelets (e.g., :haar, :daubechies-4). See [[fastmath.transform.wavelets/wavelet-names]] for all supported names.
-  * `options` - A map of configuration keys:
-      * `:level` - The number of decomposition levels to perform.
-      * `:decompose?` - Boolean (default `false`). If `true`, the resulting flat coefficient array is restructured into a sequence of bands (approximation followed by details from coarsest to finest) using [[fastmath.transform.wavelets/decompose-dwt]]
-      * `:pad?` - Boolean (default `true`). When true, automatically pads the signal with zeros to the nearest power of 2 size..
+  Returns a vector of bands `[cA_n cD_n cD_n-1 ... cD_1]` (approximation at the coarsest level followed by details from coarsest to finest), each a vector of doubles; with `:level 0` the only band is the signal. Metadata under `:fastmath.transform/dwt` holds `{:wavelet :mode :level :n}` (and `:lengths` of the bands for flat output), used by [[idwt]].
 
-  Returns a double array of wavelet coefficients. If `:decompose?` is set to `true`, returns a sequence of sequences representing the structured decomposition levels. The result includes metadata (under the `::dwt` key) storing the number of `:padded` elements required to correctly reverse the transform using [[idwt]]."
+  Throws `ex-info` for an empty signal, an unknown wavelet or mode, a negative level, or a one-sample signal with `:reflect` / `:antireflect`."
   ([xs wavelet] (dwt xs wavelet nil))
-  ([xs wavelet {:keys [level decompose? pad?]
-                :or {pad? true}
-                :as opts}]
-   (let [[xs padded] (maybe-wavelet-pad xs pad?)
-         t (transformer :dwt wavelet)
-         coeffs (forward-1d t xs opts)]
-     (with-meta (if-not decompose?
-                  (vec coeffs)
-                  (wv/decompose-dwt coeffs level))
-       {::dwt {:padded padded}}))))
+  ([xs wavelet {:keys [level mode flat?] :or {mode :symmetric}}]
+   (let [[w l] (wavelet-options wavelet mode)
+         x (signal->array xs)
+         n (alength x)
+         level (resolve-level level n l)
+         bands (mapv vec (dwt-bands w x mode level))
+         info {:wavelet wavelet :mode mode :level level :n n}]
+     (if flat?
+       (with-meta (vec (apply concat bands)) {::dwt (assoc info :lengths (mapv count bands))})
+       (with-meta bands {::dwt info})))))
 
 (defn idwt
-  "Compute the Inverse Discrete Wavelet Transform (IDWT) to reconstruct a signal from its wavelet coefficients.
+  "Reconstructs a signal from the [[dwt]] bands, as `pywt.waverec`.
 
-  Reverses the multi-resolution decomposition performed by [[dwt]].
+  * `coeffs` - vector of bands `[cA_n cD_n ... cD_1]`, or a flat vector together with `:lengths`
+  * `wavelet` - the wavelet used by [[dwt]]
+  * `options` (merged over the metadata attached by [[dwt]]):
+      * `:mode` - boundary mode used by [[dwt]] (default `:symmetric`)
+      * `:n` - length of the original signal; without it the result can be one sample longer, as in PyWavelets
+      * `:lengths` - band lengths, required for flat coefficients
 
-  Input parameters:
-  * `coeffs` - A sequence or array of wavelet coefficients. It supports both flat representations (concatenated coefficients) and structured sequences of bands (nested sequences as returned by [[dwt]] with the `:decompose?` option).
-  * `wavelet` - The wavelet used for reconstruction. This must match the wavelet used in the forward transform. Can be a string for built-in wavelets (e.g., \"haar\", \"db4\") or a keyword for JWave-based wavelets (e.g., :haar, :daubechies-4).
-  * `options` - An optional map of configuration keys:
-      * `:level` - The number of reconstruction levels to perform.
-      * `:padded` - The number of leading elements to drop from the result (usually inferred from `::dwt` metadata attached to `coeffs` by the [[dwt]] function).
+  At every level an approximation one sample longer than the next detail band is trimmed (as in PyWavelets). Returns a vector of doubles.
 
-  Returns a sequence of doubles representing the reconstructed signal in the time domain."
+  Throws `ex-info` for empty input, an unknown wavelet or mode, flat coefficients without `:lengths`, or band lengths that do not fit together."
   ([coeffs wavelet] (idwt coeffs wavelet nil))
   ([coeffs wavelet options]
-   (let [{:keys [^long padded] :or {padded 0} :as options} (merge (::dwt (meta coeffs)) options)
-         t (transformer :dwt wavelet)
-         coeffs (if (sequential? (first coeffs)) (flatten coeffs) coeffs)]
-     (drop padded (reverse-1d t coeffs options)))))
+   (let [{:keys [mode n lengths] :or {mode :symmetric}} (merge (::dwt (meta coeffs)) options)
+         [w _] (wavelet-options wavelet mode)
+         _ (when (empty? coeffs) (throw (ex-info "Coefficients are empty." {})))
+         bands (if (number? (first coeffs))
+                 (if lengths
+                   (split-flat coeffs lengths)
+                   (throw (ex-info "Flat coefficients need :lengths of the bands." {})))
+                 coeffs)
+         res (reduce (fn [^doubles a d]
+                       (let [^doubles d (m/seq->double-array d)
+                             la (alength a)
+                             ld (alength d)
+                             ^doubles a (cond
+                                          (== la ld) a
+                                          (== la (inc ld)) (java.util.Arrays/copyOf a ld)
+                                          :else (throw (ex-info "Band lengths do not fit together." {:approximation la :detail ld})))]
+                         (wv/idwt-level w a d mode)))
+                     (m/seq->double-array (first bands)) (rest bands))]
+     (vec (trim-to res n)))))
+
+(defn- packet-nodes
+  "Nodes of the wavelet packet tree at each level `0..level`, natural order."
+  [w ^doubles x mode ^long level]
+  (take (m/long-inc level)
+        (iterate (fn [nodes] (vec (mapcat (fn [node] (wv/dwt-level w node mode)) nodes))) [x])))
 
 (defn wpt
-  "Compute the Wavelet Packet Transform (WPT) of a 1D signal.
+  "Computes the wavelet packet transform of a 1d signal at one level, as the level nodes of `pywt.WaveletPacket`.
 
-  Performs a full decomposition of the signal by recursively applying low-pass and high-pass filters to both approximation and detail coefficients at each level.
+  Every node is split into approximation and detail by one level of the discrete wavelet transform, down to `:level`.
 
-  Input parameters:
-  * `xs` - Input signal as a sequence or array. The length must be a power of 2.
-  * `wavelet` - The wavelet to use for decomposition. Can be a string for built-in wavelets (e.g., \"haar\", \"db4\") or a keyword for JWave-based wavelets (e.g., :haar, :daubechies-4). See [[fastmath.transform.wavelets/wavelet-names]] for all supported names.
-  * `options` - A map of configuration keys:
-      * `:level` - The number of decomposition levels to perform.
-      * `:decompose?` - Boolean (default `false`). If `true`, the resulting flat coefficient array is restructured into a sequence of $2^{level}$ equal-width frequency bands using [[fastmath.transform.wavelets/decompose-wpt]].
-      * `:pad?` - Boolean (default `true`). When `true`, automatically pads the signal with zeros to the nearest power of 2.
+  * `xs` - signal, any length
+  * `wavelet` - name from `fastmath.transform.wavelets/wavelet-names` or a wavelet object
+  * `options`:
+      * `:level` - decomposition level, default the maximum useful level (as for [[dwt]])
+      * `:mode` - boundary extension, default `:symmetric`
+      * `:flat?` - return one concatenated vector instead of nodes (default `false`)
 
-  Returns a double array of wavelet packet coefficients. If `:decompose?` is `true`, it returns a sequence of sequences representing the structured frequency sub-bands. The result includes metadata (under the `::wpt` key) containing the number of `:padded` elements to facilitate correct reconstruction via [[iwpt]]."
+  Returns the `2^level` nodes of the level in natural order (paths `a...a`, `a...ad`, ..., `d...d`, approximation before detail at every split), each a vector of doubles of the same length. Metadata under `:fastmath.transform/wpt` holds `{:wavelet :mode :level :n}`, used by [[iwpt]].
+
+  Throws `ex-info` for an empty signal, an unknown wavelet or mode, or a negative level."
   ([xs wavelet] (wpt xs wavelet nil))
-  ([xs wavelet {:keys [level decompose? pad?]
-                :or {pad? true}
-                :as options}]
-   (let [[xs padded] (maybe-wavelet-pad xs pad?)
-         t (transformer :wpt wavelet)
-         coeffs (forward-1d t xs options)]
-     (with-meta (if-not decompose?
-                  (vec coeffs)
-                  (wv/decompose-wpt coeffs level))
-       {::wpt {:padded padded}}))))
+  ([xs wavelet {:keys [level mode flat?] :or {mode :symmetric}}]
+   (let [[w l] (wavelet-options wavelet mode)
+         x (signal->array xs)
+         n (alength x)
+         level (resolve-level level n l)
+         nodes (mapv vec (last (packet-nodes w x mode level)))]
+     (with-meta (if flat? (vec (apply concat nodes)) nodes)
+       {::wpt {:wavelet wavelet :mode mode :level level :n n}}))))
 
 (defn iwpt
-  "Compute the Inverse Wavelet Packet Transform (IWPT) to reconstruct a signal.
+  "Reconstructs a signal from the [[wpt]] nodes of one level.
 
-  Reverses the full decomposition tree performed by [[wpt]], transforming wavelet packet coefficients back into the time domain.
+  * `coeffs` - vector of `2^level` nodes in natural order, or a flat vector together with `:level`
+  * `wavelet` - the wavelet used by [[wpt]]
+  * `options` (merged over the metadata attached by [[wpt]]):
+      * `:mode` - boundary mode used by [[wpt]] (default `:symmetric`)
+      * `:level` - required for flat coefficients
+      * `:n` - length of the original signal; every reconstructed node is trimmed to its length in the tree (as PyWavelets does with a known data shape), without it nodes can be one sample longer
 
-  Input parameters:
-  * `coeffs` - A sequence or array of wavelet packet coefficients. It supports both flat representations and structured sequences of frequency bands (as returned by [[wpt]] with the `:decompose?` option).
-  * `wavelet` - The wavelet used for reconstruction. This must match the wavelet used in the forward transform. Can be a string (e.g., \"db4\") or a keyword (e.g., :daubechies-4). See [[fastmath.transform.wavelets/wavelet-names]] for supported names.
-  * `options` - An optional map of configuration keys:
-    * `:level` - The number of decomposition levels to perform during reconstruction.
-    * `:padded` - The number of leading elements to drop from the result to reverse padding added during the forward transform (usually inferred from metadata attached to `coeffs`).
-
-  Returns a sequence of doubles representing the reconstructed signal in the time domain."
+  Returns a vector of doubles. Throws `ex-info` for empty input, an unknown wavelet or mode, a node count which is not a power of two, nodes of different lengths or lengths which do not match `:n`."
   ([coeffs wavelet] (iwpt coeffs wavelet nil))
   ([coeffs wavelet options]
-   (let [{:keys [^long padded] :or {padded 0} :as options} (merge (::dwt (meta coeffs)) options)
-         t (transformer :wpt wavelet)
-         coeffs (if (sequential? (first coeffs)) (flatten coeffs) coeffs)]
-     (drop padded (reverse-1d t coeffs options)))))
+   (let [{:keys [mode n level] :or {mode :symmetric}} (merge (::wpt (meta coeffs)) options)
+         [w l] (wavelet-options wavelet mode)
+         _ (when (empty? coeffs) (throw (ex-info "Coefficients are empty." {})))
+         nodes (if (number? (first coeffs))
+                 (if level
+                   (let [parts (long (m/exp2 level))]
+                     (when-not (zero? (m/long-mod (count coeffs) parts))
+                       (throw (ex-info "Flat coefficients can't be split into 2^level equal nodes." {:length (count coeffs) :level level})))
+                     (mapv vec (partition (quot (count coeffs) parts) coeffs)))
+                   (throw (ex-info "Flat coefficients need :level." {})))
+                 coeffs)
+         cnt (count nodes)
+         lvl (m/log2int cnt)]
+     (when-not (m/power-of-two? cnt)
+       (throw (ex-info "Number of nodes should be a power of two." {:nodes cnt})))
+     (when-not (apply == (map count nodes))
+       (throw (ex-info "Nodes should have the same length." {:lengths (map count nodes)})))
+     (let [tree-lengths (when n (vec (take (inc lvl) (iterate #(wv/coeffs-length % l mode) (long n)))))]
+       (when (and tree-lengths (not= (count (first nodes)) (tree-lengths lvl)))
+         (throw (ex-info "Node length does not match the signal length :n." {:node-length (count (first nodes)) :expected (tree-lengths lvl)})))
+       (loop [nodes (mapv m/seq->double-array nodes) k lvl]
+         (if (zero? k)
+           (vec ^doubles (first nodes))
+           (recur (mapv (fn [[a d]] (trim-to (wv/idwt-level w a d mode) (when tree-lengths (tree-lengths (dec k)))))
+                        (partition 2 nodes))
+                  (dec k))))))))
 
 (defn wpd
-  "Compute the full Wavelet Packet Decomposition (WPD) for all levels of a 1D signal.
+  "Computes the full wavelet packet decomposition: the [[wpt]] nodes of every level from 0 (the signal) to `:level`.
 
-  This function performs a comprehensive decomposition by recursively applying high-pass and low-pass filters to both approximation and detail coefficients at every possible scale. While [[wpt]] typically targets a specific level, `wpd` returns the coefficients for every level from 0 (the original or padded signal) to the maximum depth, providing a complete hierarchical view of the signal's frequency structure across all resolutions.
+  * `xs` - signal, any length
+  * `wavelet` - name from `fastmath.transform.wavelets/wavelet-names` or a wavelet object
+  * `options`:
+      * `:level` - deepest level, default the maximum useful level (as for [[dwt]])
+      * `:mode` - boundary extension, default `:symmetric`
+      * `:flat?` - every level as one concatenated vector instead of nodes (default `false`)
 
-  Input parameters:
-  * `xs` - Input signal as a sequence or array of real numbers.
-  * `wavelet` - The wavelet used for decomposition. Can be a string for built-in wavelets (e.g., \"db4\") or a keyword for JWave-based wavelets (e.g., :daubechies-4).
-  * `options` - A map of configuration keys:
-      * `:decompose?` - Boolean (default `true`). If `true`, restructures the flat coefficient array of each level into a sequence of equal-width frequency bands using [[fastmath.transform.wavelets/decompose-wpt]].
-      * `:pad?` - Boolean (default `true`). When `true`, automatically pads the signal with zeros to the nearest power of 2.
+  Returns a vector of levels; level `k` holds `2^k` nodes in natural order, as [[wpt]] with `:level k`. Metadata under `:fastmath.transform/wpd` holds `{:wavelet :mode :level :n}`.
 
-  Returns a sequence of levels, where each level contains the corresponding wavelet packet coefficients. If `:decompose?` is `true`, each level is returned as a sequence of sequences representing frequency sub-bands. The result includes metadata (under the `::wpd` key) storing the number of `:padded` elements used during the transform."
+  Throws `ex-info` for an empty signal, an unknown wavelet or mode, or a negative level."
   ([xs wavelet] (wpd xs wavelet nil))
-  ([xs wavelet {:keys [decompose? pad?]
-                :or {decompose? true pad? true}}]
-   (let [[xs padded] (maybe-wavelet-pad xs pad?)
-         arr (m/seq->double-array xs)
-         levels (range 1 (m/inc (m/log2int (alength arr))))
-         wv (wv/wavelet wavelet)
-         res (->> levels
-                  (reduce (fn [[^long prev-level buff] ^long level]
-                            [level (conj buff (wv/wpt-forward-1d wv (last buff) prev-level level))]) [0 [arr]])
-                  (second))]
-     (with-meta (if-not decompose?
-                  res
-                  (mapv (fn [coeffs ^long level]
-                          (wv/decompose-wpt coeffs level)) res (conj levels 0)))
-       {::wpd {:padded padded}}))))
+  ([xs wavelet {:keys [level mode flat?] :or {mode :symmetric}}]
+   (let [[w l] (wavelet-options wavelet mode)
+         x (signal->array xs)
+         n (alength x)
+         level (resolve-level level n l)]
+     (with-meta (mapv (fn [nodes] (let [nodes (mapv vec nodes)]
+                                    (if flat? (vec (apply concat nodes)) nodes)))
+                      (packet-nodes w x mode level))
+       {::wpd {:wavelet wavelet :mode mode :level level :n n}}))))
+
+(defn- wavelet-transformer
+  "Transform object over [[dwt]] / [[wpt]] with flat `double-array` coefficients; the reverse transform needs `:n`."
+  [kind wavelet]
+  (let [l (wv/coeffs-size (wv/wavelet wavelet))]
+    (letfn [(fwd [xs opts]
+              (double-array ((if (= kind :dwt) dwt wpt) xs wavelet (assoc opts :flat? true))))
+            (rev [xs {:keys [n mode level] :or {mode :symmetric} :as opts}]
+              (when-not n
+                (throw (ex-info "Reverse wavelet transform needs the signal length :n." {:options opts})))
+              (let [level (resolve-level level n l)]
+                (double-array (if (= kind :dwt)
+                                (idwt (vec xs) wavelet (assoc opts :lengths (band-lengths n l mode level) :level level))
+                                (iwpt (vec xs) wavelet (assoc opts :level level))))))]
+      (reify prot/TransformProto
+        (forward-1d [_ xs] (fwd xs nil))
+        (forward-1d [_ xs opts] (fwd xs opts))
+        (reverse-1d [_ xs] (rev xs nil))
+        (reverse-1d [_ xs opts] (rev xs opts))
+        (forward-2d [t _] (no-2d t))
+        (forward-2d [t _ _] (no-2d t))
+        (reverse-2d [t _] (no-2d t))
+        (reverse-2d [t _ _] (no-2d t))))))
+
+(defmethod transformer :dwt [_ w] (wavelet-transformer :dwt w))
+(defmethod transformer :wpt [_ w] (wavelet-transformer :wpt w))

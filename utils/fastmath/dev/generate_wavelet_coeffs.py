@@ -18,8 +18,10 @@ Every entry is `"name" [dec_lo dec_hi rec_lo rec_hi]` in PyWavelets orientation
 - MATLAB values copied by hand (`wavelet_coeffs_matlab.edn`), no precise source
   found: mb*, fk*, han*, bl7, bl9, bl10, beyl, vaid.
 - Derived: battle3, the orthonormal cubic-spline Battle-Lemarie scaling filter
-  (Mallat 1989) sampled from its frequency response and truncated to 121
-  symmetric taps (n = -60..60); orthonormality error 2.8e-10.
+  (Mallat 1989) sampled from its frequency response and truncated to 161
+  symmetric taps (n = -80..80), followed by one zero so the filter length is
+  even (the quadrature mirror construction needs it); orthonormality error
+  4.6e-13, multilevel reconstruction error 2.1e-11 (pywt, N 2048 and 601).
 
 `la8`-`la20` are not stored: they equal sym4-sym10 (aliases in Clojure).
 
@@ -218,7 +220,7 @@ for name, (dl, dh) in matlab.items():
     table[name] = orthogonal_bank(list(dl[::-1]))
     sources[name] = "matlab"
 
-table["battle3"] = orthogonal_bank(battle_lemarie(3, 121))
+table["battle3"] = orthogonal_bank(list(battle_lemarie(3, 161)) + [0.0])
 sources["battle3"] = "derived"
 
 
