@@ -13,7 +13,6 @@
             [clojure.edn :as edn]
             [fastmath.core :as m]
             [fastmath.protocols.wavelets :as prot]
-            [fastmath.vector :as v]
             [fastmath.signal.pad :as pad]
             [fastmath.interpolation.linear :as il])
   (:import [fastmath.java Array]))
@@ -248,76 +247,109 @@
                            s))))))
           out)))))
 
-;; scaling and wavelet functions, cascade algorithm
-;; https://github.com/vincentherrmann/vincentherrmann.github.io/blob/master/scripts/wavelets.js
+;; scaling and wavelet functions, as pywt.Wavelet.wavefun
 
-(defn- upscale
-  [coeffs buff]
-  (let [buff-cnt (count buff)
-        coeffs-cnt (count coeffs)
-        nsize (m/long-sub (m/long-add (m/long-mult 2 buff-cnt) coeffs-cnt) 2)]
-    (mapv (fn [^long j]
-            (reduce (fn [^double s ^long k]
-                      (if (m/even? (m/long-add k j))
-                        (let [i (m/long-quot (m/long-sub j k) 2)]
-                          (if (and (m/not-neg? i) (m/< i buff-cnt))
-                            (m/+ s (m/* (double (coeffs k)) (double (buff i))))
-                            s))
-                        s)) 0.0 (range coeffs-cnt))) (range nsize))))
+(defn- upsample-convolve
+  "One full reconstruction step: `c` upsampled by 2 and convolved with `filt`, length `2n + L - 2`."
+  ^doubles [^doubles c ^doubles filt]
+  (let [n (alength c)
+        l (alength filt)
+        out (double-array (m/long-sub (m/long-add (m/long-mult 2 n) l) 2))]
+    (dotimes [i n]
+      (let [v (Array/aget c i)
+            base (m/long-mult 2 i)]
+        (dotimes [j l]
+          (let [k (m/long-add base j)]
+            (when (m/< k (alength out))
+              (Array/aset out k (m/+ (Array/aget out k) (m/* v (Array/aget filt j)))))))))
+    out))
 
-(defn- upscale-final
-  [coeffs buff scale]
-  (let [coeffs-cnt (count coeffs)
-        offset (m/round (m/exp2 scale))]
-    (->> coeffs
-         (map-indexed (fn [^long i ^double coeff]
-                        (concat (repeat (m/long-mult i offset) 0.0)
-                                (v/mult buff coeff)
-                                (repeat (m/long-mult (m/long-sub (m/long-dec coeffs-cnt) i) offset) 0.0))))
-         (reduce v/add))))
+(defn- upcoef
+  "`pywt.upcoef` of a single coefficient `c` at `level`: the first step uses the reconstruction low-pass (`approximation?`) or high-pass filter, the others the low-pass one."
+  ^doubles [[^doubles rec-lo ^doubles rec-hi] approximation? ^double c ^long level]
+  (loop [i 0 coeffs (double-array [c])]
+    (if (m/== i level)
+      coeffs
+      (recur (m/long-inc i) (upsample-convolve coeffs (if (or approximation? (m/pos? i)) rec-lo rec-hi))))))
 
-(defn- function-coeffs
-  [w f reconstruction?]
-  (-> (if reconstruction? (f w :rec) (f w))
-      (reverse)
-      (v/mult m/SQRT2)
-      (vec)))
+(defn- biorthogonal-name?
+  [nm]
+  (and (string? nm) (or (.startsWith ^String nm "bior") (.startsWith ^String nm "rbio"))))
 
-(defn- function-step1
-  [wv ^long level reconstruction?]
-  (let [w (wavelet wv)
-        low (function-coeffs w phi reconstruction?)]
-    [w (nth (iterate (partial upscale low) [1.0]) (m/long-dec level)) low]))
+(defn- psi-sign
+  "PyWavelets negates psi of a biorthogonal wavelet when the number of vanishing moments of psi (the first digit of `biorX.Y` / `rbioX.Y`) modulo 4 is not 1."
+  ^double [nm]
+  (if (and (biorthogonal-name? nm)
+           (not (m/== 1 (m/long-mod (Long/parseLong (subs nm 4 5)) 4))))
+    -1.0 1.0))
 
-(defn- function-interpolator
-  [w y]
-  (let [s (m/dec (coeffs-size w))
-        x (m/slice-range 0 s (count y))
-        i (il/linear x y)]
-    (fn [^double x] (if (m/<= 0 x s) (i x) 0.0))))
+(defn- orthogonal?
+  [^Wavelet w]
+  (and (not (biorthogonal-name? (.name w)))
+       (let [^doubles dl (.dec-lo w) ^doubles rl (.rec-lo w)
+             ^doubles dh (.dec-hi w) ^doubles rh (.rec-hi w)
+             l (alength dl)]
+         (every? (fn [^long i] (and (m/== (Array/aget dl i) (Array/aget rl (m/long-sub (m/long-dec l) i)))
+                                    (m/== (Array/aget dh i) (Array/aget rh (m/long-sub (m/long-dec l) i)))))
+                 (range l)))))
+
+(defn- reversed
+  ^doubles [^doubles a]
+  (let [l (alength a) out (double-array l)]
+    (dotimes [i l] (Array/aset out i (Array/aget a (m/long-sub (m/long-dec l) i))))
+    out))
+
+(defn- wavefun-samples
+  "Samples `[xs ys]` of phi (`scaling?`) or psi as computed by `pywt.Wavelet.wavefun(level)`."
+  [wv ^long level scaling? reconstruction?]
+  (when-not (m/pos? level)
+    (throw (ex-info "Level must be positive." {:level level})))
+  (let [^Wavelet w (wavelet wv)
+        orthogonal (orthogonal? w)
+        [^doubles lo ^doubles hi] (if (or orthogonal reconstruction?)
+                                    [(.rec-lo w) (.rec-hi w)]
+                                    [(reversed (.dec-lo w)) (reversed (.dec-hi w))])
+        l (alength lo)
+        p (m/<< 1 level)
+        c (m/* (m/pow m/SQRT2 level) (if (or scaling? orthogonal) 1.0 (psi-sign (.name w))))
+        keep-length (loop [i 0 k 1] (if (m/== i level) k (recur (m/long-inc i) (m/long-add (m/long-mult 2 k) (m/long-sub l 2)))))
+        output-length (m/long-max (m/long-add keep-length 2)
+                             (if orthogonal
+                               (m/long-inc (m/long-mult (m/long-dec l) p))
+                               (m/long-mult (m/long-dec l) p)))
+        ^doubles rec (upcoef [lo hi] scaling? c level)
+        left (m/long-quot (m/long-sub (alength rec) keep-length) 2)
+        ys (double-array output-length)]
+    (System/arraycopy rec (m/long-max 0 left) ys 1 (m/long-min keep-length (alength rec)))
+    [(m/slice-range 0.0 (m// (double (m/long-dec output-length)) p) output-length) (vec ys)]))
+
+(defn- samples->function
+  [[xs ys]]
+  (let [x0 (double (first xs))
+        x1 (double (last xs))
+        f (il/linear xs ys)]
+    (fn ^double [^double x] (if (m/<= x0 x x1) (f x) 0.0))))
 
 (defn scaling-function
-  "Returns an approximation of the scaling function phi of a wavelet as a function of `x`, by the cascade algorithm.
+  "Returns the scaling function phi of a wavelet, as a function of `x`, computed as `pywt.Wavelet.wavefun(level)`.
 
   * `wv` - wavelet name or object
-  * `level` - number of cascade iterations (default 8); the result is a linear interpolation of `2^level` points per unit
-  * `reconstruction?` - use the reconstruction filters (default `false`, decomposition filters)
+  * `level` - refinement level (default 8): phi is sampled at `2^level` points per unit by `level` reconstruction steps of a single coefficient `2^(level/2)` and linearly interpolated
+  * `reconstruction?` - for biorthogonal wavelets the reconstruction (`true`) or decomposition (`false`, default) function; ignored for orthogonal wavelets
 
-  The support is `[0, L-1]` for filter length `L`, the function is 0 outside. For orthogonal wavelets the values agree with `pywt.Wavelet.wavefun` within the cascade resolution (about `3e-2` at level 10); for biorthogonal wavelets PyWavelets uses other conventions (sign, and different results for irregular functions such as the `bior2.2` decomposition phi)."
+  The function is 0 outside the PyWavelets grid `[0, (L-1) - 1/2^level]` for biorthogonal and `[0, L-1]` for orthogonal wavelets (`L` the filter length). Wavelets named `biorX.Y` / `rbioX.Y` are biorthogonal; another wavelet is orthogonal when its reconstruction filters are its reversed decomposition filters.
+
+  Throws `ex-info` for a level smaller than 1."
   ([wv] (scaling-function wv 8))
   ([wv ^long level] (scaling-function wv level false))
   ([wv ^long level reconstruction?]
-   (let [[w step-1 low] (function-step1 wv level reconstruction?)]
-     (function-interpolator w (upscale-final low step-1 (m/dec level))))))
+   (samples->function (wavefun-samples wv level true reconstruction?))))
 
 (defn wavelet-function
-  "Returns an approximation of the wavelet function psi of a wavelet as a function of `x`, by the cascade algorithm.
+  "Returns the wavelet function psi of a wavelet, as a function of `x`, computed as `pywt.Wavelet.wavefun(level)`.
 
-  Arguments and accuracy as in [[scaling-function]]."
+  Arguments as in [[scaling-function]]. Like PyWavelets, psi of a biorthogonal wavelet is negated when the number of vanishing moments of psi (`X` in `biorX.Y`) modulo 4 is not 1."
   ([wv] (wavelet-function wv 8))
   ([wv ^long level] (wavelet-function wv level false))
   ([wv ^long level reconstruction?]
-   (let [[w step-1] (function-step1 wv level reconstruction?)
-         high (function-coeffs w psi reconstruction?)]
-     (function-interpolator w (upscale-final high step-1 (m/dec level))))))
-
+   (samples->function (wavefun-samples wv level false reconstruction?))))

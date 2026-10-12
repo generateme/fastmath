@@ -8,7 +8,11 @@ for 12 wavelets x 9 modes x N in (1, 2, 5, 16, 31, 64), skipping combinations
 PyWavelets rejects (one-sample signal with reflect / antireflect);
 
 - `:packets` - `pywt.WaveletPacket` nodes of levels 1-3 (natural order) for
-4 wavelets x 3 modes x N in (16, 37).
+4 wavelets x 3 modes x N in (16, 37);
+
+- `:wavefun` - `pywt.Wavelet.wavefun(level=10)` interpolated on 101 points of its
+grid for 12 wavelets (orthogonal: phi, psi; biorthogonal: decomposition and
+reconstruction phi, psi).
 
 Inputs are deterministic (seeded) and stored with the results.
 
@@ -76,7 +80,7 @@ for w in ["haar", "db4", "sym5", "bior3.5"]:
                            % (w, mode, n, vec(x), " ".join(levels)))
 
 wavefuns = []
-for w in ["haar", "db2", "db4", "sym4", "coif1", "bior2.2", "bior3.5"]:
+for w in ["haar", "db2", "db4", "sym4", "coif1", "dmey", "bior1.3", "bior2.2", "bior3.5", "bior4.4", "rbio2.2", "rbio3.1"]:
     W = pywt.Wavelet(w)
     res = W.wavefun(level=10)
     xs = res[-1]

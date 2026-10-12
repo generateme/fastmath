@@ -10,7 +10,7 @@
 ;; `test/resources/transform/wavelet_reference.edn`:
 ;; - `pywt.dwt` and `pywt.wavedec` (default and level 2) for 12 wavelets x 9 modes x N in 1, 2, 5, 16, 31, 64,
 ;; - `pywt.WaveletPacket` levels 1-3 for 4 wavelets x 3 modes x N in 16, 37,
-;; - `pywt.Wavelet.wavefun(level=10)` on 101 points.
+;; - `pywt.Wavelet.wavefun(level=10)` on 101 points for 12 orthogonal and biorthogonal wavelets.
 
 (def ^:private reference
   (delay (edn/read-string (slurp (io/resource "transform/wavelet_reference.edn")))))
@@ -125,12 +125,23 @@
     (test/is (thrown? clojure.lang.ExceptionInfo (sut/phi w :both)))
     (test/is (thrown? clojure.lang.ExceptionInfo (sut/psi w :both)))))
 
+(defn- function-close?
+  "Same algorithm as `pywt.Wavelet.wavefun`; level-10 refinement accumulates up to 2.9e-12 (rbio3.1, measured)."
+  [expected actual]
+  (<= (max-diff expected actual) (* 1.0e-11 (inc (reduce max 0.0 (map #(Math/abs (double %)) expected))))))
+
 (test/deftest wavelet-functions-vs-pywavelets
-  ;; level-10 cascade approximations differ by up to 3.4e-2 (measured) for these orthogonal wavelets
-  (doseq [{:keys [wavelet x phi psi]} (:wavefun @reference)
-          :when (#{"db2" "db4" "sym4" "coif1"} wavelet)]
-    (test/is (<= (max-diff phi (map (sut/scaling-function wavelet 10) x)) 3.5e-2) wavelet)
-    (test/is (<= (max-diff psi (map (sut/wavelet-function wavelet 10) x)) 3.5e-2) wavelet))
+  (doseq [{:keys [wavelet x phi psi phi-rec psi-rec]} (:wavefun @reference)]
+    (test/testing wavelet
+      (test/is (function-close? phi (map (sut/scaling-function wavelet 10) x)) "phi (decomposition for biorthogonal)")
+      (test/is (function-close? psi (map (sut/wavelet-function wavelet 10) x)) "psi (decomposition for biorthogonal)")
+      (when phi-rec
+        (test/is (function-close? phi-rec (map (sut/scaling-function wavelet 10 true) x)) "reconstruction phi")
+        (test/is (function-close? psi-rec (map (sut/wavelet-function wavelet 10 true) x)) "reconstruction psi"))))
+  (test/testing "zero outside the support, level guard"
+    (test/is (zero? ((sut/scaling-function "db4") -0.1)))
+    (test/is (zero? ((sut/wavelet-function "db4") 7.5)))
+    (test/is (thrown? clojure.lang.ExceptionInfo (sut/scaling-function "db4" 0))))
   (test/testing "Haar, exact away from the jumps"
     (let [phi (sut/scaling-function "haar" 10)
           psi (sut/wavelet-function "haar" 10)]
