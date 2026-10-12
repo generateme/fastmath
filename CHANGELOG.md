@@ -17,6 +17,9 @@ All notable changes to this project will be documented in this file. This change
 * log version of utility functions for `bayesian-optimization`: `:log-ei`, `:log-poi` and `:log-ucb`
 * `fastmath.core/scalb` - `x * 2^n` through `java.lang.Math/scalb` (the exponent is clamped to the `int` range); `fastmath.polynomials` and `fastmath.core` helpers call the `fastmath.core` functions instead of `java.lang.Math`
 * `fastmath.core` `fsin`, `fcos`, `ftan`, `fatan2`, `flog1p` - the previous Jafama-backed (less accurate) versions of `sin`, `cos`, `tan`, `atan2`, `log1p`
+* `fastmath.transform` `:norm` option (`:backward`, `:ortho`, `:forward`, as numpy/scipy) for `fft`, `dct`, `dst`, `dht` and inverses; `wpd`; wavelet boundary modes (`:symmetric` default, `:periodization`, `:zero`, `:constant`, `:periodic`, `:smooth`, `:reflect`, `:antisymmetric`, `:antireflect`, as PyWavelets)
+* `fastmath.transform.wavelets` engine `dwt-level`, `idwt-level`, `coeffs-length`, `max-level`, `modes`; wavelet `battle3` (cubic Battle–Lemarié, alias `:battle-23`); wavelet coefficients regenerated to PyWavelets precision
+* `fastmath.signal.biquad/shelf-slope->Q`; `:svf2` `:bandpass-normalized`; `savgol-filter` `delta`; 1-arity of `fft-energy`, `fft-magnitude`, `fft-amplitude`, `fft-power`, `stft`; `:asd`, `:real`, `:imag`, `:complex` methods in `stft`
 
 ### Fixed
 
@@ -89,6 +92,10 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.polynomials` `eval-laguerre-L`, `eval-hermite-H`, `eval-hermite-He`, `eval-meixner-pollaczek-P` returned NaN (and `eval-laguerre-L` an infinity slightly too early) where the value is out of the double range; now the signed infinity, with the recurrence scaled so intermediate overflow does not matter. `eval-bernstein` was up to 2% off when a power of `x` is subnormal
 * `fastmath.polynomials` `str` of a `Polynomial` of degree 10 dropped the highest term; `derivative` of a `Polynomial` of order 171 or more returned `Inf` and NaN for a representable result; inline `evalpoly` evaluated the coefficient expressions right to left
 
+* `fastmath.signal` biquad effects (`:biquad-*`, `:dj-eq`) were unstable (wrong sign of `a1`, `a2`); shelves took `:slope` as `Q`
+* `fastmath.signal` spectra: metadata of `fft` was not read (wrong `N`, one-sided doubling), DC/Nyquist magnitude doubled, `:asd` was not `sqrt(psd)`, `:umedian` bias wrong for even segment counts, `:db?` used `10 log10` for amplitudes, `stft` times off by `0.5/fs` for odd windows; `savgol-filter` derivatives missed `d!`; `sample-waveform` spacing was not `1/fs`
+* `fastmath.signal` effect ports corrected against the originals: `:mda-thru-zero` (sign, rate, stop below 0.01), `:svf2` (`:notch`, dirty `tan`), `:svf3` (`:bandpass`, `:bell`), `:decimator` (`modf`, guards)
+* `fastmath.signal.denoise/sure` (MATLAB `rigrsure`), `:sure`/`:hybrid` scaled by the noise deviation; `iwpt`; DCT/DST normalization; `pad` of one sample; polyblep `hyptri` DC offset; chirp/waveform periodicity for negative time
 ### Changed
 
 * faster `fastmath.random/jittered-sequence-generator` for 5 and more dimensions (about 3x) and `fastmath.vector` `add`, `sub`, `emult`, `emx`, `emn`, `dot`, `interpolate`, `einterpolate` on persistent vectors (3-5x on 100 elements)
@@ -100,6 +107,12 @@ All notable changes to this project will be documented in this file. This change
 * [breaking] `fastmath.core` `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `log1p`, `cbrt`, `log`, `ln`, `log10`, `sqrt` (and the functions built on them) are backed by `java.lang.Math` instead of Jafama `FastMath`, which was off by up to 8e5 ulps (`acos`), 1e5 (`tan`) and 1e3 (`sin`, `cos`) in some ranges; results differ by a few ulps for typical arguments, the old versions of `sin`, `cos`, `tan`, `atan2`, `log1p` are `fsin`, `fcos`, `ftan`, `fatan2`, `flog1p`; `expm1` now keeps `-0.0`
 * [breaking] `fastmath.core` `asinh`, `acosh`, `atanh` have their own implementation (`PrimitiveMath`, accurate to about 2 ulps on every JDK) instead of Jafama's, which was off by up to 2.5e7 ulps (`acosh` close to 1), 33 (`asinh`) and 19 (`atanh`); `atanh` and `acosh` on `1..2` take 13-17 ns, about twice Jafama's time, and `java.lang.Math.asinh/acosh` (JDK 27) are 20-40x slower
 * [breaking] `fastmath.core/remainder` is the IEEE remainder (`Math/IEEEremainder`): an exact tie goes to the even quotient (`(remainder 1.5 1.0)` is `-0.5`, was `0.5`)
+* [breaking] `fastmath.transform` wavelets reimplemented as PyWavelets (`dwt`, `idwt`, `wpt`, `iwpt`): output is a vector of bands `[cA_n cD_n ... cD_1]`, default mode `:symmetric`, default level = maximum level, 1-d only; JWave dependency removed, JWave keywords are aliases of the PyWavelets names (`:legendre-2`, `:legendre-3` throw)
+* [breaking] `fastmath.transform` removed: `:dft`, `:decomposed-*`, `compress`, `compress-peaks-average`, `denoise` aliases, `transformer` keys `:fast`, `:packet`, `:standard`, `:orthogonal`, `:pad?`, `:scale?` (high-level functions use `:norm`); `fastmath.transform.wavelets` removed old engine functions (`dwt-forward-1d`, `dwt-reverse-1d`, `wpt-forward-1d`, `wpt-reverse-1d`, `wavelet-reify`, `decompose-dwt`, `decompose-wpt`) and `qmf` 2-arity
+* [breaking] `fastmath.transform/ifft` needs `:kind` (from `fft` metadata `:fastmath.transform/fft`) and `:n` for one-sided spectra, `:complex` returns complex values by default
+* [breaking] `fastmath.signal` oscillators removed (`oscillator`, `oscillators`, `oscillators-sum`, `oscillator-gain`, `oscillator->signal`, `signal->oscillator`), use `waveform`, `add-waveforms`, `gain-waveform`, `sample-waveform`; `fastmath.signal.waveform/polyblep-hyptri2` and `fastmath.signal.denoise/sure` 2-arity removed
+* [breaking] `fastmath.signal` and `fastmath.signal.*` return vectors (`denoise`, `convolve`, `filter-signal`, `resample`, spectra, `firwin`, `gammatone`, `response`, `sos-coeffs`); unknown options and invalid arguments throw `ex-info`
+* [breaking] `fastmath.signal.biquad` bandwidth uses the digital cookbook formula; `fastmath.signal.iir` Chebyshev type II default ripple 40 dB; `fastmath.signal.fir/gammatone` defaults in Hz (`:cutoff 1000 :fs 16000`)
 
 ## [3.0.0 alpha9]
 

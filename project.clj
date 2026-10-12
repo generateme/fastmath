@@ -7,8 +7,7 @@
                  [net.jafama/jafama "2.3.2"]
                  [org.apache.commons/commons-math3 "3.6.1"]
 
-                 ;; Wavelets and FFT
-                 [de.sciss/jwave "1.0.3"]
+                 ;; FFT
                  [com.github.wendykierp/JTransforms "3.2"]
 
                  ;; IIR filters
@@ -50,9 +49,10 @@
                                   #_[scicloj/tablecloth "7.059"]
                                   [virgil "0.5.0"]
                                   [org.ow2.asm/asm "9.9"]
-                                  [clojure2d/clojure2d "1.5.0-alpha2"]
+                                  [clojure2d/clojure2d "1.5.0-alpha2" :exclusions [generateme/fastmath]]
                                   [org.scicloj/plotje "0.14.0" :exclusions [clojure2d/clojure2d
-                                                                            generateme/fastmath]]]
+                                                                            generateme/fastmath
+                                                                            de.sciss/jwave]]]
                    :source-paths ["notebooks" "utils"]
                    ;; test-only reference data (e.g. precomputed R values for special-test)
                    :resource-paths ["test/resources"]}

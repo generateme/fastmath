@@ -49,7 +49,8 @@
   (let [samples (take 4410 #_{:clj-kondo/ignore [:unresolved-var]} (sut/polyblep-hyptri {:f 441.0 :fs 44100.0}))
         mean (/ (reduce + samples) (count samples))]
     (t/is (< (Math/abs mean) 0.005) "mean -0.0015 measured (offset -1 as Tale's poly_hyptri; was -0.31 with -1.313)")
-    (t/is (<= (reduce max samples) 1.32) (t/is (>= (reduce min samples) -0.7)))))
+    (t/is (<= (reduce max samples) 1.32))
+    (t/is (>= (reduce min samples) -0.7))))
 
 (t/deftest guards
   (t/is (thrown? clojure.lang.ExceptionInfo (sig/waveform :pulse))))
