@@ -244,7 +244,18 @@
     (single-pass e n)))
 
 (defn effect-node
-  "Create `EffectsList` node from effect function and initial state."
+  "Creates a single effect from the step function `f` of a stateful sample-by-sample filter.
+
+  This is the constructor used by the methods of [[effect]]; to create an effect use [[effect]].
+
+  Parameters:
+
+  - `effect-name` (keyword): Name of the effect, shown when the effect is printed.
+  - `f` (function): The step function. Called without arguments it returns the initial state, called with a sample and a state it returns the output sample together with the next state (`SampleAndState`).
+
+  Returns the effect with the initial state `(f)` and the last output sample `0.0`.
+
+  See also [[effect]], [[compose-effects]]."
   [effect-name f]
   (EffectsList. effect-name 0.0 f (f) nil))
 
@@ -256,18 +267,45 @@
                                                                           e2)))
 
 (defn compose-effects
-  "Compose effects: `(compose-effects e1 e2 ... en)` processes a sample by `en` first and `e1` last (as function composition `comp`)."
+  "Composes effects into a single effect, as `comp` does for functions.
+
+  `(compose-effects e1 e2 ... en)` passes a sample through `en` first and through `e1` last; the output of `e1` is the output of the composition.
+
+  Parameters:
+
+  - `e`, `es` (effects): One or more effects created with [[effect]].
+
+  Returns the composed effect, which is applied, called and reset as a single effect while each part keeps its own state. With one effect the effect itself is returned. The arguments are not changed.
+
+  See also [[effect]], [[apply-effects]], [[reset-effects]]."
   [^EffectsList e & es]
   (reduce compose-two-effects e es))
 
 (defn reset-effects
-  "Resets effects state to initial one."
+  "Resets the state of an effect (single or composed) to the initial one.
+
+  Parameters:
+
+  - `e` (effect): Effect created with [[effect]] or [[compose-effects]].
+
+  Returns a new effect with the initial state of every part and the last output sample `0.0`. The argument is not changed.
+
+  See also [[apply-effects]] (its `reset` argument), [[compose-effects]]."
   [^EffectsList e]
   (EffectsList. (.effect-name e) 0.0 (.effect e) ((.effect e)) (when (.next e)
                                                                  (reset-effects (.next e)))))
 
 (defn single-pass
-  "Process on sample using effects, returns `EffectsList` with result and new effect states."
+  "Processes one sample with an effect.
+
+  Parameters:
+
+  - `e` (effect): Effect created with [[effect]] or [[compose-effects]].
+  - `sample` (double): Input sample.
+
+  Returns a new effect with the advanced state. The output sample is the value of the returned effect called without arguments: `((single-pass e x))`. The argument is not changed. Calling an effect with a sample, `(e x)`, is the same as `(single-pass e x)`.
+
+  See also [[apply-effects]], [[reset-effects]]."
   [^EffectsList e ^double sample]
   (if-not (.next e)
     (let [^SampleAndState r ((.effect e) sample (.state e))]
@@ -277,11 +315,19 @@
       (EffectsList. (.effect-name e) (.sample r) (.effect e) (.state r) prev))))
 
 (defn apply-effects-raw
-  "Apply effects to signal as `double-array`.
+  "Applies an effect to a signal given as `double-array`.
 
-  If `reset` is positive, reinit state each `reset` number of samples.
+  Parameters:
 
-  Returns new signal as `double-array`."
+  - `in` (`double-array`): Input signal.
+  - `effects` (effect): Effect or composition of effects, see [[effect]] and [[compose-effects]].
+  - `reset` (integer, optional): When positive, the state of the effect is reset (see [[reset-effects]]) after every `reset` samples. Default `0`, no reset.
+
+  Returns a new `double-array` of the same length; the input array is not changed.
+
+  The `effects` value is not advanced, so the same effect can be applied to several signals. The exceptions are the effects with a mutable buffer (`:echo`, `:mda-thru-zero`, `:iir`): do not reuse them for another signal.
+
+  See also [[apply-effects]], [[single-pass]]."
   (^doubles [^doubles in effects ^long reset]
    (let [len (alength in)
          ^doubles out (double-array len)]
@@ -300,36 +346,55 @@
   (^doubles [^doubles in effects] (apply-effects-raw in effects 0)))
 
 (defn apply-effects
-  "Apply effects to signal as any sequence.
+  "Applies an effect to a signal given as any sequence of numbers.
 
-  If `reset` is positive, reinit state each `reset` number of samples.
+  Parameters:
 
-  Returns new signal."
+  - `in` (sequence of numbers): Input signal.
+  - `effects` (effect): Effect or composition of effects, see [[effect]] and [[compose-effects]].
+  - `reset` (integer, optional): When positive, the state of the effect is reset (see [[reset-effects]]) after every `reset` samples. Default `0`, no reset.
+
+  Returns the filtered signal, a sequence of doubles of the same length (`nil` for an empty signal).
+
+  See [[apply-effects-raw]] for the notes on the reuse of effects with a mutable buffer."
   ([in effects ^long reset] (m/double-array->seq (apply-effects-raw (m/seq->double-array in) effects reset)))
   ([in effects] (apply-effects in effects 0)))
 
 ;; ## Helper functions
 
 (defn db->linear
-  "DB to Linear (power)"
+  "Converts a gain in decibels to the linear amplitude ratio `10^(x/20)`.
+
+  `0` dB gives `1.0`, `20` dB gives `10.0`, `-20` dB gives `0.1`, about `6.02` dB gives `2.0`. For a power ratio the exponent is `x/10` instead.
+
+  Returns a double. See also [[linear->db]]."
   ^double [^double x]
   (m/exp10 (/ x 20.0)))
 
 (defn linear->db
-  "Linear (power) to DB"
+  "Converts a linear amplitude ratio to decibels: `20 log10(x)`.
+
+  `1.0` gives `0`, `10.0` gives `20`, `2.0` gives about `6.02`. `0.0` gives `-Infinity` and a negative `x` gives `NaN`. For a power ratio the factor is `10` instead of `20`.
+
+  Returns a double. See also [[db->linear]]."
   ^double [^double x]
   (* 20.0 (m/log10 x)))
 
 ;; ## Effects / Filters
 
 (defmulti effect
-  "Create effect for given name (as keyword) and optional parameters.
+  "Creates an effect: a stateful sample-by-sample filter, given its name.
 
-  List of all possible effects is under [[effects-list]].
+  Parameters:
 
-  Effect is a custom type which contains: name, sample (result of last call), effect function and current state.
+  - `name` (keyword): Name of the effect, one of [[effects-list]].
+  - `params` (map, optional): Parameters of the effect, missing keys take the defaults. All parameters are listed for each effect in the docstring of the namespace. `:gain` also accepts the gain number and `:iir` requires an IIR filter from `fastmath.signal.iir`.
 
-  Effect can be considered as function: call with sample to effect with next state or call without parameter to obtain latest result. Effects are also composable with [[compose-effects]]."
+  Returns the effect. An effect is a function: called with a sample it returns the effect with the next state, called without arguments it returns the last output sample (`0.0` for a new effect). It prints as the names of its parts and the last sample.
+
+  Throws `IllegalArgumentException` for an unknown name and `ex-info` for an invalid parameter (for example an unknown `:kind`).
+
+  See also [[apply-effects]], [[compose-effects]], [[reset-effects]], [[single-pass]]."
   (fn [m & _] m))
 
 ;; ### Simple Low/High pass filters
@@ -976,18 +1041,22 @@
                       ([] (SVF3State. 0.0 0.0)))))))
 
 
-(def ^{:doc "List of effects."}
+(def ^{:doc "Sorted sequence of the names (keywords) of all effects which can be created with [[effect]]."}
   effects-list (sort (keys (methods effect))))
 
 ;; ## File operations
 
 (defn save-signal
-  "Save signal to file.
+  "Saves a signal to a file as 16 bit signed samples, big endian.
 
-  Representation is 16 bit signed, big endian. Values are clipped to `[-1, 1]` and mapped linearly onto `[-32768, 32767]` (so `0.0` reads back as about `1.5e-5`).
-  You can use Audacity/SOX utilities to convert files to audio.
+  Values are clipped to `[-1, 1]` and mapped linearly onto `[-32768, 32767]`, so `0.0` reads back as about `1.5e-5` (see [[load-signal]]). Use Audacity or SoX to convert the file to or from an audio format.
 
-  Returns the signal as `double-array`."
+  Parameters:
+
+  - `sig` (sequence of numbers): Signal to save.
+  - `filename` (string or `java.io.File`): Path of the file. Missing parent directories are created, an existing file is overwritten.
+
+  Returns the signal as a `double-array` (not clipped)."
   [sig filename]
   (make-parents filename)
   (let [^java.io.DataOutputStream out (java.io.DataOutputStream. (output-stream filename))
@@ -1000,11 +1069,15 @@
     s))
 
 (defn load-signal
-  "Read signal from file.
+  "Reads a signal from a file of 16 bit signed samples, big endian.
 
-  Expected representation is 16 bit signed, big endian, mapped linearly from `[-32768, 32767]` onto `[-1, 1]` (see [[save-signal]]). A trailing odd byte is ignored.
+  Samples are mapped linearly from `[-32768, 32767]` onto `[-1, 1]` (see [[save-signal]]). Use Audacity or SoX to convert an audio file to this format.
 
-  Returns the signal as `double-array`."
+  Parameters:
+
+  - `filename` (string or `java.io.File`): Path of the file.
+
+  Returns the signal as a `double-array` of length `floor(bytes / 2)`, a trailing odd byte is ignored. Throws `java.io.FileNotFoundException` when the file does not exist."
   [filename]
   (let [^java.io.File f (file filename)
         len (m/long-quot (.length f) 2)
@@ -1036,15 +1109,21 @@
     (vec (java.util.Arrays/copyOfRange full start (m/long-add start n)))))
 
 (defn convolve
-  "Perform direct convolution of two signals (zero padding).
+  "Computes the direct convolution of two signals, zero padded outside.
 
-  `mode` (as `scipy.signal.convolve`):
+  Needs time proportional to `N1 N2`, for long signals see [[fft-convolve]].
 
-  * `:full` (default, alias `:all`) - full convolution, length `N1 + N2 - 1`
-  * `:same` (alias `:first`) - length `N1`, centred with respect to `:full`
-  * `:valid` - length `|N1 - N2| + 1`, values computed without zero padding
+  Parameters:
 
-  Returns a vector. Throws `ex-info` for an empty signal or an unknown mode."
+  - `sig1`, `sig2` (sequences of numbers): Signals of lengths `N1` and `N2`, not empty.
+  - `mode` (keyword, optional): The part of the result to return, as in `scipy.signal.convolve`:
+    - `:full` (default, alias `:all`) - the full convolution, length `N1 + N2 - 1`
+    - `:same` (alias `:first`) - length `N1`, centred with respect to `:full`
+    - `:valid` - length `|N1 - N2| + 1`, values computed without zero padding
+
+  Returns a vector. Throws `ex-info` for an empty signal or an unknown mode.
+
+  See also [[fft-convolve]], [[correlate]], [[filter-signal]]."
   ([sig1 sig2] (convolve sig1 sig2 :full))
   ([sig1 sig2 mode]
    (non-empty-signals! sig1 sig2)
@@ -1053,9 +1132,18 @@
      (convolution-slice mode (MathArrays/convolve a1 a2) (alength a1) (alength a2)))))
 
 (defn fft-convolve
-  "Perform convolution using FFT (zero padding to a power of two).
+  "Computes the convolution of two signals using FFT (zero padded to a power of two).
 
-  `mode` as in [[convolve]]. Returns a vector. Throws `ex-info` for an empty signal or an unknown mode."
+  The result is the same as of [[convolve]] up to rounding errors, in time proportional to `N log N`, `N = N1 + N2 - 1`, so it is faster for long signals.
+
+  Parameters:
+
+  - `sig1`, `sig2` (sequences of numbers): Signals, not empty.
+  - `mode` (keyword, optional): The part of the result to return, `:full` (default), `:same` or `:valid`, see [[convolve]].
+
+  Returns a vector. Throws `ex-info` for an empty signal or an unknown mode.
+
+  See also [[convolve]], [[fft-correlate]]."
   ([sig1 sig2] (fft-convolve sig1 sig2 :full))
   ([sig1 sig2 mode]
    (non-empty-signals! sig1 sig2)
@@ -1069,17 +1157,33 @@
      (convolution-slice mode (m/seq->double-array (subvec full 0 tsize)) s1 s2))))
 
 (defn correlate
-  "Perform direct cross-correlation of two real signals (zero padding): convolution of `sig1` with reversed `sig2`, as `scipy.signal.correlate`.
+  "Computes the direct cross-correlation of two real signals, zero padded outside.
 
-  `mode` as in [[convolve]]. Returns a vector."
+  It is the convolution of `sig1` with the reversed `sig2`, as `scipy.signal.correlate`.
+
+  Parameters:
+
+  - `sig1`, `sig2` (sequences of numbers): Real signals, not empty.
+  - `mode` (keyword, optional): The part of the result to return, `:full` (default), `:same` or `:valid`, see [[convolve]].
+
+  Returns a vector. Throws `ex-info` for an empty signal or an unknown mode.
+
+  See also [[fft-correlate]], [[convolve]]."
   ([sig1 sig2] (correlate sig1 sig2 :full))
   ([sig1 sig2 mode]
    (convolve sig1 (reverse sig2) mode)))
 
 (defn fft-correlate
-  "Perform cross-correlation of two real signals using FFT, see [[correlate]].
+  "Computes the cross-correlation of two real signals using FFT, the result of [[correlate]] up to rounding errors.
 
-  `mode` as in [[convolve]]. Returns a vector."
+  Parameters:
+
+  - `sig1`, `sig2` (sequences of numbers): Real signals, not empty.
+  - `mode` (keyword, optional): The part of the result to return, `:full` (default), `:same` or `:valid`, see [[convolve]].
+
+  Returns a vector. Throws `ex-info` for an empty signal or an unknown mode.
+
+  See also [[correlate]], [[fft-convolve]]."
   ([sig1 sig2] (fft-correlate sig1 sig2 :full))
   ([sig1 sig2 mode]
    (fft-convolve sig1 (reverse sig2) mode)))
@@ -1087,12 +1191,18 @@
 ;; filtering
 
 (defn filter-signal
-  "Apply FIR coefficients or an IIR filter to a signal.
+  "Applies FIR coefficients or an IIR filter to a signal.
 
-  * FIR coefficients (a sequence of numbers, see `fastmath.signal.fir`) - centred convolution, mode `:same` of [[convolve]] (as `numpy.convolve(xs, fir, 'same')` for `N >= M`, not a causal `lfilter`); direct for short signals, FFT otherwise.
-  * IIR filter (see `fastmath.signal.iir`) - causal filtering, sample by sample. The filter is mutable and keeps its state between calls, reset it with [[reset-IIR!]].
+  Parameters:
 
-  Returns a vector."
+  - `FIR-or-IIR`: One of:
+    - FIR coefficients (a sequence of numbers, see `fastmath.signal.fir`) - centred convolution, mode `:same` of [[convolve]] (as `numpy.convolve(xs, fir, 'same')` for `N >= M`, not a causal `lfilter`); computed directly for short signals and with FFT for long ones.
+    - an IIR filter (see `fastmath.signal.iir`) - causal filtering, sample by sample. The filter is mutable and keeps its state between calls, reset it with [[reset-IIR!]] before filtering another signal.
+  - `xs` (sequence of numbers): Signal to filter.
+
+  Returns the filtered signal as a vector, of the same length as `xs`.
+
+  See also [[filter-filter-signal]] (zero-phase), [[filter-signal-1]], [[convolve]]."
   [FIR-or-IIR xs]
   (if (instance? Cascade FIR-or-IIR)
     (let [^Cascade iir FIR-or-IIR]
@@ -1102,14 +1212,33 @@
       (cf xs FIR-or-IIR :same))))
 
 (defn filter-signal-1
-  "Apply IIR filter to a value"
+  "Applies an IIR filter to a single sample or creates the function doing it.
+
+  Parameters:
+
+  - `IIR`: Filter from `fastmath.signal.iir`.
+  - `x` (double, optional): Sample to filter.
+
+  With `x` returns the filtered sample as a double. Without `x` returns a function of one sample which does the same.
+
+  The filter is mutable: every call advances its internal state, use [[reset-IIR!]] to start again.
+
+  See also [[filter-signal]], [[reset-IIR!]]."
   ([^Cascade IIR]
    (fn ^double [^double x] (.filter IIR x)))
   (^double [^Cascade IIR ^double x]
    (.filter IIR x)))
 
 (defn reset-IIR!
-  "Reset internal state of the IIR filter. Reset always to reuse on different signal."
+  "Resets the internal state of an IIR filter.
+
+  The filter keeps its state between calls of [[filter-signal]] and [[filter-signal-1]], reset it before filtering another signal.
+
+  Parameters:
+
+  - `IIR`: Filter from `fastmath.signal.iir`.
+
+  Returns the same (mutated) filter."
   [^Cascade IIR]
   (.reset IIR)
   IIR)
@@ -1120,11 +1249,18 @@
     (.reset ^Cascade FIR-or-IIR)))
 
 (defn filter-filter-signal
-  "Apply filter twice, forward and backward, to cancel the phase shift (zero-phase filtering).
+  "Applies a filter twice, forward and backward, to cancel the phase shift (zero-phase filtering).
 
-  See [[filter-signal]]. An IIR filter is reset between the passes (not before the forward pass); there is no edge padding (unlike `scipy.signal.filtfilt`).
+  Parameters:
 
-  Returns a vector."
+  - `FIR-or-IIR`: FIR coefficients or an IIR filter, see [[filter-signal]].
+  - `xs` (sequence of numbers): Signal to filter.
+
+  An IIR filter is reset between the passes but not before the forward pass. There is no edge padding, unlike `scipy.signal.filtfilt`. The magnitude response is squared.
+
+  Returns the filtered signal as a vector, of the same length as `xs`.
+
+  See also [[filter-signal]], [[zero-phase]]."
   [FIR-or-IIR xs]
   (let [forward (filter-signal FIR-or-IIR xs)]
     (maybe-reset-filter! FIR-or-IIR)
@@ -1179,13 +1315,15 @@
        (perform-convolution coeffs fc signal)))))
 
 (defn moving-average-filter
-  "Creates moving average filter (zero padding).
+  "Creates a moving average filter: every sample is replaced by the mean of `length` samples centred at it, the signal is zero padded at both ends.
 
-  Arguments:
+  Parameters:
 
-  * length - odd length of the kernel (default: 5)
+  - `length` (odd positive integer, optional): Size of the window. Default `5`.
 
-  Returns filtering function. See also [[savgol-filter]]."
+  Returns a function which accepts a sequence of numbers and returns the smoothed signal as a vector of the same length. Throws `ex-info` for an even or non-positive `length`.
+
+  This is [[savgol-filter]] of order 0. See also [[kernel-smoothing-filter]]."
   ([] (moving-average-filter 5))
   ([^long length] (savgol-filter length 0 0)))
 
@@ -1572,7 +1710,15 @@
      (waveform :sine (merge options {:f modulation})))))
 
 (defn add-waveforms
-  "Adds two or more waveforms."
+  "Adds waveforms.
+
+  Parameters:
+
+  - `w`, `w1`, `w2`, ... (functions): Waveforms, functions `(fn [t])` of the time in seconds returning the amplitude, as created by [[waveform]] or [[chirp]].
+
+  Returns the waveform which is the sum of the given ones at `t`. A single waveform is returned unchanged.
+
+  See also [[gain-waveform]], [[sample-waveform]]."
   ([w] w)
   ([w1 w2] (fn [^double t] (m/+ (double (w1 t)) (double (w2 t)))))
   ([w1 w2 w3] (fn [^double t] (m/+ (double (w1 t)) (double (w2 t)) (double (w3 t)))))
@@ -1583,7 +1729,16 @@
    (reduce add-waveforms (add-waveforms w1 w2 w3 w4 w5) r)))
 
 (defn gain-waveform
-  "Scale amplitude with given `gain` value. Returns waveform function."
+  "Scales the amplitude of a waveform.
+
+  Parameters:
+
+  - `w` (function): Waveform, a function `(fn [t])` of the time in seconds returning the amplitude, see [[waveform]].
+  - `gain` (double): Factor, a negative value inverts the waveform.
+
+  Returns the waveform `(fn [t])` equal to `gain * (w t)`.
+
+  See also [[add-waveforms]], [[sample-waveform]]."
   [w ^double gain]
   (fn ^double [^double t] (m/* gain (double (w t)))))
 
@@ -1654,9 +1809,15 @@
 ;;
 
 (defn hilbert
-  "Calculates the analytic signal `x + i H(x)` (`H` - Hilbert transform) with FFT, as `scipy.signal.hilbert`.
+  "Calculates the analytic signal `x + i H(x)` of a real signal with FFT, as `scipy.signal.hilbert`.
 
-  Returns a vector of complex numbers (`Vec2`)."
+  `H(x)` is the Hilbert transform of `x`: the signal with every component shifted in phase by 90 degrees. The analytic signal is the base of [[amplitude-envelope]], [[instantaneous-phase]] and [[instantaneous-frequency]].
+
+  Parameters:
+
+  - `xs` (sequence of numbers): Real signal, not empty.
+
+  Returns a vector of complex numbers (`Vec2`: real and imaginary part) of the same length, the real part is `xs`. Throws `ex-info` for an empty signal."
   [xs]
   (let [t (trans/fft xs {:spectrum :double-sided})
         cnt (count t)
@@ -1671,21 +1832,45 @@
         (trans/ifft {:kind :complex :real? false}))))
 
 (defn amplitude-envelope
-  "Calculate envelope of the signal, the absolute value of [[hilbert]]."
+  "Calculates the amplitude envelope of a real signal: the magnitude of its analytic signal ([[hilbert]]).
+
+  Parameters:
+
+  - `xs` (sequence of numbers): Real signal, not empty.
+
+  Returns a lazy sequence of doubles of the same length. Throws `ex-info` for an empty signal.
+
+  See also [[instantaneous-phase]], [[instantaneous-frequency]]."
   [xs]
   (->> (hilbert xs) (map cplx/abs)))
 
 (defn instantaneous-phase
-  "Calculate instantaneous phase, the argument of [[hilbert]], unwrapped by default."
+  "Calculates the instantaneous phase of a real signal in radians: the argument of its analytic signal ([[hilbert]]).
+
+  Parameters:
+
+  - `xs` (sequence of numbers): Real signal, not empty.
+  - `unwrap?` (boolean, optional): When `true` (default), jumps larger than `pi` are removed by adding multiples of `2 pi`, so the phase is continuous. With `false` the values are in `[-pi, pi]`.
+
+  Returns a lazy sequence of doubles of the same length. Throws `ex-info` for an empty signal.
+
+  See also [[instantaneous-frequency]], [[amplitude-envelope]]."
   ([xs] (instantaneous-phase xs true))
   ([xs unwrap?]
    (let [args (->> (hilbert xs) (map cplx/arg))]
      (if unwrap? (v/unwrap args m/TWO_PI) args))))
 
 (defn instantaneous-frequency
-  "Calculate instantaneous frequency: differences of the unwrapped [[instantaneous-phase]] times `fs / (2 pi)` (default `fs` 1.0).
+  "Calculates the instantaneous frequency of a real signal: the differences of the unwrapped [[instantaneous-phase]] times `fs / (2 pi)`.
 
-  Returns `N - 1` values."
+  Parameters:
+
+  - `xs` (sequence of numbers): Real signal of `N` samples, not empty.
+  - `fs` (double, optional): Sampling frequency. Default `1.0`, the frequency is then in cycles per sample; with `fs` in Hz it is in Hz.
+
+  Returns a vector of `N - 1` doubles. Throws `ex-info` for an empty signal.
+
+  See also [[amplitude-envelope]], [[hilbert]]."
   ([xs] (instantaneous-frequency xs 1.0))
   ([xs ^double fs]
    (-> (instantaneous-phase xs)
@@ -1696,7 +1881,17 @@
 ;;
 
 (defn zero-phase
-  "Set phase of the signal spectrum to zero (keep magnitudes), returns the inverse transform as a vector."
+  "Sets the phase of every component of the spectrum of a signal to zero and keeps the magnitudes.
+
+  The signal is transformed with FFT, every coefficient is replaced by its magnitude and the result is transformed back. The result is real and symmetric (the sample `k` equals the sample `N - k`), so its energy is concentrated around the first sample.
+
+  Parameters:
+
+  - `xs` (sequence of numbers): Real signal, not empty.
+
+  Returns a vector of the same length. Throws `ex-info` for an empty signal.
+
+  See also [[filter-filter-signal]] (zero-phase filtering), [[hilbert]]."
   [xs]
   (let [X (trans/fft xs)]
     (trans/ifft (with-meta (mapv (comp cplx/complex cplx/abs) X) (meta X)))))
@@ -1704,9 +1899,18 @@
 ;;
 
 (defn resample
-  "Resample signal to `nsize` samples using FFT interpolation (as `scipy.signal.resample`; the signal is assumed periodic).
+  "Resamples a signal to `nsize` samples using FFT interpolation, as `scipy.signal.resample`.
 
-  Returns a vector of doubles. Throws `ex-info` for an empty signal or `nsize` less than 1."
+  The signal is assumed to be periodic, so for a signal which is not, the edges can show ringing.
+
+  Parameters:
+
+  - `xs` (sequence of numbers): Real signal, not empty.
+  - `nsize` (integer): Number of samples of the result, at least `1`. For `nsize` equal to the length of `xs` the signal is returned as doubles.
+
+  Returns a vector of doubles. Throws `ex-info` for an empty signal or `nsize` less than `1`.
+
+  See also [[pad]], [[spectrum]]."
   [xs ^long nsize]
   (let [size (count xs)]
     (when (m/zero? size)
