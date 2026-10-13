@@ -14,7 +14,8 @@
             [fastmath.stats :as stats]
             [fastmath.vector :as v]
             [fastmath.protocols.wavelets :as prot]
-            [fastmath.transform :as t]))
+            [fastmath.transform :as t])
+  (:import [fastmath.java Array]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -33,12 +34,12 @@
 
   Throws `ex-info` for empty input."
   ^double [xs]
-  (let [s (double-array (sort (map (fn [^double x] (m/* x x)) (non-empty! xs))))
+  (let [s (double-array (sort (map m/sq (non-empty! xs))))
         n (alength s)]
     (loop [k 1 cumsum 0.0 best-risk ##Inf best 0.0]
       (if (m/> k n)
         (m/sqrt best)
-        (let [sk (aget s (m/long-dec k))
+        (let [sk (Array/aget s (m/long-dec k))
               cumsum (m/+ cumsum sk)
               risk (m// (m/+ (m/- n (m/* 2.0 k)) cumsum (m/* (m/- n k) sk)) n)]
           (if (m/< risk best-risk)

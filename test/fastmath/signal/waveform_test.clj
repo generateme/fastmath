@@ -45,12 +45,174 @@
     (let [w (sut/->sine {:f (fn [t] (* 3.0 t t))})]
       (t/is (< (Math/abs (- (Math/sin (* 2.0 Math/PI 3.0 0.49)) (w 0.7))) 1e-15)))))
 
-(t/deftest polyblep
-  (let [samples (take 4410 #_{:clj-kondo/ignore [:unresolved-var]} (sut/polyblep-hyptri {:f 441.0 :fs 44100.0}))
+;; the `polyblep-*` generators are defined by a macro (unknown to the linter)
+(defn- polyblep-fn
+  [wave]
+  (ns-resolve 'fastmath.signal.waveform (symbol (str "polyblep-" (name wave)))))
+
+(t/deftest polyblep-hyptri
+  (let [samples (take 4410 ((polyblep-fn :hyptri) {:f 441.0 :fs 44100.0}))
         mean (/ (reduce + samples) (count samples))]
     (t/is (< (Math/abs mean) 0.005) "mean -0.0015 measured (offset -1 as Tale's poly_hyptri; was -0.31 with -1.313)")
     (t/is (<= (reduce max samples) 1.32))
     (t/is (>= (reduce min samples) -0.7))))
+
+;; PolyBLEP waveforms (Tale's `poly_blep.jsfx-inc`) against a literal numpy transliteration of the
+;; JSFX source, `utils/fastmath/dev/generate_polyblep_reference.py` ->
+;; `test/resources/signal/polyblep_reference.edn`: fs = 1000, phase = 0.37, amplitude = 1.5, 80 samples,
+;; phase steps dt = 0.013, 0.1, 0.23 (f = dt fs), pw = 0.25 / 0.7, n = 1 / 2 / 5, fc = f2 / f = 0.6 / 1.5 / 3.4.
+
+(def ^:private polyblep-reference
+  (delay (edn/read-string (slurp (io/resource "signal/polyblep_reference.edn")))))
+
+(def ^:private polyblep-waves
+  #{:sinn :half :half2 :full :sinp :alt :camel :camela :camel2 :sin2 :para :arc :circ
+    :tri :hyptri :trin :tri2 :trip :trap :trap2
+    :sqr :lpsqr2 :lpsqr3 :intlpsqr2 :intlpsqr3 :bpsqr2 :sqrm1 :sqr2 :rect
+    :saw :ramp :sawp :intsaw :cubsaw :sinsaw :hpsaw6 :sawm1 :sawn :hwsaw :logit3
+    :stairs :stairs3 :stairs2 :hstri :hssqr :hssaw})
+
+(t/deftest polyblep-waves-exist
+  (t/is (= 46 (count polyblep-waves)))
+  (t/is (every? polyblep-fn polyblep-waves)))
+
+(t/deftest polyblep-vs-reference
+  (let [{:keys [cases fs phase amplitude n-samples]} @polyblep-reference]
+    (t/is (= polyblep-waves (set (map :wave cases))) "every wave is covered")
+    (doseq [{:keys [wave samples] :as c} cases
+            :let [opts (merge {:fs fs :phase phase :amplitude amplitude} (select-keys c [:f :pw :n :f2]))
+                  ys (take n-samples ((polyblep-fn wave) opts))]]
+      (t/is (= n-samples (count ys)))
+      ;; measured maximum difference 1.1e-15 (hyptri); accumulated phase and sums of polynomials
+      (t/is (<= (max-diff samples ys) 1.0e-10) (str wave " " (select-keys c [:f :pw :n :f2]))))))
+
+(t/deftest polyblep-time-varying
+  (let [{:keys [time-varying fs phase amplitude n-samples]} @polyblep-reference
+        f (fn [t] (+ 100.0 (* 80.0 t)))
+        pw (fn [t] (+ 0.3 (* 0.4 t)))]
+    (doseq [{:keys [wave samples f2]} time-varying
+            :let [opts (cond-> {:fs fs :phase phase :amplitude amplitude :f f}
+                         (= wave :rect) (assoc :pw pw)
+                         f2 (assoc :f2 f2))
+                  ys (take n-samples ((polyblep-fn wave) opts))]]
+      ;; f(t), pw(t) and fc = f2 / f(t) vary per sample; measured maximum difference 2.2e-16
+      (t/is (<= (max-diff samples ys) 1.0e-10) (str wave)))))
+
+(t/deftest polyblep-helpers
+  (t/testing "fade gain: 1 up to dt 0.2, quadratic fade, 0 from 0.25, 1 for negative dt"
+    (doseq [[dt a] {-0.1 1.0 0.0 1.0 0.2 1.0 0.225 0.75 0.24 0.36 0.25 0.0 0.3 0.0}]
+      (t/is (< (Math/abs (- a (#'sut/fade-gain dt))) 1.0e-15) (str dt))))
+  (t/testing "blep, blamp, bluh near the jump (hand evaluation of the JSFX polynomials)"
+    (doseq [[f t dt v] [[sut/blep 0.0 0.1 -1.0] [sut/blep 0.05 0.1 -0.25] [sut/blep 0.1 0.1 0.0]
+                        [sut/blep 0.5 0.1 0.0] [sut/blep 0.95 0.1 0.25] [sut/blep 0.9 0.1 0.0]
+                        [sut/blamp 0.0 0.1 (/ 1.0 3.0)] [sut/blamp 0.95 0.1 (/ 0.125 3.0)] [sut/blamp 0.5 0.1 0.0]
+                        [sut/bluh 0.0 0.1 0.0] [sut/bluh 0.05 0.1 0.75] [sut/bluh 0.95 0.1 -0.75] [sut/bluh 0.5 0.1 0.0]]]
+      (t/is (< (Math/abs (- v (f t dt))) 1.0e-15) (str f " " t))))
+  (t/testing "offset helpers wrap the phase"
+    ;; 0.95 + 0.1 wraps to 0.05 + 1.5e-16
+    (t/is (< (Math/abs (- (sut/blep 0.05 0.2) (#'sut/blep-at 0.95 0.1 0.2))) 1.0e-12))
+    (t/is (< (Math/abs (- (sut/blamp 0.05 0.2) (#'sut/blamp-at 0.95 0.1 0.2))) 1.0e-12))
+    (t/is (< (Math/abs (- (sut/bluh 0.05 0.2) (#'sut/bluh-at 0.95 0.1 0.2))) 1.0e-12))
+    (t/is (= (sut/blep 0.3 0.2) (#'sut/blep-at 0.3 0.0 0.2)))))
+
+(def ^:private polyblep-extras {:pw 0.5 :n 2 :f2 300.0})
+
+(t/deftest polyblep-boundary-phase-step
+  (t/testing "silent for the phase step 0.25 and above (exactly 0.25 included)"
+    (doseq [wave polyblep-waves
+            f [250.0 300.0 1000.0]
+            :let [ys (take 20 ((polyblep-fn wave) (assoc polyblep-extras :f f :fs 1000.0)))]]
+      (t/is (every? zero? ys) (str wave " f=" f))))
+  (t/testing "finite for zero, tiny, negative and fading phase steps and the edge values of pw, n, f2"
+    (doseq [wave polyblep-waves
+            f [0.0 0.001 13.0 199.9 200.1 249.9 -100.0 -230.0]
+            extras [{:pw 0.0 :n 1 :f2 0.0} {:pw 1.0 :n 1 :f2 1.0e-9} {:pw 0.5 :n 7 :f2 0.3} {:pw 1.0 :n 2 :f2 5000.0}]
+            :let [ys (take 60 ((polyblep-fn wave) (assoc extras :f f :fs 1000.0 :phase -0.25)))]]
+      (t/is (every? #(Double/isFinite (double %)) ys) (str wave " f=" f " " extras)))))
+
+(t/deftest polyblep-negative-frequency
+  ;; negative f: dt < 0, no correction (blep, blamp, bluh are 0) and the gain is 1, as in the JSFX;
+  ;; the sample is the naive wave of the phase 0.37 - 0.1 i, measured maximum difference 1.4e-15
+  (let [frac (fn ^double [^double x] (- x (Math/floor x)))
+        phase (fn [i] (frac (+ 0.37 (* i -0.1))))
+        naive {:saw (fn [p] (dec (* 2.0 (frac (+ p 0.5)))))
+               :ramp (fn [p] (- 1.0 (* 2.0 p)))
+               :sqr (fn [p] (if (< p 0.5) 1.0 -1.0))
+               :rect (fn [p] (* 2.0 (- (if (< p 0.3) 1.0 0.0) 0.3)))}]
+    (doseq [[wave naive-fn] naive
+            :let [ys (take 40 ((polyblep-fn wave) {:f -100.0 :fs 1000.0 :phase 0.37 :pw 0.3}))]]
+      (t/is (<= (max-diff (map #(naive-fn (phase %)) (range 40)) ys) 1.0e-12) (str wave)))))
+
+(t/deftest polyblep-options
+  (t/testing "constant options equal constant functions of time"
+    (let [wave (fn [opts] (take 50 ((polyblep-fn :rect) opts)))]
+      (t/is (= (wave {:f 123.0 :fs 1000.0 :pw 0.3 :phase 0.2 :amplitude 0.7})
+               (wave {:f (fn [_] 123.0) :fs 1000.0 :pw (fn [_] 0.3) :phase (fn [_] 0.2) :amplitude (fn [_] 0.7)})))))
+  (t/testing "defaults: f 1 Hz, fs 44100, amplitude 1, phase 0, pw 0.5, n 1"
+    (t/is (= (take 20 ((polyblep-fn :rect) {:f 1.0 :fs 44100.0 :amplitude 1.0 :phase 0.0 :pw 0.5}))
+             (take 20 ((polyblep-fn :rect) nil))))
+    (t/is (= (take 20 ((polyblep-fn :sawn) {:n 1})) (take 20 ((polyblep-fn :sawn) {})))))
+  (t/testing "amplitude scales the samples"
+    (t/is (= (map #(* 2.5 %) (take 30 ((polyblep-fn :tri) {:f 100.0 :fs 1000.0})))
+             (take 30 ((polyblep-fn :tri) {:f 100.0 :fs 1000.0 :amplitude 2.5})))))
+  (t/testing "whole-number double for :n is accepted, the unused options are ignored"
+    (t/is (= (take 20 ((polyblep-fn :sawn) {:n 3 :f 100.0 :fs 1000.0}))
+             (take 20 ((polyblep-fn :sawn) {:n 3.0 :f 100.0 :fs 1000.0 :pw 7 :f2 "x"}))))))
+
+(t/deftest polyblep-circ-state
+  (let [opts {:f 100.0 :fs 1000.0}
+        s ((polyblep-fn :circ) opts)
+        s2 ((polyblep-fn :circ) opts)
+        head (doall (take 10 s))]
+    (t/is (= head (take 10 ((polyblep-fn :circ) opts))) "every call starts from the zero state")
+    (t/is (= (take 50 s2) (take 50 ((polyblep-fn :circ) opts))) "an interleaved sequence is independent")
+    (t/is (= (take 50 s) (take 50 ((polyblep-fn :circ) opts))) "a sequence is stable when realized again")))
+
+(t/deftest polyblep-guards
+  (t/testing "invalid options throw when the generator is called, not when samples are taken"
+    (t/are [wave opts] (thrown? clojure.lang.ExceptionInfo ((polyblep-fn wave) opts))
+      :hssaw {}
+      :hstri {:f2 nil}
+      :hssqr {:f2 :x}
+      :sawn {:n 0}
+      :sawn {:n 1.5}
+      :sawn {:n -2}
+      :trin {:n "3"}
+      :rect {:pw 1.5}
+      :rect {:pw -0.1}
+      :saw {:fs 0}
+      :saw {:fs -1000.0}
+      :circ {:fs 0.0}))
+  (t/testing "the edge values are valid"
+    (t/is (seq (take 3 ((polyblep-fn :rect) {:pw 0.0}))))
+    (t/is (seq (take 3 ((polyblep-fn :rect) {:pw 1.0}))))
+    (t/is (seq (take 3 ((polyblep-fn :sawn) {:n 1}))))
+    (t/is (seq (take 3 ((polyblep-fn :hssaw) {:f2 0.0}))))))
+
+;; Aliasing: energy of the spectrum (Hann window, 4096 samples) outside +-6 bins of the first 4 harmonics,
+;; PolyBLEP over the naive wave, f = 0.1013 fs and 0.1731 fs. Measured ratios 0.0375 (saw, ramp) ... 0.118 (tri).
+
+(t/deftest polyblep-aliasing
+  (let [n 4096
+        frac (fn ^double [^double x] (- x (Math/floor x)))
+        naive {:saw (fn [p] (dec (* 2.0 (frac (+ p 0.5)))))
+               :ramp (fn [p] (- 1.0 (* 2.0 p)))
+               :sqr (fn [p] (if (< p 0.5) 1.0 -1.0))
+               :rect (fn [p] (* 2.0 (- (if (< p 0.3) 1.0 0.0) 0.3)))
+               :tri (fn [p] (dec (Math/abs (dec (* 4.0 (- (Math/floor (+ p 0.75)) p))))))}
+        hann (fn [xs] (map-indexed (fn [i x] (* x (- 0.5 (* 0.5 (Math/cos (/ (* 2.0 Math/PI i) n)))))) xs))
+        outside (fn [xs dt]
+                  (let [spectrum (:spectrum (sig/spectrum (vec (hann xs)) {:method :energy}))
+                        zones (map #(* % dt n) (range 1 5))]
+                    (reduce + (for [[b e] (map-indexed vector spectrum)
+                                    :when (and (> b 6) (not-any? #(<= (- % 6) b (+ % 6)) zones))]
+                                e))))]
+    (doseq [dt [0.1013 0.1731]
+            [wave naive-fn] naive
+            :let [opts (cond-> {:f dt :fs 1.0 :phase 0.37} (= wave :rect) (assoc :pw 0.3))
+                  band-limited (take n ((polyblep-fn wave) opts))
+                  plain (map #(naive-fn (frac (+ 0.37 (* % dt)))) (range n))]]
+      (t/is (<= (outside band-limited dt) (* 0.15 (outside plain dt))) (str wave " dt=" dt)))))
 
 (t/deftest guards
   (t/is (thrown? clojure.lang.ExceptionInfo (sig/waveform :pulse))))

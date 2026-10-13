@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.transform` `:norm` option (`:backward`, `:ortho`, `:forward`, as numpy/scipy) for `fft`, `dct`, `dst`, `dht` and inverses; `wpd`; wavelet boundary modes (`:symmetric` default, `:periodization`, `:zero`, `:constant`, `:periodic`, `:smooth`, `:reflect`, `:antisymmetric`, `:antireflect`, as PyWavelets)
 * `fastmath.transform.wavelets` engine `dwt-level`, `idwt-level`, `coeffs-length`, `max-level`, `modes`; wavelets `coif6`-`coif17`; `idwt`/`iwpt` take the wavelet from metadata; wavelet `battle3` (cubic Battle–Lemarié, alias `:battle-23`); wavelet coefficients regenerated to PyWavelets precision
 * `fastmath.signal.biquad/shelf-slope->Q`; `:svf2` `:bandpass-normalized`; `savgol-filter` `delta`; 1-arity of `fft-energy`, `fft-magnitude`, `fft-amplitude`, `fft-power`, `stft`; `:asd`, `:real`, `:imag`, `:complex` methods in `stft`
+* `fastmath.signal.waveform` 45 PolyBLEP waves `polyblep-<name>` (`sinn`, `half`, `tri`, `lpsqr2`, `rect`, `saw`, `stairs`, `hssaw`, `circ`, ...; Tale's `poly_blep.jsfx-inc`) with the options `:pw`, `:n`, `:f2`; documented `blep`, `blamp`, `bluh`
 
 ### Fixed
 
@@ -114,6 +115,7 @@ All notable changes to this project will be documented in this file. This change
 * [breaking] these functions return vectors instead of arrays or lazy sequences: `fastmath.signal` `convolve`, `fft-convolve`, `correlate`, `filter-signal`, `savgol-filter`, `resample`, `sample-waveform` and spectra, `fastmath.signal.denoise/denoise`, `fastmath.signal.fir` `firwin`, `gammatone`, `fastmath.signal.iir` `response`, `sos-coeffs` (`fastmath.signal.pad` and `apply-effects-raw` keep `double-array`); unknown options and invalid arguments throw `ex-info`
 * [breaking] `fastmath.signal.iir/sos-coeffs` rows are normalized to `a0 = 1` (as scipy); `fastmath.signal` `stft` default window has `min(N, 256)` samples, a one-sided spectrum without `fft` metadata needs `:n` or `:nyquist?`, `:db?` is not floored at -100 dB
 * [breaking] `fastmath.signal.biquad` bandwidth uses the digital cookbook formula; `fastmath.signal.iir` Chebyshev type II default ripple 40 dB; `fastmath.signal.fir/gammatone` defaults in Hz (`:cutoff 1000 :fs 16000`)
+* [breaking] `fastmath.signal.waveform/polyblep` macro takes `(wave param doc fun)`; `polyblep-hyptri` is multiplied by the PolyBLEP gain (fades out for the phase step `f / fs` from 0.2, silent from 0.25)
 
 ## [3.0.0 alpha9]
 
