@@ -3,10 +3,10 @@
             [fastmath.vector :as v]
             [fastmath.calculus.common :as cc]
             [fastmath.matrix :as mat])
-  (:import [java.util TreeSet Comparator]
+  (:import [java.util PriorityQueue]
            [fastmath.java Array]
            [fastmath.vector Vec2]
-           [org.apache.commons.math3.linear Array2DRowRealMatrix EigenDecomposition]))
+           [fastmath.calculus.common Estimate]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -15,7 +15,7 @@
 ;; https://github.com/JuliaMath/QuadGK.jl/blob/master/src/gausskronrod.jl
 ;; https://github.com/ESSS/cquadpack/blob/master/src/
 
-(defn eigpoly
+(defn- eigpoly
   ^double [b ^double z]
   (let [[^double p
          ^double pderiv] (reduce (fn [[^double d1 ^double d1deriv ^double d2 ^double d2deriv] ^double Hev]
@@ -28,7 +28,7 @@
                                      [d dderiv d1 d1deriv])) [z 1.0 1.0 0.0] b)]
     (m// p pderiv)))
 
-(defn newton-iterations
+(defn- newton-iterations
   [nb ^double lambda]
   (reduce (fn [^double lambda _]
             (let [dlambda (eigpoly nb lambda)]
@@ -43,7 +43,7 @@
                     nlambda))
                 (reduced lambda)))) lambda (range 1000)))
 
-(defn get-quadrature-points
+(defn- get-quadrature-points
   [b ^long n]
   (let [cb (count b)
         m (m/long-inc cb)
@@ -60,22 +60,24 @@
                        (take n))]
       (mapv (partial newton-iterations b) lambdas))))
 
-(defn eigvec
+(defn- eigvec
   ^double [b ^double lambda]
-  (let [v1 (m// lambda ^double (b 0))]
-    (->> (partition 2 1 b)
-         (reduce (fn [[curr ^double v-2 ^double v-1] [^double b-2 ^double b-1]]
-                   (let [newv (m// (m/- (m/* lambda v-1)
-                                        (m/* b-2 v-2)) b-1)]
-                     [(conj curr newv) v-1 newv])) [[1.0 v1] 1.0 v1])
-         (first)
-         (v/mag)
-         (m//))))
+  (if (empty? b)
+    1.0 ;; first component of the normalized eigenvector of a 1x1 matrix
+    (let [v1 (m// lambda ^double (b 0))]
+      (->> (partition 2 1 b)
+           (reduce (fn [[curr ^double v-2 ^double v-1] [^double b-2 ^double b-1]]
+                     (let [newv (m// (m/- (m/* lambda v-1)
+                                          (m/* b-2 v-2)) b-1)]
+                       [(conj curr newv) v-1 newv])) [[1.0 v1] 1.0 v1])
+           (first)
+           (v/mag)
+           (m//)))))
 
 ;; https://github.com/JuliaMath/QuadGK.jl/blob/master/src/gausskronrod.jl#L448-L497
-(defn kronrodjacobi
+(defn- kronrodjacobi
   [b ^long n]
-  (let [s (vec (repeat (m/+ (m/quot n 2) 2) 0.0))
+  (let [s (vec (repeat (m/long-add (m/long-quot n 2) 2) 0.0))
         t (assoc (vec (repeat (count s) 0.0)) 1 (b n))
         [s t] (reduce (fn [[s t] ^long m]
                         [t (->> (range (m/quot (m/inc m) 2) -1 -1)
@@ -114,7 +116,7 @@
                         [b s t])
                 (first)
                 (v/sqrt))
-        x (get-quadrature-points nb (m/inc n))
+        x (get-quadrature-points nb (m/long-inc n))
         w (mapv (fn [^double x] (m/* 2.0 (m/sq (eigvec nb x)))) x)
         nb (map-indexed (fn [^long j ^double b]
                           (let [j (m/inc j)]
@@ -122,12 +124,12 @@
                               (m// j (m/sqrt (m/dec (m/* 4.0 j j))))
                               b))) nb)
         gw (mapv (fn [^double x]
-                   (m/* 2.0 (m/sq (eigvec (vec (take (m/dec n) nb)) x))))
+                   (m/* 2.0 (m/sq (eigvec (vec (take (m/long-dec n) nb)) x))))
                  (->> x rest (take-nth 2)))]
-    {:x x :w w :gw gw :gk-evals (m/+ (m/* 4 n) 2)}))
+    {:x x :w w :gw gw :gk-evals (m/long-add (m/long-mult 4 n) 2)}))
 
 ;; precomputed from julia
-(def kronrod-7-result
+(def ^:private kronrod-7-result
   {:x
    [-9.9145537112081263920685469752598e-01,
     -9.4910791234275852452618968404809e-01,
@@ -153,7 +155,7 @@
     4.1795918367346938775510204081658e-01],
    :gk-evals 30})
 
-(defn kronrod-
+(defn- kronrod-
   [^long n]
   (if (m/== n 7)
     kronrod-7-result
@@ -165,17 +167,35 @@
                       0.0)) (range 1 (inc (m/* 2 n))))]
       (kronrodjacobi b n))))
 
-(def kronrod (memoize kronrod-))
+(def ^{:arglists '([n])
+       :doc "Gauss-Kronrod rule of order `n` (`n` Gauss points inside `2n + 1` Kronrod points) on the interval `[-1, 1]`.
 
-(deftype QuadGKSegment [^Vec2 ab ^double I ^double E])
+  Parameters:
 
-(defn integrate-gk
+  - `n` (integer >= 1): the order of the rule.
+
+  Returns a map with the keys:
+
+  - `:x` - the `n + 1` nodes of the left half of the interval, in increasing order up to `0.0`; the other half is symmetric.
+  - `:w` - the weights of the Kronrod rule for the nodes `:x`.
+  - `:gw` - the weights of the embedded Gauss rule for the nodes of `:x` with even indexes counted from 1 (the Gauss nodes lie between the Kronrod ones).
+  - `:gk-evals` - the number of evaluations of the integrand for two intervals, `4n + 2`.
+
+  The rules are computed with the algorithm of QuadGK.jl and match it to 1e-15. The results are memoized; the rule of order 7 is precomputed."}
+  kronrod (memoize kronrod-))
+
+(deftype QuadGKSegment [^Vec2 ab ^double I ^double E]
+  Estimate
+  (value [_] I)
+  (error [_] E))
+
+(defn- integrate-gk
   ^QuadGKSegment [f ^Vec2 ab x w gw]
   (let [s (m/* 0.5 (m/- (.y ab) (.x ab)))
-        lastxw (m/dec (count w))
-        lastxw- (m/dec lastxw)
-        lastgw (m/dec (count gw))
-        n1 (m/- 1 (m/bit-and (m/inc lastxw) 1))
+        lastxw (m/long-dec (count w))
+        lastxw- (m/long-dec lastxw)
+        lastgw (m/long-dec (count gw))
+        n1 (m/long-sub 1 (bit-and (m/long-inc lastxw) 1))
         a (.x ab)
         ^double f0 (f (m/+ a s))
         Igk (if (m/zero? n1)
@@ -207,23 +227,46 @@
         E (m/abs (m/- (.y Igk) (.x Igk)))]
     (QuadGKSegment. ab (.y Igk) E)))
 
-(def gk-comparator (comparator (fn [^QuadGKSegment x ^QuadGKSegment y]
-                               (compare (.E x) (.E y)))))
+(defn check-integration-points
+  "Returns the order of the Gauss-Kronrod rule as a long; throws `ex-info` unless it is an integer >= 1."
+  ^long [n]
+  (if (and (integer? n) (m/>= (long n) 1))
+    (long n)
+    (throw (ex-info "Option :integration-points must be an integer >= 1"
+                    {:option :integration-points :value n :expected "integer >= 1"}))))
 
-(defn build-initial-segments
-  [f lower upper initdiv x w gw]
-  (let [^TreeSet boxes (TreeSet. ^Comparator gk-comparator)
-        segments (->> (m/slice-range lower upper (m/inc ^long initdiv))
-                      (partition 2 1))]
-    (doseq [[a b] segments]
-      (.add boxes (integrate-gk f (Vec2. a b) x w gw)))
-    boxes))
+(defn- check-initdiv
+  ^long [n]
+  (if (and (integer? n) (m/>= (long n) 1))
+    (long n)
+    (throw (ex-info "Option :initdiv must be an integer >= 1"
+                    {:option :initdiv :value n :expected "integer >= 1"}))))
 
-(defn sum-segments
-  [segments]
-  (reduce (fn [[^double I ^double E] ^QuadGKSegment s]
-            [(m/+ I (.I s))
-             (m/+ E (.E s))]) [0.0 0.0] segments))
+(defn- breakpoints
+  "Sorted, distinct boundaries of the initial pieces in the variable of the substitution:
+  the substituted bounds with the user points which lie strictly inside the interval."
+  [points lower upper tl tu]
+  (when-not (every? number? points)
+    (throw (ex-info "Option :points must be a sequence of numbers"
+                    {:option :points :value points :expected "sequence of numbers"})))
+  (let [lower (double lower)
+        upper (double upper)
+        tl (double tl)
+        tu (double tu)
+        inv (cc/subst-1d-inverse lower upper)
+        ts (->> points
+                (filter (fn [^double p] (m/< lower p upper)))
+                (map (fn [^double p] (inv p)))
+                (filter (fn [^double t] (m/< tl t tu))))]
+    (vec (distinct (concat [tl] (sort ts) [tu])))))
+
+(defn- initial-segments
+  [f breakpoints initdiv x w gw]
+  (->> (partition 2 1 breakpoints)
+       (mapcat (fn [[^double a ^double b]]
+                 (->> (m/slice-range a b (m/long-inc (long initdiv)))
+                      (partition 2 1))))
+       (map (fn [[a b]] (integrate-gk f (Vec2. a b) x w gw)))))
 
 (defn- split-segment
   [^QuadGKSegment s]
@@ -233,49 +276,50 @@
      (Vec2. mid (.y ab))]))
 
 (defn gk-quadrature
+  "Adaptive Gauss-Kronrod quadrature of `f` on `[lower, upper]`, see [[fastmath.calculus/integrate]] for options and result."
   ([f lower upper] (gk-quadrature f lower upper nil))
-  ([f lower upper {:keys [^double rel ^double abs ^int max-evals ^int max-iters
-                          ^int integration-points ^int initdiv info?]
+  ([f lower upper {:keys [^double rel ^double abs ^long max-evals ^long max-iters
+                          integration-points initdiv info? points]
                    :or {rel 1.0e-8 abs 1.0e-8 max-evals Integer/MAX_VALUE max-iters 64
                         integration-points 7 initdiv 1 info? false}}]
-   (let [[f ^double lower ^double upper] (cc/subst-1d f lower upper)
-         {:keys [^long gk-evals x w gw]} (kronrod integration-points)
-         ^TreeSet segments (build-initial-segments f lower upper initdiv x w gw)
-         initial-evals (m/* gk-evals (count segments))
-         [^double I ^double E] (sum-segments segments)]
-     (if (or (m/<= E (m/max (m/* rel (m/abs I)) abs))
-             (m/>= initial-evals max-evals))
-       (if info?
-         {:result I :error E
-          :evaluations initial-evals
-          :iterations 1
-          :subdivisions (count segments)}
-         I)
+   (let [n (check-integration-points integration-points)
+         initdiv (check-initdiv initdiv)
+         [^double sign ^double lower ^double upper] (cc/normalize-bounds lower upper)
+         [f ^double tl ^double tu] (cc/subst-1d f lower upper)
+         {:keys [x w gw]} (kronrod n)
+         segment-evals (m/long-inc (m/long-mult 2 n))
+         split-evals (m/long-mult 2 segment-evals)
+         ^PriorityQueue queue (cc/max-error-queue)]
+     (doseq [segment (initial-segments f (breakpoints points lower upper tl tu) initdiv x w gw)]
+       (.add queue segment))
+     (let [initial-evals (m/long-mult segment-evals (.size queue))
+           [^double I0 ^double E0] (cc/estimates-sum queue)]
        (loop [iters (long 1)
               evals initial-evals
-              I I
-              E E]
-         (let [niters (m/inc iters)
-               nevals (m/+ evals gk-evals)
-               ^QuadGKSegment max-E-segment (.pollLast segments)
-               [ab1 ab2] (split-segment max-E-segment)
-               ^QuadGKSegment nsegment1 (integrate-gk f ab1 x w gw)
-               ^QuadGKSegment nsegment2 (integrate-gk f ab2 x w gw)
-               nI (m/+ (.I nsegment1) (.I nsegment2) (m/- I (.I max-E-segment)))
-               nE (m/+ (.E nsegment1) (.E nsegment2) (m/- E (.E max-E-segment)))
-               fail? (cond
-                       (m/>= nevals max-evals) :max-evals
-                       (m/>= niters max-iters) :max-iters
-                       :else false)]
-           (.add segments nsegment1)
-           (.add segments nsegment2)
-           (if (or (m/<= nE (m/max (m/* rel (m/abs nI)) abs)) fail?)
-             (let [[^double I ^double E] (sum-segments segments)]
-               (if info?
-                 {:result I :error E
-                  :evaluations nevals
-                  :iterations niters
-                  :subdivisions (count segments)
-                  :fail? fail?}
-                 I))
-             (recur niters nevals nI nE))))))))
+              I I0
+              E E0]
+         (let [fail? (cond
+                       (m/<= E (m/max (m/* rel (m/abs I)) abs)) false
+                       (m/>= iters max-iters) :max-iters
+                       (m/> (m/+ evals split-evals) max-evals) :max-evals
+                       :else :continue)]
+           (if (identical? fail? :continue)
+             (let [^QuadGKSegment worst (.poll queue)
+                   [ab1 ab2] (split-segment worst)
+                   ^QuadGKSegment s1 (integrate-gk f ab1 x w gw)
+                   ^QuadGKSegment s2 (integrate-gk f ab2 x w gw)]
+               (.add queue s1)
+               (.add queue s2)
+               (recur (m/long-inc iters)
+                      (m/+ evals split-evals)
+                      (m/+ (.I s1) (.I s2) (m/- I (.I worst)))
+                      (m/+ (.E s1) (.E s2) (m/- E (.E worst)))))
+             (let [[^double I ^double E] (cc/estimates-sum queue)
+                   res (if info?
+                         {:result I :error E
+                          :evaluations evals
+                          :iterations iters
+                          :subdivisions (.size queue)
+                          :fail? fail?}
+                         I)]
+               (cc/orient sign res)))))))))

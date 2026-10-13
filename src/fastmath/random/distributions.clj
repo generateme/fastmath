@@ -477,6 +477,22 @@
 
 ;;
 
+(defn- strictly-increasing!
+  "Returns the cumulative values as a `double[]` in which every value is below its successor.
+
+  Increments below half an ulp of the values near 1.0 (the zero tail of a pdf with a bounded support) are lost in the cumulative
+  sum, which leaves equal values at the end and makes the inverse interpolation `NaN`. Going from the end, every value which is
+  not below its successor is replaced by the double just below it, so the last value (1.0) is kept."
+  ^doubles [ys]
+  (let [^doubles ys (double-array ys)]
+    (loop [i (m/long-sub (alength ys) 2)]
+      (when (m/>= i 0)
+        (let [next (Array/aget ys (m/long-inc i))]
+          (when (m/>= (Array/aget ys i) next)
+            (Array/aset ys i (m/prev-double next))))
+        (recur (m/long-dec i))))
+    ys))
+
 (defn integrate-pdf
   "Integrate PDF function, returns CDF and iCDF
 
@@ -507,7 +523,7 @@
                                ^double (quad/gk-quadrature f x1 x2 int-options))))
                  (reductions m/+ 0.0)
                  (m/seq->double-array))
-         ys (v/div ys (Array/aget ys (dec steps))) ;; normalize to ensure 1 at the endpoint
+         ys (strictly-increasing! (v/div ys (Array/aget ys (dec steps)))) ;; normalize to ensure 1 at the endpoint
          intpol (case interpolator
                   :monotone monotone-interp/monotone
                   :linear linear-interp/linear

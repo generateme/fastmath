@@ -1,0 +1,18 @@
+[
+ {:id "central-sin" :x 1.0 :init-h 0.5 :power 2.0 :abs 0.0 :rel 1.0e-10 :max-evals 2147483647 :value 0.5403023058681393}
+ {:id "central-sin" :x 1.0 :init-h 0.5 :power 2.0 :abs 0.0 :rel 1.0e-14 :max-evals 2147483647 :value 0.5403023058681403}
+ {:id "central-sin" :x 1.0 :init-h 0.5 :power 2.0 :abs 1.0e-12 :rel 0.0 :max-evals 2147483647 :value 0.5403023058681403}
+ {:id "central-sin" :x 1.0 :init-h 0.5 :power 2.0 :abs 0.0 :rel 1.0e-10 :max-evals 3 :value 0.5403022798145601}
+ {:id "central-sin" :x 1.0 :init-h 0.5 :power 2.0 :abs 0.0 :rel 1.0e-10 :max-evals 4 :value 0.5403023058667246}
+ {:id "central-sin" :x 1.0 :init-h 1.0 :power 2.0 :abs 0.0 :rel 1.0e-10 :max-evals 6 :value 0.5403023058681393}
+ {:id "forward-exp" :x 0.3 :init-h 0.1 :power 1.0 :abs 0.0 :rel 1.0e-10 :max-evals 2147483647 :value 1.3498588075759825}
+ {:id "forward-exp" :x 0.3 :init-h 0.1 :power 1.0 :abs 1.0e-13 :rel 0.0 :max-evals 2147483647 :value 1.3498588075757019}
+ {:id "forward-exp" :x 0.3 :init-h 0.5 :power 1.0 :abs 0.0 :rel 1.0e-8 :max-evals 5 :value 1.3498588734012789}
+ {:id "sinc" :x 0.0 :init-h 1.0 :power 2.0 :abs 0.0 :rel 1.0e-10 :max-evals 2147483647 :value 1.0}
+ {:id "sinc" :x 0.0 :init-h 1.0 :power 2.0 :abs 0.0 :rel 1.0e-14 :max-evals 2147483647 :value 1.0}
+ {:id "euler" :x 0.0 :init-h 0.1 :power 1.0 :abs 0.0 :rel 1.0e-10 :max-evals 2147483647 :value 2.718281828458389}
+ {:id "central-atan" :x 2.0 :init-h 0.5 :power 2.0 :abs 0.0 :rel 1.0e-12 :max-evals 2147483647 :value 0.2000000000000005}
+ {:id "central-sqrt" :x 1.0 :init-h 0.5 :power 2.0 :abs 0.0 :rel 1.0e-12 :max-evals 2147483647 :value 0.4999999999999964}
+ {:id "noisy" :x 0.0 :init-h 0.5 :power 2.0 :abs 0.0 :rel 1.0e-12 :max-evals 2147483647 :value 1.000000001059419}
+ {:id "noisy" :x 0.0 :init-h 0.5 :power 2.0 :abs 1.0e-7 :rel 0.0 :max-evals 2147483647 :value 1.0000000017636503}
+]

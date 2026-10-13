@@ -1,0 +1,61 @@
+[
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 0 :amp 0.001 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 0 :amp 0.001 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 0 :amp 1.0 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 0 :amp 1.0 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 0 :amp 1000.0 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 0 :amp 1000.0 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 1 :amp 0.001 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 1 :amp 0.001 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 1 :amp 1.0 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 1 :amp 1.0 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 1 :amp 1000.0 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0] :upper [1.0 1.0] :k 1 :amp 1000.0 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 0 :amp 0.001 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 0 :amp 0.001 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 0 :amp 1.0 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 0 :amp 1.0 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 0 :amp 1000.0 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 0 :amp 1000.0 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 1 :amp 0.001 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 1 :amp 0.001 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 1 :amp 1.0 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 1 :amp 1.0 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 1 :amp 1000.0 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 1 :amp 1000.0 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 2 :amp 0.001 :freq 4.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 2 :amp 0.001 :freq 9.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 2 :amp 1.0 :freq 4.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 2 :amp 1.0 :freq 9.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 2 :amp 1000.0 :freq 4.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 2 :amp 1000.0 :freq 9.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 0 :amp 0.001 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 0 :amp 0.001 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 0 :amp 1.0 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 0 :amp 1.0 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 0 :amp 1000.0 :freq 4.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 0 :amp 1000.0 :freq 9.0 :axis 0}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 1 :amp 0.001 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 1 :amp 0.001 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 1 :amp 1.0 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 1 :amp 1.0 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 1 :amp 1000.0 :freq 4.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 1 :amp 1000.0 :freq 9.0 :axis 1}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 2 :amp 0.001 :freq 4.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 2 :amp 0.001 :freq 9.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 2 :amp 1.0 :freq 4.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 2 :amp 1.0 :freq 9.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 2 :amp 1000.0 :freq 4.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 2 :amp 1000.0 :freq 9.0 :axis 2}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 3 :amp 0.001 :freq 4.0 :axis 3}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 3 :amp 0.001 :freq 9.0 :axis 3}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 3 :amp 1.0 :freq 4.0 :axis 3}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 3 :amp 1.0 :freq 9.0 :axis 3}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 3 :amp 1000.0 :freq 4.0 :axis 3}
+ {:kind :sin :lower [0.0 0.0 0.0 0.0] :upper [1.0 1.0 1.0 1.0] :k 3 :amp 1000.0 :freq 9.0 :axis 3}
+ {:kind :const :lower [0.0 0.0 0.0] :upper [1.0 3.0 2.0] :k 0 :amp 1.0 :freq 0.0 :axis 1}
+ {:kind :const :lower [0.0 0.0 0.0] :upper [2.0 1.0 0.5] :k 0 :amp 1.0 :freq 0.0 :axis 0}
+ {:kind :const :lower [0.0 0.0] :upper [1.0 1.0] :k 0 :amp 1.0 :freq 0.0 :axis 0}
+ {:kind :sum :lower [0.0 0.0 0.0] :upper [1.0 1.0 1.0] :k 0 :amp 1.0 :freq 9.0 :axis 0}
+ {:kind :sum :lower [0.0 0.0 0.0] :upper [1.0 2.0 1.0] :k 0 :amp 1.0 :freq 9.0 :axis 0}
+]

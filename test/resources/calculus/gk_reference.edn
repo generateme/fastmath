@@ -1,0 +1,32 @@
+[
+ {:id "poly" :lower -1.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result 0.6666666666666666 :error 1.1102230246251565e-16 :evaluations 15}
+ {:id "poly" :lower 0.0 :upper 3.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [0.5 1.0 2.0] :initdiv 1 :result 9.0 :error 0.0 :evaluations 60}
+ {:id "const" :lower 0.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [0.25 0.5 0.75] :initdiv 1 :result 1.0 :error 0.0 :evaluations 60}
+ {:id "sqrtabs" :lower -1.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result 1.333333333337872 :error 7.875255496689196e-11 :evaluations 945}
+ {:id "sqrtabs" :lower -1.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [0.0] :initdiv 1 :result 1.333333333337872 :error 7.875255496689196e-11 :evaluations 930}
+ {:id "sqrtabs" :lower -1.0 :upper 1.0 :rel 1.0e-8 :abs 0.0 :order 3 :points [] :initdiv 1 :result 1.3333333334688922 :error 1.3182182237348892e-8 :evaluations 609}
+ {:id "abssin20" :lower -1.0 :upper 1.0 :rel 1.0e-8 :abs 0.0 :order 7 :points [] :initdiv 1 :result 1.259191805095858 :error 1.2058314020566875e-8 :evaluations 3945}
+ {:id "abssin20" :lower -1.0 :upper 1.0 :rel 1.0e-8 :abs 0.0 :order 15 :points [] :initdiv 1 :result 1.259191796925414 :error 1.2389012474900599e-8 :evaluations 7161}
+ {:id "abssin20" :lower -1.0 :upper 1.0 :rel 1.0e-8 :abs 0.0 :order 7 :points [] :initdiv 5 :result 1.25919182114052 :error 1.2118101377988002e-8 :evaluations 3525}
+ {:id "invsqrt" :lower 0.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result 1.999999999879675 :error 1.9414296706544413e-10 :evaluations 1725}
+ {:id "invsqrt" :lower 0.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 3 :points [] :initdiv 1 :result 1.999999999995916 :error 1.96556257872665e-10 :evaluations 2975}
+ {:id "invsqrt" :lower 0.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 10 :points [] :initdiv 1 :result 1.9999999998790239 :error 1.8798497496310644e-10 :evaluations 2373}
+ {:id "logx" :lower 0.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result -0.9999999999873889 :error 7.331176897141647e-11 :evaluations 825}
+ {:id "expinf" :lower 0.0 :upper ##Inf :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result 1.0 :error 4.507382674563286e-11 :evaluations 135}
+ {:id "expinf" :lower 0.0 :upper ##Inf :rel 1.0e-10 :abs 0.0 :order 21 :points [] :initdiv 1 :result 1.0 :error 5.639030908888287e-13 :evaluations 215}
+ {:id "expinf" :lower 0.0 :upper ##Inf :rel 1.0e-6 :abs 1.0e-12 :order 7 :points [] :initdiv 1 :result 0.9999999999995186 :error 1.7473439590967414e-8 :evaluations 105}
+ {:id "halfexp" :lower 0.0 :upper ##Inf :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result 1.7724538508204335 :error 1.4303138302598696e-10 :evaluations 1845}
+ {:id "cauchy" :lower ##-Inf :upper ##Inf :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result 3.141592653589793 :error 1.1227574425731746e-11 :evaluations 165}
+ {:id "cauchy" :lower ##-Inf :upper ##Inf :rel 1.0e-10 :abs 0.0 :order 15 :points [] :initdiv 1 :result 3.1415926535897922 :error 8.384404281969182e-13 :evaluations 93}
+ {:id "cauchy" :lower ##-Inf :upper 0.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result 1.5707963267948966 :error 1.7602586055431857e-13 :evaluations 105}
+ {:id "osc" :lower 0.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 7 :points [] :initdiv 1 :result 0.0007006794301577003 :error 6.412058384253072e-14 :evaluations 885}
+ {:id "osc" :lower 0.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 15 :points [] :initdiv 1 :result 0.0007006794301577202 :error 1.5664010886984325e-16 :evaluations 217}
+ {:id "osc" :lower 0.0 :upper 1.0 :rel 1.0e-10 :abs 0.0 :order 4 :points [] :initdiv 1 :result 0.0007006794301577064 :error 6.844321658906749e-14 :evaluations 3339}
+ {:id "runge" :lower -1.0 :upper 1.0 :rel 1.0e-12 :abs 0.0 :order 7 :points [] :initdiv 1 :result 0.5493603067780064 :error 2.579915447942227e-13 :evaluations 345}
+ {:id "gauss" :lower -5.0 :upper 5.0 :rel 1.0e-12 :abs 0.0 :order 7 :points [] :initdiv 1 :result 1.7724538509027912 :error 5.020182291891683e-13 :evaluations 345}
+ {:id "gauss" :lower -5.0 :upper 5.0 :rel 1.0e-12 :abs 0.0 :order 3 :points [] :initdiv 1 :result 1.7724538509027914 :error 1.690377854562088e-12 :evaluations 2163}
+ {:id "gauss" :lower -5.0 :upper 5.0 :rel 1.0e-12 :abs 0.0 :order 21 :points [] :initdiv 1 :result 1.7724538509027898 :error 4.440892098500626e-16 :evaluations 129}
+ {:id "gauss" :lower -5.0 :upper 5.0 :rel 1.0e-12 :abs 0.0 :order 7 :points [] :initdiv 4 :result 1.7724538509027912 :error 5.020182291891683e-13 :evaluations 300}
+ {:id "peak" :lower -1.0 :upper 1.0 :rel 1.0e-8 :abs 0.0 :order 7 :points [] :initdiv 1 :result 0.001772453850905516 :error 8.334743346563554e-12 :evaluations 585}
+ {:id "peak" :lower -1.0 :upper 1.0 :rel 1.0e-8 :abs 0.0 :order 7 :points [0.0] :initdiv 1 :result 0.001772453850905516 :error 8.334743346563554e-12 :evaluations 570}
+]

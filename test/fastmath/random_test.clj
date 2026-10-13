@@ -1,5 +1,6 @@
 (ns fastmath.random-test
   (:require [fastmath.random :as sut]
+            [fastmath.random.distributions :as distr]
             [clojure.test :as t]
             [fastmath.core :as m]
             [fastmath.vector :as v]))
@@ -1910,6 +1911,40 @@
   (t/testing "variance approaches the wrapped-normal limit 1/kappa as kappa grows"
     (t/is (m/delta-eq (/ 1.0 1.0e6) (sut/variance (sut/distribution :von-mises {:mu 0.0 :kappa 1.0e6})) 1.0e-9))))
 
+;; `integrate-pdf` with a pdf which is exactly zero outside a bounded support: the zero tail of the cumulative table
+;; used to be flat near 1.0 and the inverse interpolation returned NaN above p = 1 - 4e-6 once the quadrature was exact.
+
+(t/deftest integrate-pdf-bounded-support
+  (let [steps 1000
+        pdfs {:uniform [(fn [^double x] (if (m/<= 0.0 x 1.0) 1.0 0.0)) 0.0 1.0]
+              :triangular [(fn [^double x] (if (m/<= 0.0 x 1.0) (m/* 2.0 (m/- 1.0 x)) 0.0)) 0.0 1.0]
+              :truncated-normal [(fn [^double x] (if (m/<= -1.0 x 1.0) (m/exp (m/* -0.5 x x)) 0.0)) -1.0 1.0]
+              :step [(fn [^double x] (cond (m/< x 0.0) 0.0 (m/< x 0.3) 1.0 (m/< x 0.6) 3.0 (m/<= x 1.0) 0.5 :else 0.0)) 0.0 1.0]
+              :narrow [(fn [^double x] (if (m/<= -1.0e-3 x 1.0e-3) 500.0 0.0)) -1.0e-3 1.0e-3]} ;; integrates to 1, as a density does
+        ps (concat [1.0e-15 1.0e-10 0.001 0.5 0.999 (- 1.0 1.0e-6) (- 1.0 1.0e-10) (- 1.0 1.0e-15)]
+                   (map #(/ % 200.0) (range 1 200)))]
+    (doseq [[id [pdf mn mx]] pdfs
+            :let [[cdf icdf] (distr/integrate-pdf pdf mn mx steps)
+                  step (/ (- mx mn) steps)
+                  qs (mapv icdf (sort ps))]]
+      (t/testing (name id)
+        (t/is (every? #(not (Double/isNaN %)) qs) "icdf is finite on the whole range of p")
+        (t/is (every? (fn [[^double a ^double b]] (m/<= a b)) (partition 2 1 qs)) "icdf does not decrease")
+        (t/is (m/<= (m/abs (m/- mx ^double (icdf (- 1.0 1.0e-15)))) (m/* 2.0 step)) "the upper quantile is at the support edge")
+        (t/is (m/<= (m/abs (m/- mn ^double (icdf 1.0e-15))) (m/* 2.0 step)) "the lower quantile is at the support edge")
+        (t/is (m/delta-eq 0.5 (cdf (icdf 0.5)) 1.0e-3) "cdf inverts icdf in the middle")))))
+
+(t/deftest von-mises-upper-tail
+  ;; the zero tail of the cumulative table was flat for mu = -3, kappa = 1 and icdf was NaN above p = 1 - 4e-6
+  (doseq [[mu kappa] [[-3.0 1.0] [0.0 1.0] [3.0 0.5] [-1000.0 1.0] [1.0 20.0] [0.5 1.0e3]]
+          :let [dist (sut/distribution :von-mises {:mu mu :kappa kappa})
+                ps [0.5 0.99 0.999 0.999995 0.999999 (- 1.0 1.0e-8) (- 1.0 1.0e-10) (- 1.0 1.0e-14)]
+                qs (mapv #(sut/icdf dist %) ps)]]
+    (t/testing (str "mu " mu " kappa " kappa)
+      (t/is (every? #(not (Double/isNaN %)) qs))
+      (t/is (every? (fn [[^double a ^double b]] (m/<= a b)) (partition 2 1 qs)))
+      (t/is (m/<= ^double (peek qs) (m/+ mu m/PI 0.05)) "the upper quantile stays within a few steps of the support edge"))))
+
 ;; reference values for the generalized (exponentiated) half-logistic
 ;; distribution: F(x) = ((1-e^(-lambda*x))/(1+e^(-lambda*x)))^alpha, x>=0.
 ;; No R package implements this distribution directly, so references were
@@ -3727,11 +3762,11 @@
     0.284313678064495]
    :constant [0.0 0.0 0.0 0.0 0.0]
    :continuous-distribution
-   [-0.5652642775322254
-    0.5469059942799166
-    0.812824344124532
-    -0.4013080493841728
-    -0.7643898871122008]
+   [-0.5652645942266477
+    0.5469056121260009
+    0.812823744145103
+    -0.40130843502728575
+    -0.7643901696514941]
    :cramer-von-mises
    [0.11152151655219623
     0.20623605654953592
@@ -3992,11 +4027,11 @@
     -0.2450816612112171
     -0.6972486330517929]
    :kde
-   [-0.5652642775322254
-    0.5469059942799166
-    0.812824344124532
-    -0.4013080493841728
-    -0.7643898871122008]
+   [-0.5652645942266477
+    0.5469056121260009
+    0.812823744145103
+    -0.40130843502728575
+    -0.7643901696514941]
    :kolmogorov
    [0.7280269575530616
     0.9740595251495796
@@ -4152,11 +4187,11 @@
     0.40412191506145145
     0.25771335405219586]
    :von-mises
-   [-0.5004524794387464
-    0.6266695622324583
-    1.043566719881831
-    -0.28435373978310785
-    -0.7793157246280061]
+   [-0.5004524871383952
+    0.6266695723213808
+    1.0435667405768347
+    -0.28435374392273954
+    -0.7793157380393411]
    :wallenius-noncentral-hypergeometric [2 3 3 2 2]
    :watson-g
    [0.455004946833131
