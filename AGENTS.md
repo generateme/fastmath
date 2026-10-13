@@ -65,6 +65,11 @@ Every source file starts with:
 (set! *warn-on-reflection* true)
 ```
 
+Use:
+
+- `fastmath.core` (alias `m`) for every primitive math operations.
+- `fastmath.java.Array` (import it first) for `Array/aget` and `Array/aset`.
+
 ### Naming & Formatting
 
 - All names use `kebab-case`; predicate functions end with `?`.
@@ -79,6 +84,7 @@ Every source file starts with:
   - `Rscript` - for any R package
   - `/home/ts/.juliaup/bin/julia` - for any Julia package
   - `uv` Python package manager run in `/home/ts/penv` environment - for any Python package 
+  - `octave` - for any Octave/Matlab package
 - Use `m/delta-eq` or `v/delta-eq`  with the default tolerance for anything closed-form; use an explicit looser tolerance (with a one-line comment stating why and the empirically observed error) when needed
 - more in `fastmath-testing` skill
 
@@ -94,4 +100,4 @@ Available skill for this project
 ## Gotchas
 
 - never commit to the fastmath repo, it requires signing
-- add to the CHANGELOG.md only the most important changes or additions, concise as much as possible (one liners)
+- add to the CHANGELOG.md only the most important changes or additions, concise as much as possible (one liners), only things which differ from previous release
