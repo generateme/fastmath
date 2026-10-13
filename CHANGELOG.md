@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.transform.wavelets` engine `dwt-level`, `idwt-level`, `coeffs-length`, `max-level`, `modes`; wavelets `coif6`-`coif17`; `idwt`/`iwpt` take the wavelet from metadata; wavelet `battle3` (cubic Battle–Lemarié, alias `:battle-23`); wavelet coefficients regenerated to PyWavelets precision
 * `fastmath.signal.biquad/shelf-slope->Q`; `:svf2` `:bandpass-normalized`; `savgol-filter` `delta`; 1-arity of `fft-energy`, `fft-magnitude`, `fft-amplitude`, `fft-power`, `stft`; `:asd`, `:real`, `:imag`, `:complex` methods in `stft`
 * `fastmath.signal.waveform` 45 PolyBLEP waves `polyblep-<name>` (`sinn`, `half`, `tri`, `lpsqr2`, `rect`, `saw`, `stairs`, `hssaw`, `circ`, ...; Tale's `poly_blep.jsfx-inc`) with the options `:pw`, `:n`, `:f2`; documented `blep`, `blamp`, `bluh`
+* `fastmath.stats/robust-stddev` methods `:qn`, `:gini`, `:tukey` (Qn, Gini mean difference, Tukey biweight scale); documented
 
 ### Fixed
 

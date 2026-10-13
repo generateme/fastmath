@@ -322,6 +322,146 @@
     (t/is (v/delta-eq [0.45106383 0.45106383 0.52765957 0.46808511 0.35319149] (first5 (sut/rescale mpg))))
     (t/is (v/delta-eq [3.53191489 3.53191489 5.82978723 4.04255319 0.59574468] (first5 (sut/rescale mpg -10.0 20.0))))))
 
+;; robust-stddev
+;; reference values (15 digits) on mtcars$mpg (n=32), mpg without the last value (n=31, odd), mtcars$hp
+;; and mpg with the value 1000 appended (n=33), from R and astropy:
+;; :mad <-> mad(x, constant=1/qnorm(0.75)); :iqr <-> IQR(x, type=6)/(2 qnorm(0.75));
+;; p <-> (quantile(x, 1-p, type=6) - quantile(x, p, type=6))/(2 qnorm(1-p));
+;; :sn <-> robustbase::Sn(x, 1.1926, finite.corr=TRUE) for odd n; for even n (different medians) the same formula in R:
+;; 1.1926 c_n median(apply(abs(outer(x, x, "-")), 1, median)), c_n = 1 for even n > 9, see `robust-stddev-sn-test`;
+;; :qn <-> robustbase::Qn(x, 2.21914, finite.corr=FALSE); :gini <-> Hmisc::GiniMd(x) sqrt(pi)/2;
+;; :stddev <-> sd(x); :meanad <-> mean(abs(x-mean(x))) sqrt(pi/2);
+;; :tukey <-> astropy.stats.biweight_scale(x, c=9)
+
+(def ^:private robust-stddev-reference
+  {:mpg {:mad 5.41149809754545 :iqr 5.57829084712733 :sn 5.72448 :qn 6.65742 :gini 6.02294827219496
+         :tukey 5.95860976064845 :stddev 6.0269480520891 :meanad 5.90869075127374
+         0.1 6.55455482700798 0.05 6.8471138194063}
+   :mpg31 {:mad 5.48562820847073 :iqr 5.63388843032129 :sn 6.14129568106312 :qn 6.435506 :gini 6.12392334809635
+           :tukey 6.07149312339969 :stddev 6.12175742564949 :meanad 6.03781803341919
+           0.1 6.5935700343116 0.05 6.86991220060299}
+   :hp {:mad 77.0953153622913 :iqr 62.6399437318617 :sn 68.5745 :qn 71.01248 :gini 68.2752082165338
+        :tukey 69.3295100403308 :stddev 68.5628684893206 :meanad 70.7877699665813
+        0.1 70.1103275246032 0.05 70.021428115438}
+   :mpg-outlier {:mad 5.48562820847073 :iqr 6.11573415133561 :sn 6.13018691588785 :qn 6.65742 :gini 58.2895618695518
+                 :tukey 6.05112920097106 :stddev 170.683440763179 :meanad 72.1768535082018
+                 0.1 6.98372210734779 0.05 95.2455570714565}})
+
+(defn- robust-stddev-data
+  [k]
+  (case k
+    :mpg (mtcars :mpg)
+    :mpg31 (butlast (mtcars :mpg))
+    :hp (mtcars :hp)
+    :mpg-outlier (concat (mtcars :mpg) [1000.0])))
+
+(def ^:private robust-stddev-types [:mad :iqr :sn :qn :gini :tukey :stddev :meanad 0.1 0.05])
+
+(t/deftest robust-stddev-reference-test
+  (doseq [[k expected] robust-stddev-reference
+          [typ ref] expected
+          :let [vs (robust-stddev-data k)]]
+    ;; agreement to 1e-14 relative measured, the references are printed with 15 digits
+    (t/is (m/delta-eq ref (sut/robust-stddev vs typ) (* 1.0e-10 (Math/abs (double ref)))) (str k " " typ)))
+  (t/testing "the default is :mad, p=0.25 is :iqr, p and 1-p are the same"
+    (t/is (= (sut/robust-stddev (mtcars :mpg) :mad) (sut/robust-stddev (mtcars :mpg))))
+    (t/is (m/delta= (sut/robust-stddev (mtcars :mpg) :iqr) (sut/robust-stddev (mtcars :mpg) 0.25)))
+    (t/is (m/delta= (sut/robust-stddev (mtcars :hp) 0.1) (sut/robust-stddev (mtcars :hp) 0.9)))
+    (t/is (m/delta= (sut/robust-stddev (mtcars :hp) 0.05) (sut/robust-stddev (mtcars :hp) 0.95))))
+  (t/testing ":biweight is an alias of :tukey"
+    (t/is (= (sut/robust-stddev (mtcars :mpg) :tukey) (sut/robust-stddev (mtcars :mpg) :biweight)))))
+
+;; :sn
+;; odd n: robustbase::Sn(x, constant=1.1926, finite.corr=TRUE) (the small n factors and n/(n-0.9) included);
+;; even n: robustbase takes the low median of the high medians and gives different values
+;; (mpg 5.963, c(1,4) 2.6583054, c(1,2,7,20) 6.8264424, c(1,2,4,8,16,3,5,7,11,30) 5.963), here both medians are
+;; averages, reference is the R formula 1.1926 c_n median(apply(abs(outer(x, x, "-")), 1, median))
+
+(t/deftest robust-stddev-sn-test
+  (t/testing "odd n, equal to robustbase"
+    (doseq [[vs ref] {[1.0 2.0 7.0] 2.2075026
+                      [3.0 1.0 4.0 1.0 5.5] 3.2224052
+                      [1.0 2.0 4.0 8.0 16.0 3.0 5.0 7.0 11.0] 5.3953224
+                      [1.0 2.0 4.0 8.0 16.0 3.0 5.0 7.0 11.0 30.0 6.0] 5.19548514851485}]
+      (t/is (m/delta-eq ref (sut/robust-stddev vs :sn) 1.0e-9) (str (count vs))))
+    (t/is (m/delta-eq 6.14129568106312 (sut/robust-stddev (butlast (mtcars :mpg)) :sn) 1.0e-9) "n=31, factor 31/30.1")
+    (t/is (m/delta-eq 6.13018691588785 (sut/robust-stddev (concat (mtcars :mpg) [1000.0]) :sn) 1.0e-9) "n=33"))
+  (t/testing "even n, the R formula with the averaged medians"
+    (doseq [[vs ref] {[1.0 4.0] 1.3291527
+                      [1.0 2.0 7.0 20.0] 5.1198318
+                      [1.0 2.0 7.0 20.0 3.0 50.0] 5.62519605
+                      [1.0 2.0 7.0 20.0 3.0 50.0 4.0 9.0] 5.3935335
+                      [1.0 2.0 4.0 8.0 16.0 3.0 5.0 7.0 11.0 30.0] 5.06855
+                      [1.0 2.0 4.0 8.0 16.0 3.0 5.0 7.0 11.0 30.0 6.0 0.5] 5.06855}]
+      (t/is (m/delta-eq ref (sut/robust-stddev vs :sn) 1.0e-9) (str (count vs))))))
+
+(t/deftest robust-stddev-hand-computed-test
+  ;; [1 2 7]: |xi-xj| = 1 6 5; MAD = median(1 0 5) = 1; biweight scale from astropy
+  (let [vs [1.0 2.0 7.0]]
+    (t/is (m/delta= (/ 1.0 0.6744897501960816) (sut/robust-stddev vs :mad)))
+    (t/is (m/delta= (* 2.21914 1.0) (sut/robust-stddev vs :qn)) "n=3: h=2, k=1, the smallest distance")
+    (t/is (m/delta= (* 4.0 (/ (Math/sqrt Math/PI) 2.0)) (sut/robust-stddev vs :gini)) "mean distance (1+6+5)/3")
+    (t/is (m/delta= 2.88235444723954 (sut/robust-stddev vs :tukey)))
+    (t/is (m/delta= 2.2075026 (sut/robust-stddev vs :sn)) "1.1926 * 1.851 (n=3) * 1, row medians of |xi-xj| are 1 1 5"))
+  (t/is (m/delta= (* 3.0 (/ (Math/sqrt Math/PI) 2.0)) (sut/robust-stddev [1.0 4.0] :gini)))
+  (t/is (m/delta= (* 3.0 2.21914) (sut/robust-stddev [1.0 4.0] :qn)) "n=2: the only distance")
+  (t/is (m/delta= 1.5789473684210527 (sut/robust-stddev [1.0 4.0] :tukey))))
+
+(t/deftest robust-stddev-properties-test
+  (let [rel-close? (fn [a b] (<= (Math/abs (- a b)) (* 1.0e-9 (max 1.0 (Math/abs a)))))
+        vs (vec (mtcars :hp))]
+    (t/testing "equivariant to scale and shift, invariant to the order and the type of the input"
+      (doseq [typ robust-stddev-types
+              :let [base (sut/robust-stddev vs typ)]]
+        (doseq [[c b] [[2.5 0.0] [-3.0 0.0] [1.0 100.0] [0.5 -7.0]]]
+          (t/is (rel-close? (* (Math/abs c) base)
+                            (sut/robust-stddev (map #(+ b (* c %)) vs) typ))
+                (str typ " x -> " c " x + " b)))
+        (t/is (rel-close? base (sut/robust-stddev (reverse vs) typ)) (str typ " reversed"))
+        (t/is (rel-close? base (sut/robust-stddev (shuffle vs) typ)) (str typ " shuffled"))
+        (t/is (= base (sut/robust-stddev (double-array vs) typ) (sut/robust-stddev (apply list vs) typ)) (str typ " array, list"))))
+    (t/testing "the input array is not changed"
+      (doseq [typ [:qn :gini :tukey :sn :mad]
+              :let [a (double-array [3.0 1.0 2.0 9.0 5.0])]]
+        (sut/robust-stddev a typ)
+        (t/is (= [3.0 1.0 2.0 9.0 5.0] (vec a)) (str typ))))
+    (t/testing "an outlier moves the robust estimators by less than 10% and :stddev by more than 20 times"
+      (let [mpg (mtcars :mpg)
+            out (concat mpg [1000.0])]
+        (doseq [typ [:mad :sn :qn :tukey 0.1]]
+          (let [clean (sut/robust-stddev mpg typ)]
+            (t/is (< (/ (Math/abs (- (sut/robust-stddev out typ) clean)) clean) 0.1) (str typ))))
+        (t/is (> (sut/robust-stddev out :stddev) (* 20.0 (sut/robust-stddev mpg :stddev))))))
+    (t/testing "consistent with sigma of a normal sample (seeded N(5, 2), n=2000)"
+      ;; measured relative errors: 0.7% (:iqr, :qn) at most
+      (let [d (r/distribution :normal {:mu 5.0 :sd 2.0 :rng (r/rng :isaac 42)})
+            xs (vec (r/->seq d 2000))]
+        (doseq [typ (conj robust-stddev-types 0.25)]
+          (t/is (m/delta-eq 2.0 (sut/robust-stddev xs typ) 0.06) (str typ)))))))
+
+(t/deftest robust-stddev-corner-cases-test
+  (doseq [typ (conj robust-stddev-types 0.25)]
+    (t/is (m/nan? (sut/robust-stddev [] typ)) (str typ " empty"))
+    (t/is (= 0.0 (sut/robust-stddev [3.0] typ)) (str typ " one value"))
+    (t/is (= 0.0 (sut/robust-stddev [2.0 2.0 2.0 2.0] typ)) (str typ " constant"))
+    (t/is (= 0.0 (sut/robust-stddev [0.0 0.0] typ)) (str typ " zeros")))
+  (t/testing "more than half of the values equal: zero MAD, so zero :mad, :tukey and :qn"
+    (doseq [typ [:mad :tukey :qn]]
+      (t/is (= 0.0 (sut/robust-stddev [1.0 1.0 1.0 1.0 5.0 9.0] typ)) (str typ))
+      (t/is (= 0.0 (sut/robust-stddev [1.0 1.0 1.0 5.0 9.0] typ)) (str typ " odd")))
+    (t/is (pos? (sut/robust-stddev [1.0 1.0 1.0 1.0 5.0 9.0] :gini)))
+    (t/is (pos? (sut/robust-stddev [1.0 1.0 1.0 1.0 5.0 9.0] :stddev))))
+  (t/testing "quantile estimators"
+    (t/is (m/nan? (sut/robust-stddev (mtcars :mpg) 0.5)) "p = 0.5 is 0/0")
+    (t/is (= 0.0 (sut/robust-stddev (mtcars :mpg) 0.0)) "range / infinity")
+    (t/is (= 0.0 (sut/robust-stddev (mtcars :mpg) 1.0)))
+    (t/is (thrown? org.apache.commons.math3.exception.OutOfRangeException (sut/robust-stddev (mtcars :mpg) 1.5)))
+    (t/is (thrown? org.apache.commons.math3.exception.OutOfRangeException (sut/robust-stddev (mtcars :mpg) -0.1))))
+  (t/testing "unknown method"
+    (t/is (thrown? IllegalArgumentException (sut/robust-stddev (mtcars :mpg) :foo)))
+    (t/is (thrown? IllegalArgumentException (sut/robust-stddev (mtcars :mpg) nil)))
+    (t/is (thrown? IllegalArgumentException (sut/robust-stddev (mtcars :mpg) "mad")))))
+
 ;; covariance/correlation family, incl. matrix forms
 ;; reference values from R on mtcars$mpg vs $cyl (pairwise) and mpg/cyl/hp (matrix forms):
 ;; cov(), cor(method="pearson"/"spearman"/"kendall"); kendall confirmed to match R's default

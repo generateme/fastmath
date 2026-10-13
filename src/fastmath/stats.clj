@@ -815,6 +815,7 @@
    (let [m (double (or center (mean vs)))]
      (mean (map (fn [^double x] (m/abs (m/- x m))) vs)))))
 
+
 (defn sem
   "Calculates the Standard Error of the Mean (SEM) for a sequence `vs`.
 
@@ -1005,12 +1006,12 @@
             min-idx (long 0)
             mn Double/MAX_VALUE]
        (if (m/< idx max-idx)
-         (let [diff (m/- (aget avs (m/+ idx gap))
-                         (aget avs idx))]
+         (let [diff (m/- (Array/aget avs (m/+ idx gap))
+                         (Array/aget avs idx))]
            (if (m/< diff mn)
              (recur (m/inc idx) idx diff)
              (recur (m/inc idx) min-idx mn)))
-         [(aget avs min-idx) (aget avs (m/+ min-idx gap)) (median avs)])))))
+         [(Array/aget avs min-idx) (Array/aget avs (m/+ min-idx gap)) (median avs)])))))
 
 (defn iqr
   "Calculates the interquartile range (IQR) of `vs`.
@@ -1340,7 +1341,7 @@
    (first (modes vs method opts)))
   (^double [vs]
    (let [m (StatUtils/mode (m/seq->double-array vs))]
-     (aget ^doubles m 0))))
+     (Array/aget ^doubles m 0))))
 
 (defn moment
   "Calculates the statistical moment of `vs` of the given `order` (default: `2.0`).
@@ -1378,7 +1379,7 @@
          a (if absolute? m/abs m/identity-double)]
      (loop [idx (long 0)]
        (when (m/< idx cin)
-         (aset out idx (double (f (a (m/- (aget in idx) center)))))
+         (Array/aset out idx (double (f (a (m/- (Array/aget in idx) center)))))
          (recur (m/inc idx))))
      (m// (if mean? (mean out) (sum out)) nf))))
 
@@ -1601,6 +1602,127 @@
   ([vs ^double quantile estimation-strategy]
    (let [[q qmid] (quantiles (remove m/nan? vs) [(m/- 1.0 quantile) 0.5] estimation-strategy)]
      (trim vs ##-Inf q qmid))))
+
+;; Robust stddev
+
+(defn- gini-scale
+  "Gini's mean difference (mean of `|xi - xj|` over the pairs `i < j`) of `vs` scaled to the normal standard deviation."
+  ^double [vs]
+  (let [^doubles avs (aclone ^doubles (m/seq->double-array vs)) ;; sorted in place, `vs` can be an array
+        n (alength avs)]
+    (java.util.Arrays/sort avs)
+    ;; sum of |xi - xj| over i < j = sum of (2i - n - 1) x(i) for the sorted data, i = 1..n
+    (let [pairs-sum (double (loop [i 0
+                                   s 0.0]
+                              (if (m/< i n)
+                                (recur (m/inc i) (m/+ s (m/* (m/- (m/* 2.0 (m/inc i)) (m/inc n)) (Array/aget avs i))))
+                                s)))]
+      (m/* (m// (m/* 2.0 pairs-sum) (m/* n (m/dec n))) 0.5 m/SQRTPI))))
+
+(defn- qn-scale
+  "Rousseeuw-Croux Qn of `vs`: the k-th smallest distance `|xi - xj|`, `i < j`, with `k = h (h - 1) / 2`, `h = floor(n / 2) + 1`, scaled to the normal standard deviation (no finite sample correction)."
+  ^double [vs]
+  (let [^doubles avs (m/seq->double-array vs)
+        n (alength avs)
+        h (m/long-inc (m/long-quot n 2))
+        k (m/long-quot (m/long-mult h (m/long-dec h)) 2)
+        ^doubles ds (double-array (m/long-quot (m/long-mult n (m/long-dec n)) 2))]
+    (loop [i 0
+           idx 0]
+      (when (m/< i n)
+        (let [xi (Array/aget avs i)
+              idx (long (loop [j (m/inc i)
+                               idx idx]
+                          (if (m/< j n)
+                            (do (Array/aset ds idx (m/abs (m/- xi (Array/aget avs j))))
+                                (recur (m/inc j) (m/inc idx)))
+                            idx)))]
+          (recur (m/inc i) idx))))
+    (java.util.Arrays/sort ds)
+    (m/* 2.21914 (Array/aget ds (m/dec k)))))
+
+(defn- sn-scale
+  ^double [vs ^long cnt]
+  (let [scale (double (get [0.743, 1.851, 0.954, 1.351, 0.993, 1.198, 1.005, 1.131]
+                           (m/- cnt 2)
+                           (if (m/odd? cnt) (m// cnt (m/- cnt 0.9)) 1.0)))]
+    (m/* 1.1926 scale (median (for [^double xi vs]
+                                (median (for [^double xj vs]
+                                          (m/abs (m/- xi xj)))))))))
+
+(defn- biweight-scale
+  "Square root of Tukey's biweight midvariance of `vs` (tuning constant 9, centered at the median, scaled by the not normalized MAD)."
+  ^double [vs]
+  (let [^doubles avs (m/seq->double-array vs)
+        n (alength avs)
+        center (median avs)
+        mad (median-absolute-deviation avs)]
+    (if (m/zero? mad)
+      0.0
+      (let [scale (m/* 9.0 mad)
+            [^double num ^double den]
+            (loop [i 0
+                   num 0.0
+                   den 0.0]
+              (if (m/< i n)
+                (let [d (m/- (Array/aget avs i) center)
+                      u2 (m/sq (m// d scale))]
+                  (if (m/< u2 1.0)
+                    (let [w (m/- 1.0 u2)]
+                      (recur (m/inc i)
+                             (m/+ num (m/* (m/sq d) (m/sq w) (m/sq w)))
+                             (m/+ den (m/* w (m/- 1.0 (m/* 5.0 u2))))))
+                    (recur (m/inc i) num den)))
+                [num den]))]
+        (m// (m/sqrt (m/* n num)) (m/abs den))))))
+
+(defn robust-stddev
+  "Estimates the standard deviation of `vs` with a (more or less) outlier resistant scale estimator.
+
+  Every method measures the spread of the data in its own way and multiplies it by a constant, so that the result estimates `sigma` for a large sample from the normal distribution `N(mu, sigma)`. For other distributions the methods give different values.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data. It should not contain `NaN`.
+  - `typ` (keyword or number): Estimation method, defaults to `:mad`. One of:
+    - `:mad`: median absolute deviation from the median, see [[median-absolute-deviation]], divided by `0.6744897501960816` (the 75th percentile of the standard normal distribution). Equals R `mad(x, constant=1/qnorm(0.75))`.
+    - `:iqr`: interquartile range, see [[iqr]] (quantiles of the `:legacy` estimation strategy, R `type=6`), divided by `1.3489795003921632`.
+    - `:sn`: Rousseeuw-Croux `Sn`, `1.1926 c_n med_i med_j |xi - xj|`, with medians of all `n` values including `j = i`. `c_n` is the finite sample correction of `robustbase`: `0.743 1.851 0.954 1.351 0.993 1.198 1.005 1.131` for `n = 2..9`, `n / (n - 0.9)` for odd `n > 9` and `1` for even `n > 9`. Needs `O(n^2)` time. Equals R `robustbase::Sn(x, constant=1.1926, finite.corr=TRUE)` for odd `n`. For even `n` the medians are averages of the two middle values, while `robustbase` takes the low median of the high medians, so the results differ (for `n = 2` by the factor of 2).
+    - `:qn`: Rousseeuw-Croux `Qn`, `2.21914` times the `k`-th smallest distance `|xi - xj|`, `i < j`, `k = h (h - 1) / 2`, `h = floor(n / 2) + 1`, without the finite sample correction. Equals R `robustbase::Qn(x, constant=2.21914, finite.corr=FALSE)`. Needs `O(n^2)` time and memory (`n (n - 1) / 2` distances), use it for samples up to a few thousands values.
+    - `:tukey` (or `:biweight`): square root of Tukey's biweight midvariance, centered at the median, with the tuning constant `9` times the (not normalized) MAD. Equals `astropy.stats.biweight_scale(x, c=9)`. Returns `0.0` when the MAD is zero.
+    - `:stddev`: the sample standard deviation, see [[stddev]]. Not robust.
+    - `:meanad`: mean absolute deviation from the mean, see [[mean-absolute-deviation]], multiplied by `sqrt(pi/2)`. Not robust.
+    - `:gini`: Gini's mean difference, the mean of `|xi - xj|` over all pairs `i < j`, multiplied by `sqrt(pi)/2`. Equals R `Hmisc::GiniMd(x) * sqrt(pi) / 2`. Less sensitive to outliers than `:stddev`, not robust.
+    - a number `p` from `(0, 0.5)`: the spread between the quantiles `p` and `1-p` (the `:legacy` strategy) divided by `2 z`, where `z` is the `1-p` quantile of the standard normal distribution. `0.25` is `:iqr`. The values `p` and `1-p` give the same result.
+
+  Returns the estimate as a double.
+
+  Corner cases:
+
+  - an empty `vs` gives `NaN` and a single value gives `0.0`, for every method; a constant sequence gives `0.0`; `:mad` and `:tukey` also give `0.0` when more than half of the values are equal
+  - `p = 0.5` gives `NaN`, `p = 0` or `p = 1` gives `0.0`, `p` outside of `[0,1]` throws `OutOfRangeException`
+  - an unknown `typ` throws `IllegalArgumentException` (not checked for an empty `vs` and a single value)
+
+  See also [[median-absolute-deviation]], [[mean-absolute-deviation]], [[iqr]], [[stddev]], [[robust-standardize]]."
+  (^double [vs] (robust-stddev vs :mad))
+  (^double [vs typ]
+   (let [size (count vs)] 
+     (cond
+       (m/zero? size) ##NaN
+       (m/one? size) 0.0
+       (number? typ) (let [p (double typ)
+                           p- (m/- 1.0 p)
+                           [^double q1 ^double q2] (quantiles vs [p p-])]
+                       (m// (m/- q2 q1) (m/* 2.0 (double (r/icdf r/default-normal p-)))))
+       :else (case typ
+               :stddev (stddev vs)
+               :mad (m// (median-absolute-deviation vs) 0.6744897501960816)
+               :meanad (m/* (mean-absolute-deviation vs) m/SQRT_HALFPI)
+               :iqr (m// (iqr vs) 1.3489795003921632)
+               :sn (sn-scale vs size)
+               :qn (qn-scale vs)
+               :gini (gini-scale vs)
+               (:biweight :tukey) (biweight-scale vs))))))
 
 ;; On More Robust Estimation of Skewness and Kurtosis: Simulation and Application to the S&P500 Index
 
@@ -6892,8 +7014,8 @@
   (let [n (alength xs)]
     (reduce - (m/- n) (map (fn [^long idx]
                              (m/* (m// (m/+ idx idx 1.0) n)
-                                  (m/+ (m/log (r/cdf d (aget xs idx)))
-                                       (m/log (r/ccdf d (aget xs (m/- n idx 1))))))) (range n)))))
+                                  (m/+ (m/log (r/cdf d (Array/aget xs idx)))
+                                       (m/log (r/ccdf d (Array/aget xs (m/- n idx 1))))))) (range n)))))
 
 (defn ad-test-one-sample
   "Performs the Anderson-Darling (AD) test for goodness-of-fit.

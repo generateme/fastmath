@@ -162,7 +162,7 @@
         res (map (fn [^double x]
                    (cplx/exp (cplx/complex 0.0 (m/* fac x)))) xs)]
     (if (m/> ftype 2)
-      (map (fn [z] (cplx/mult-I z)) res)
+      (map cplx/mult-I res)
       res)))
 
 (defn firgain

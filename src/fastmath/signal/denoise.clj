@@ -48,12 +48,6 @@
 
 ;; https://computing.llnl.gov/sites/default/files/jei2001.pdf
 
-(defn robust-stddev
-  "Noise standard deviation estimated as the median absolute deviation (about the median) divided by `0.6745` (the normal 0.75 quantile)."
-  ^double [xs]
-  (-> (stats/median-absolute-deviation (non-empty! xs))
-      (m// 0.6744897501960816)))
-
 (defn minfdr-threshold
   "Threshold from the `top-n` quantile of two-sided normal p-values of the coefficients: the value whose p-value equals that quantile.
 
@@ -61,7 +55,7 @@
 
   Throws `ex-info` for empty input."
   ^double [xs ^double top-n robust?]
-  (let [sigma (if robust? (robust-stddev xs) (stats/stddev (non-empty! xs)))]
+  (let [sigma (if robust? (stats/robust-stddev xs :mad) (stats/stddev (non-empty! xs)))]
     (if (m/zero? sigma)
       0.0
       (let [pm (-> (map (fn [^double x]
@@ -80,7 +74,7 @@
 (defn- scaled
   "`f` applied to coefficients divided by their [[robust-stddev]], scaled back; 0 when the deviation is 0."
   ^double [coeffs f]
-  (let [sigma (robust-stddev coeffs)]
+  (let [sigma (stats/robust-stddev coeffs :mad)]
     (if (m/zero? sigma)
       0.0
       (m/* sigma (double (f (v/div coeffs sigma)))))))
@@ -110,7 +104,7 @@
      (let [n (count (non-empty! coeffs))
            sqrt-2-log-n (m/sqrt (m/* 2.0 (m/log n)))]
        (case thr
-         :visu (m/* (robust-stddev coeffs) sqrt-2-log-n)
+         :visu (m/* (stats/robust-stddev coeffs :mad) sqrt-2-log-n)
          :universal (m/* (stats/stddev coeffs) sqrt-2-log-n)
          (:sure :rigrsure) (scaled coeffs sure)
          (:hybrid :heursure) (scaled coeffs
@@ -185,14 +179,14 @@
          lengths (when-not (bands? coeffs) (flat-lengths coeffs))]
      (cond
        lengths
-       (with-meta (vec (apply concat (denoise (split-bands coeffs lengths) {:method method :thr thr :high? high? :top-n-ratio top-n-ratio})))
+       (with-meta (vec (mapcat identity (denoise (split-bands coeffs lengths) {:method method :thr thr :high? high? :top-n-ratio top-n-ratio})))
          (meta coeffs))
 
        (bands? coeffs)
        (let [details (rest coeffs)
              estimate (if (or high? (empty? details))
                         (last coeffs)
-                        (apply concat details))
+                        (mapcat identity details))
              f (shrink-fn method (threshold estimate thr top-n-ratio))]
          (with-meta (into [(vec (first coeffs))] (map (fn [band] (mapv f band)) details))
            (meta coeffs)))
