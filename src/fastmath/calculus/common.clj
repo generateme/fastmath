@@ -1,11 +1,20 @@
 (ns fastmath.calculus.common
   "Shared parts of the integration engines: the max-error queue, the orientation of bounds and the
   substitutions which turn improper integrals into proper ones."
-  (:require [fastmath.core :as m])
-  (:import [java.util PriorityQueue Comparator]))
+  (:require [fastmath.core :as m]
+            [fastmath.vector :as v])
+  (:import [java.util PriorityQueue Comparator]
+           [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
+
+;; options
+
+(defn drop-nil-options
+  "Returns the `options` map without the keys having a `nil` value, so a `nil` option is a missing option and takes its default. `nil` options give `{}`."
+  [options]
+  (into {} (remove (comp nil? val)) options))
 
 ;; adaptive engines: queue of regions ordered by the error estimate
 
@@ -27,10 +36,10 @@
   (PriorityQueue. 64 largest-error-first))
 
 (defn estimates-sum
-  "Returns `[sum-of-values sum-of-errors]` of all [[Estimate]] objects in a collection."
+  "Returns the sum of values and the sum of errors of all [[Estimate]] objects in a collection as a `Vec2` (it destructures like `[sum-of-values sum-of-errors]`)."
   [regions]
-  (reduce (fn [[^double v ^double e] ^Estimate r]
-            [(m/+ v (.value r)) (m/+ e (.error r))]) [0.0 0.0] regions))
+  (reduce (fn [^Vec2 ve ^Estimate r]
+            (Vec2. (m/+ (.x ve) (.value r)) (m/+ (.y ve) (.error r)))) (v/vec2 0.0 0.0) regions))
 
 ;; orientation of bounds
 
@@ -53,7 +62,7 @@
 (defn normalize-bounds-multi
   "Orients bounds of every dimension. Returns `[sign lower upper]`, where `lower` and `upper` are vectors with `lower[i] <= upper[i]` and `sign` is `-1.0` raised to the number of reversed dimensions.
 
-  Throws `ex-info` when the sequences are empty or differ in length."
+  Throws `ex-info` when the sequences are empty or differ in length, and as [[normalize-bounds]] does for a NaN bound or two equal infinite bounds in any dimension."
   [lower upper]
   (let [lower (vec lower)
         upper (vec upper)]
@@ -61,17 +70,16 @@
       (throw (ex-info "Lower and upper bounds must be non-empty and of the same length"
                       {:lower lower :upper upper})))
     (let [[sign lower upper] (reduce (fn [[^double sign lo up] [^double a ^double b]]
-                                       (if (m/> a b)
-                                         [(m/- sign) (conj lo b) (conj up a)]
-                                         [sign (conj lo a) (conj up b)]))
-                                     [1.0 [] []] (map vector lower upper))]
+                                       (let [[^double s a b] (normalize-bounds a b)]
+                                         [(m/* sign s) (conj lo a) (conj up b)]))
+                                     [1.0 [] []] (map v/vec2 lower upper))]
       [sign lower upper])))
 
 (defn orient
   "Applies the `sign` of [[normalize-bounds]] to a result, which is a number or an info map with `:result`."
   [^double sign result]
   (cond
-    (m/== sign 1.0) result
+    (m/one? sign) result
     (map? result) (update result :result (fn [^double r] (m/* sign r)))
     :else (m/* sign (double result))))
 
@@ -164,6 +172,6 @@
     (let [[subst-v multiplier [nlower nupper]] (subst-multi- lower upper)]
       [(fn [v]
          (let [nv (subst-v v)
-               ^double m (multiplier v)]
-           (m/* m ^double (f nv))))
+               m (double (multiplier v))]
+           (m/* m (double (f nv)))))
        nlower nupper])))

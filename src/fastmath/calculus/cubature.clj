@@ -68,11 +68,11 @@
 
         f23s (mapv (fn [^long i]
                      (let [p2 (v/emult delta (gp1 i))
-                           f2i (m/+ ^double (f (v/add c p2))
-                                    ^double (f (v/sub c p2)))
+                           f2i (m/+ (double (f (v/add c p2)))
+                                    (double (f (v/sub c p2))))
                            p3 (v/emult delta (gp2 i))
-                           f3i (m/+ ^double (f (v/add c p3))
-                                    ^double (f (v/sub c p3)))]
+                           f3i (m/+ (double (f (v/add c p3)))
+                                    (double (f (v/sub c p3))))]
                        (Vec2. f2i f3i))) (range dims))
 
         divdiff (mapv (fn [^Vec2 v]
@@ -87,19 +87,19 @@
                 (map #(f (v/add c (v/emult delta %))))
                 (v/sum))
 
-        I (m/* V (m/+ (m/* ^double (w 0) f1)
-                      (m/* ^double (w 1) (.x f23))
-                      (m/* ^double (w 2) (.y f23))
-                      (m/* ^double (w 3) f4)
-                      (m/* ^double (w 4) f5)))
+        I (m/* V (m/+ (m/* (double (w 0)) f1)
+                      (m/* (double (w 1)) (.x f23))
+                      (m/* (double (w 2)) (.y f23))
+                      (m/* (double (w 3)) f4)
+                      (m/* (double (w 4)) f5)))
 
-        I' (m/* V (m/+ (m/* ^double (w' 0) f1)
-                       (m/* ^double (w' 1) (.x f23))
-                       (m/* ^double (w' 2) (.y f23))
-                       (m/* ^double (w' 3) f4)))
+        I' (m/* V (m/+ (m/* (double (w' 0)) f1)
+                       (m/* (double (w' 1)) (.x f23))
+                       (m/* (double (w' 2)) (.y f23))
+                       (m/* (double (w' 3)) f4)))
 
         E (m/abs (m/- I I'))
-        deltaf (m// E (m/* (m/pow 10.0 dims) V))
+        deltaf (m// E (m/* (m/exp10 dims) V))
 
         ;; the dimension with the largest fourth difference (HCubature): `mx` is the largest difference found,
         ;; within `deltaf` of it the widest dimension wins
@@ -110,17 +110,17 @@
                                  (cond
                                    (m/> d deltaf) [dd dim]
                                    (and (m/<= (m/abs d) deltaf)
-                                        (m/> ^double (delta dim)
-                                             ^double (delta kdv))) [mx dim]
+                                        (m/> (double (delta dim))
+                                             (double (delta kdv)))) [mx dim]
                                    :else [mx kdv]))) [0.0 0])
                      (second))]
 
     (CubatureBox. lower upper I E kdivide)))
 
 (defn- enumerate-boxes
-  [lower upper div]
+  [lower upper ^long div]
   (->> (map (fn [^double a ^double b]
-              (->> (m/slice-range a b (m/long-inc (long div)))
+              (->> (m/slice-range a b (m/long-inc div))
                    (partition 2 1))) lower upper)
        (apply combo/cartesian-product)
        (map (partial apply map vector))))
@@ -137,9 +137,9 @@
      (assoc a split-id mid) b]))
 
 (defn- check-initdiv
-  ^long [n]
-  (if (and (integer? n) (m/>= (long n) 1))
-    (long n)
+  ^long [^long n]
+  (if (m/>= n 1)
+    n
     (throw (ex-info "Option :initdiv must be an integer >= 1"
                     {:option :initdiv :value n :expected "integer >= 1"}))))
 
@@ -192,11 +192,12 @@
 (defn cubature
   "Adaptive Genz-Malik cubature of `f` on the box `[lower, upper]`, see [[fastmath.calculus/cubature]] for options and result."
   ([f lower upper] (cubature f lower upper nil))
-  ([f lower upper {:keys [rel abs max-evals max-iters initdiv info?]
-                   :or {rel 1.0e-7 abs 1.0e-7 max-evals Integer/MAX_VALUE max-iters 64 initdiv 2 info? false}
-                   :as options}]
-   (let [initdiv (check-initdiv initdiv)
-         [sign lower upper] (cc/normalize-bounds-multi lower upper)]
+  ([f lower upper options]
+   (let [options (cc/drop-nil-options options)
+         {:keys [rel abs max-evals max-iters initdiv info?]
+          :or {rel 1.0e-7 abs 1.0e-7 max-evals Integer/MAX_VALUE max-iters 64 initdiv 2 info? false}} options
+         initdiv (check-initdiv initdiv)
+         [^double sign lower upper] (cc/normalize-bounds-multi lower upper)]
      (cc/orient sign
                 (if (m/== (count lower) 1)
                   (quadrature/gk-quadrature (fn ^double [^double x] (f [x])) (lower 0) (upper 0)

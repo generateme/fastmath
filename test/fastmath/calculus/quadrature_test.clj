@@ -164,14 +164,23 @@
                (ex-data-of #(sut/gk-quadrature f 0.0 1.0 {:points [:a]})))))))
 
 (t/deftest option-validation
-  (doseq [bad [0 -1 2.5 7.0 "7" :a nil ##NaN]]
+  (doseq [bad [0 -1 Long/MIN_VALUE]]
     (t/testing (str ":integration-points " (pr-str bad))
       (let [data (ex-data-of #(sut/gk-quadrature (integrands "poly") 0.0 1.0 {:integration-points bad}))]
         (t/is (= :integration-points (:option data)))
         (t/is (= bad (:value data) )))))
-  (doseq [bad [0 -2 1.5 "a"]]
+  (doseq [bad [0 -2]]
     (t/testing (str ":initdiv " (pr-str bad))
       (t/is (= :initdiv (:option (ex-data-of #(sut/gk-quadrature (integrands "poly") 0.0 1.0 {:initdiv bad})))))))
+  (t/testing "a nil option is a missing option"
+    (let [options {:integration-points nil :initdiv nil :rel nil :abs nil :max-evals nil :max-iters nil :info? nil :points nil}]
+      (t/is (= (sut/gk-quadrature (integrands "poly") 0.0 1.0 {:info? true})
+               (sut/gk-quadrature (integrands "poly") 0.0 1.0 (assoc options :info? true))))
+      (t/is (= (sut/gk-quadrature (integrands "poly") 0.0 1.0)
+               (sut/gk-quadrature (integrands "poly") 0.0 1.0 options)))))
+  (t/testing "options are not type checked: a fractional order is truncated"
+    (t/is (= (sut/gk-quadrature (integrands "poly") 0.0 1.0 {:integration-points 7})
+             (sut/gk-quadrature (integrands "poly") 0.0 1.0 {:integration-points 7.9}))))
   (t/testing "every positive integer order works"
     (doseq [n [1 2 3 4 5 9 12 30]]
       (t/is (m/delta-eq (m/- 1.0 (m// m/E)) (sut/gk-quadrature (integrands "expinf") 0.0 1.0 {:integration-points n :rel 1.0e-12}) 1.0e-11)))))

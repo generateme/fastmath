@@ -69,15 +69,23 @@
 
 (t/deftest normalize-bounds-multi
   (t/are [lower upper res] (= res (sut/normalize-bounds-multi lower upper))
-    [0 0] [1 1] [1.0 [0 0] [1 1]]
-    [1 0] [0 1] [-1.0 [0 0] [1 1]]
-    [1 1] [0 0] [1.0 [0 0] [1 1]]
-    [1 1 1] [0 0 0] [-1.0 [0 0 0] [1 1 1]]
-    [##Inf 0] [0 1] [-1.0 [0 0] [##Inf 1]]
-    [2] [2] [1.0 [2] [2]])
+    [0 0] [1 1] [1.0 [0.0 0.0] [1.0 1.0]]
+    [1 0] [0 1] [-1.0 [0.0 0.0] [1.0 1.0]]
+    [1 1] [0 0] [1.0 [0.0 0.0] [1.0 1.0]]
+    [1 1 1] [0 0 0] [-1.0 [0.0 0.0 0.0] [1.0 1.0 1.0]]
+    [##Inf 0] [0 1] [-1.0 [0.0 0.0] [##Inf 1.0]]
+    [2] [2] [1.0 [2.0] [2.0]])
   (t/testing "empty and mismatched bounds throw ex-info"
     (doseq [[lower upper] [[[] []] [[1 0] [0]] [[1] [0 1]] [nil nil]]]
+      (t/is (thrown? clojure.lang.ExceptionInfo (sut/normalize-bounds-multi lower upper)))))
+  (t/testing "a NaN bound and two equal infinite bounds throw ex-info in any dimension"
+    (doseq [[lower upper] [[[##NaN 0] [1 1]] [[0 0] [1 ##NaN]] [[0 ##Inf] [1 ##Inf]] [[0 ##-Inf] [1 ##-Inf]]]]
       (t/is (thrown? clojure.lang.ExceptionInfo (sut/normalize-bounds-multi lower upper))))))
+
+(t/deftest drop-nil-options
+  (t/is (= {} (sut/drop-nil-options nil)))
+  (t/is (= {} (sut/drop-nil-options {})))
+  (t/is (= {:a false :b 0 :c ##Inf} (sut/drop-nil-options {:a false :b 0 :c ##Inf :d nil :e nil})) "false is not nil"))
 
 (t/deftest orient
   (t/is (= 3.0 (sut/orient 1.0 3.0)))

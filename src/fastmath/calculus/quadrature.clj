@@ -82,11 +82,11 @@
         [s t] (reduce (fn [[s t] ^long m]
                         [t (->> (range (m/quot (m/inc m) 2) -1 -1)
                                 (reduce (fn [[s ^double u] ^long k]
-                                          (let [nu (m/+ u (m/- (m/* ^double (b (m/+ k n))
-                                                                    ^double (s k))
+                                          (let [nu (m/+ u (m/- (m/* (double (b (m/+ k n)))
+                                                                    (double (s k)))
                                                                (if (m/> m k)
-                                                                 (m/* ^double (b (m/- m k 1))
-                                                                      ^double (s (m/inc k)))
+                                                                 (m/* (double (b (m/- m k 1)))
+                                                                      (double (s (m/inc k))))
                                                                  0.0)))]
                                             [(assoc s (m/inc k) nu) nu]))
                                         [s 0.0])
@@ -99,18 +99,18 @@
                           (let [news (->> (range (m/- m n -1) (m/inc (m/quot (m/dec m) 2)))
                                           (reduce (fn [[s ^double u] ^long k]
                                                     (let [j (m/dec (m/- n (m/- m k)))
-                                                          nu (m/- u (m/- (m/* ^double (b (m/+ k n))
-                                                                              ^double (s (m/inc j)))
-                                                                         (m/* ^double (b (m/- m k 1))
-                                                                              ^double (s (m/+ j 2)))))]
+                                                          nu (m/- u (m/- (m/* (double (b (m/+ k n)))
+                                                                              (double (s (m/inc j))))
+                                                                         (m/* (double (b (m/- m k 1)))
+                                                                              (double (s (m/+ j 2))))))]
                                                       [(assoc s (m/inc j) nu) nu]))
                                                   [s 0.0])
                                           (first))
                                 k (m/quot (m/inc m) 2)
                                 j (m/- n (m/+ (m/- m k) 2))
                                 nb (if (m/not== (m/* 2 k) m)
-                                     (assoc b (m/+ k n) (m// ^double (news (m/+ j 1))
-                                                             ^double (news (m/+ j 2))))
+                                     (assoc b (m/+ k n) (m// (double (news (m/+ j 1)))
+                                                             (double (news (m/+ j 2)))))
                                      b)]
                             [nb t news]))
                         [b s t])
@@ -199,12 +199,12 @@
         a (.x ab)
         ^double f0 (f (m/+ a s))
         Igk (if (m/zero? n1)
-              (Vec2. 0.0 (m/* f0 ^double (w lastxw)))
+              (Vec2. 0.0 (m/* f0 (double (w lastxw))))
               (let [^double x-1 (x lastxw-)]
-                (Vec2. (m/* f0 ^double (gw lastgw))
-                       (m/+ (m/* f0 ^double (w lastxw))
-                            (m/* (m/+ ^double (f (m/+ a (m/* (m/+ 1.0 x-1) s)))
-                                      ^double (f (m/+ a (m/* (m/- 1.0 x-1) s))))
+                (Vec2. (m/* f0 (double (gw lastgw)))
+                       (m/+ (m/* f0 (double (w lastxw)))
+                            (m/* (m/+ (double (f (m/+ a (m/* (m/+ 1.0 x-1) s))))
+                                      (double (f (m/+ a (m/* (m/- 1.0 x-1) s)))))
                                  ^double (w lastxw-))))))
         ^Vec2 Igk (-> (->> (if (m/zero? n1) gw (butlast gw))
                            (map-indexed (fn [^long i ^double gwi]
@@ -215,10 +215,10 @@
                                                 ^double x2i-1 (x ii-)
                                                 ^double w2i (w ii)
                                                 ^double w2i-1 (w ii-)
-                                                fg (m/+ ^double (f (m/+ a (m/* (m/+ 1.0 x2i) s)))
-                                                        ^double (f (m/+ a (m/* (m/- 1.0 x2i) s))))
-                                                fk (m/+ ^double (f (m/+ a (m/* (m/+ 1.0 x2i-1) s)))
-                                                        ^double (f (m/+ a (m/* (m/- 1.0 x2i-1) s))))]
+                                                fg (m/+ (double (f (m/+ a (m/* (m/+ 1.0 x2i) s))))
+                                                        (double (f (m/+ a (m/* (m/- 1.0 x2i) s)))))
+                                                fk (m/+ (double (f (m/+ a (m/* (m/+ 1.0 x2i-1) s))))
+                                                        (double (f (m/+ a (m/* (m/- 1.0 x2i-1) s)))))]
                                             (Vec2. (m/* fg gwi)
                                                    (m/+ (m/* fg w2i)
                                                         (m/* fk w2i-1))))))
@@ -229,16 +229,16 @@
 
 (defn check-integration-points
   "Returns the order of the Gauss-Kronrod rule as a long; throws `ex-info` unless it is an integer >= 1."
-  ^long [n]
-  (if (and (integer? n) (m/>= (long n) 1))
-    (long n)
+  ^long [^long n]
+  (if (m/>= n 1)
+    n
     (throw (ex-info "Option :integration-points must be an integer >= 1"
                     {:option :integration-points :value n :expected "integer >= 1"}))))
 
 (defn- check-initdiv
-  ^long [n]
-  (if (and (integer? n) (m/>= (long n) 1))
-    (long n)
+  ^long [^long n]
+  (if (m/>= n 1)
+    n
     (throw (ex-info "Option :initdiv must be an integer >= 1"
                     {:option :initdiv :value n :expected "integer >= 1"}))))
 
@@ -278,11 +278,12 @@
 (defn gk-quadrature
   "Adaptive Gauss-Kronrod quadrature of `f` on `[lower, upper]`, see [[fastmath.calculus/integrate]] for options and result."
   ([f lower upper] (gk-quadrature f lower upper nil))
-  ([f lower upper {:keys [^double rel ^double abs ^long max-evals ^long max-iters
-                          integration-points initdiv info? points]
-                   :or {rel 1.0e-8 abs 1.0e-8 max-evals Integer/MAX_VALUE max-iters 64
-                        integration-points 7 initdiv 1 info? false}}]
-   (let [n (check-integration-points integration-points)
+  ([f lower upper options]
+   (let [{:keys [^double rel ^double abs ^long max-evals ^long max-iters
+                 integration-points initdiv info? points]
+          :or {rel 1.0e-8 abs 1.0e-8 max-evals Integer/MAX_VALUE max-iters 64
+               integration-points 7 initdiv 1 info? false}} (cc/drop-nil-options options)
+         n (check-integration-points integration-points)
          initdiv (check-initdiv initdiv)
          [^double sign ^double lower ^double upper] (cc/normalize-bounds lower upper)
          [f ^double tl ^double tu] (cc/subst-1d f lower upper)

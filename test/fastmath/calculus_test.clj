@@ -127,8 +127,7 @@
 (t/deftest integrate-validation
   (t/testing "ex-info with the option and the value"
     (doseq [[options option value] [[{:integration-points 0} :integration-points 0]
-                                    [{:integration-points 2.5} :integration-points 2.5]
-                                    [{:integrator :gauss-legendre :integration-points 2.5} :integration-points 2.5]
+                                    [{:integrator :gauss-legendre :integration-points 0} :integration-points 0]
                                     [{:initdiv 0} :initdiv 0]
                                     [{:points [:a]} :points [:a]]
                                     [{:integrator :foo} :integrator :foo]]]
@@ -139,6 +138,29 @@
     (doseq [[lower upper] [[##NaN 1.0] [0.0 ##NaN] [##Inf ##Inf] [##-Inf ##-Inf]]
             integrator [:gauss-kronrod :romberg]]
       (t/is (some? (ex-data-of #(sut/integrate exp-minus lower upper {:integrator integrator})))))))
+
+(t/deftest nil-options
+  (t/testing "a nil option is a missing option"
+    (t/is (= (sut/integrate exp-minus 0.0 1.0)
+             (sut/integrate exp-minus 0.0 1.0 {:integrator nil :abs nil :rel nil :peak-guard nil :max-evals nil :points nil})))
+    (t/is (= (sut/integrate exp-minus 0.0 1.0 {:integrator :romberg})
+             (sut/integrate exp-minus 0.0 1.0 {:integrator :romberg :abs nil :rel nil :min-iters nil :max-iters nil :max-evals nil})))
+    (let [f (fn [[^double x ^double y]] (m/* x y))]
+      (t/is (= (sut/cubature f [0 0] [1 1])
+               (sut/cubature f [0 0] [1 1] {:rel nil :abs nil :max-evals nil :max-iters nil :initdiv nil :info? nil})))
+      (t/is (m/delta-eq 0.25 (sut/vegas f [0 0] [1 1] {:rng (r/rng :jdk 5) :nevals nil :max-iters nil :rel nil :abs nil :beta nil :alpha nil :warmup nil}) 1.0e-2))))
+  (t/testing "the options of the derivatives"
+    (let [nils {:acc nil :h nil :method nil :extrapolate? nil}]
+      (t/is (= ((sut/derivative m/sin 1) 0.7) ((sut/derivative m/sin 1 nils) 0.7)))
+      (t/is (= ((sut/gradient (fn [v] (m/sin (v 0)))) [0.7]) ((sut/gradient (fn [v] (m/sin (v 0))) {:acc nil :h nil}) [0.7])))
+      (t/is (= ((sut/hessian (fn [v] (m/sin (v 0)))) [0.7]) ((sut/hessian (fn [v] (m/sin (v 0))) {:h nil}) [0.7])))
+      (t/is (fn? (sut/extrapolate (sut/fx->gx+h m/sin) {:contract nil :power nil :init-h nil :rel nil :abs nil :max-evals nil :tol nil}))))))
+
+(t/deftest multivariate-bounds
+  (t/testing "NaN bounds and two equal infinite bounds in any dimension throw ex-info"
+    (doseq [[lower upper] [[[0 0] [##NaN 1]] [[##NaN 0] [1 1]] [[0 0] [1 ##NaN]] [[0 ##Inf] [1 ##Inf]] [[0 ##-Inf] [1 ##-Inf]]]
+            integrate [sut/cubature sut/vegas]]
+      (t/is (some? (ex-data-of #(integrate (fn [_] 1.0) lower upper))) (pr-str lower upper)))))
 
 ;; sampled data (details in samples-test)
 

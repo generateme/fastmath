@@ -115,10 +115,17 @@
   (t/testing "empty bounds and different lengths throw ex-info"
     (doseq [[lower upper] [[[] []] [[0 0] [1]] [[0] [1 1]] [nil nil]]]
       (t/is (some? (ex-data-of #(sut/cubature (fn [_] 1.0) lower upper))))))
-  (t/testing ":initdiv must be an integer >= 1"
-    (doseq [bad [0 -1 1.5 "a" nil]]
+  (t/testing ":initdiv must be >= 1"
+    (doseq [bad [0 -1]]
       (t/is (= :initdiv (:option (ex-data-of #(sut/cubature (fn [_] 1.0) [0 0] [1 1] {:initdiv bad})))))
       (t/is (= :initdiv (:option (ex-data-of #(sut/cubature (fn [_] 1.0) [0] [1] {:initdiv bad})))))))
+  (t/testing "a nil option is a missing option"
+    (let [nils {:rel nil :abs nil :max-evals nil :max-iters nil :initdiv nil :info? nil}]
+      (t/is (= (sut/cubature (fn [v] (m/* (v 0) (v 1))) [0 0] [1 1]) (sut/cubature (fn [v] (m/* (v 0) (v 1))) [0 0] [1 1] nils)))
+      (t/is (= (sut/cubature (fn [v] (v 0)) [0] [1]) (sut/cubature (fn [v] (v 0)) [0] [1] nils)))))
+  (t/testing "NaN bounds and two equal infinite bounds throw ex-info, also in one dimension"
+    (doseq [[lower upper] [[[0 0] [##NaN 1]] [[##NaN] [1]] [[0] [##NaN]] [[0 ##Inf] [1 ##Inf]] [[##-Inf] [##-Inf]]]]
+      (t/is (some? (ex-data-of #(sut/cubature (fn [_] 1.0) lower upper))) (pr-str lower upper))))
   (t/testing "equal bounds give zero"
     (t/is (= 0.0 (sut/cubature (fn [_] 1.0) [1 1] [1 1])))
     (t/is (= 0.0 (sut/cubature (fn [_] 1.0) [0 1] [1 1])))

@@ -17,7 +17,7 @@
 ;; https://github.com/ranjanan/MonteCarloIntegration.jl/blob/master/src/vegas.jl
 
 ;; a variance of a single iteration is never below this value: weights of the iterations stay finite for a constant integrand
-(def ^:private ^:const ^double tiny-variance 1.0e-250)
+(def ^{:private true :const true :tag 'double} tiny-variance 1.0e-250)
 
 (defn- vegas-build-initial-grid
   [lower upper ^long nintervals]
@@ -52,31 +52,31 @@
 (defn- normalize-and-compress-d!
   [^doubles d ^double sumd ^double alpha]
   (dotimes [i (alength d)]
-    (let [v (m// (aget d i) sumd)
+    (let [v (m// (Array/aget d i) sumd)
           ^double c (cond
                       (m/>= v 1.0) 1.0 ;; limit of (1-v)/ln(1/v)
-                      (m/<= v 0.0) 0.0
+                      (m/not-pos? v) 0.0
                       :else (m/pow (m// (m/- 1.0 v)
                                         (m/log (m// v))) alpha))]
-      (aset d i c))))
+      (Array/aset d i c))))
 
 (defn- smooth-d
   "Smooths the weights of the grid intervals and compresses them; all zeros (the integrand is zero) are left as they are."
   [^doubles d ^long nintervals ^double alpha]
   (let [nintervals-1 (m/long-dec nintervals)
         buff (double-array nintervals)
-        sumd (m/* 8.0 (double (v/sum d)))]
+        sumd (m/* 8.0 (v/sum d))]
     (if (m/== nintervals 1)
-      (aset buff 0 (aget d 0))
+      (Array/aset buff 0 (Array/aget d 0))
       (do
-        (aset buff 0 (m/+ (m/* 7.0 (aget d 0))
-                          (aget d 1)))
+        (Array/aset buff 0 (m/+ (m/* 7.0 (Array/aget d 0))
+                                (Array/aget d 1)))
         (doseq [^long id (range 1 nintervals-1)]
-          (aset buff id (m/+ (aget d (m/long-dec id))
-                             (m/* 6.0 (aget d id))
-                             (aget d (m/long-inc id)))))
-        (aset buff nintervals-1 (m/+ (aget d (m/long-dec nintervals-1))
-                                     (m/* 7.0 (aget d nintervals-1))))))
+          (Array/aset buff id (m/+ (Array/aget d (m/long-dec id))
+                                   (m/* 6.0 (Array/aget d id))
+                                   (Array/aget d (m/long-inc id)))))
+        (Array/aset buff nintervals-1 (m/+ (Array/aget d (m/long-dec nintervals-1))
+                                           (m/* 7.0 (Array/aget d nintervals-1))))))
     (when (m/pos? sumd)
       (normalize-and-compress-d! buff sumd alpha))
     buff))
@@ -94,8 +94,8 @@
            (let [buffer (double-array nintervals)]
              (run! (fn [in]
                      (let [id (aget ^ints (in 0) dim)]
-                       (aset buffer id (m/+ (aget buffer id)
-                                            (double (in 1)))))) Jsf22)
+                       (Array/aset buffer id (m/+ (Array/aget buffer id)
+                                                  (double (in 1)))))) Jsf22)
              buffer))
          (mapv #(smooth-d % nintervals alpha)))))
 
@@ -105,12 +105,12 @@
   (let [cx (alength x)
         end (m/long-dec cx)
         buff (double-array cx)
-        delta-d (double (stats/mean d))]
+        delta-d (stats/mean d)]
     (if-not (m/pos? delta-d)
       (aclone x)
       (do
-        (aset buff 0 (aget x 0))
-        (aset buff end (aget x end))
+        (Array/aset buff 0 (Array/aget x 0))
+        (Array/aset buff end (Array/aget x end))
         (loop [i (long 1)
                j (long 0)
                sd 0.0]
@@ -118,16 +118,16 @@
             (let [^Vec2 nj-nsd (loop [nsd sd
                                       nj j]
                                  (if (m/< nsd delta-d)
-                                   (recur (m/+ nsd (aget d nj))
+                                   (recur (m/+ nsd (Array/aget d nj))
                                           (m/long-inc nj))
                                    (Vec2. nj nsd)))
                   nj (long (.x nj-nsd))
                   nsd (m/- (.y nj-nsd) delta-d)
                   nj- (m/long-dec nj)]
-              (aset buff i (m/- (aget x nj)
-                                (m// (m/* nsd (aget dx nj-))
-                                     (aget d nj-))))
-              (recur (m/long-inc i) (long nj) nsd))))
+              (Array/aset buff i (m/- (Array/aget x nj)
+                                      (m// (m/* nsd (Array/aget dx nj-))
+                                           (Array/aget d nj-))))
+              (recur (m/long-inc i) nj nsd))))
         buff))))
 
 (defn- calc-dx
@@ -165,7 +165,7 @@
 (defn- volume
   ^double [[left right]]
   (->> (map m/- right left)
-       (reduce m/*)))
+       (v/prod)))
 
 (defn- uniform-allocation
   "Number of samples of each hypercube when they are equal."
@@ -230,8 +230,8 @@
     (if (seq jsf)
       (let [[jsf0 rst] (split-at nh jsf)
             fdv (map (fn [^double jsf] (m/* jsf volume)) jsf0)
-            fdv-sum (double (v/sum fdv))
-            fdv2-sum (double (v/sum (map m/sq fdv)))
+            fdv-sum (v/sum fdv)
+            fdv2-sum (v/sum (map m/sq fdv))
             I (m// fdv-sum nh)
             ;; every hypercube has at least 2 samples; the absolute value removes the rounding noise below zero
             nsigmas (conj sigmas (m/* (m// (double nh) (double (m/long-dec nh)))
@@ -244,7 +244,7 @@
   uniform when the integrand is constant (no variance anywhere)."
   [hcsigmas ^long nevals ^double hbeta]
   (let [dhs (map (fn [^double s] (m/pow s hbeta)) hcsigmas)
-        dhssum (double (v/sum dhs))]
+        dhssum (v/sum dhs)]
     (if (and (m/pos? dhssum) (m/valid-double? dhssum))
       (map (fn [^double dh]
              (m/long-add (long (m/floor (m/* nevals (m// dh dhssum)))) 2)) dhs)
@@ -256,8 +256,8 @@
   [option value expected]
   (ex-info (str "Invalid option " option) {:option option :value value :expected expected}))
 
-(defn- natural? [min-value] (fn [x] (and (integer? x) (m/>= (long x) (long min-value)))))
-(defn- non-negative? [x] (and (number? x) (m/>= (double x) 0.0)))
+(defn- natural? [^long min-value] (fn [x] (and (integer? x) (m/>= (long x) min-value))))
+(defn- non-negative? [x] (and (number? x) (m/not-neg? (double x))))
 
 (def ^:private option-checks
   [[:nevals (natural? 2) "integer >= 2"]
@@ -299,15 +299,8 @@
 (defn- vegas-iterations
   "The iterations of the algorithm on the oriented bounds."
   [f lower upper options]
-  (let [{:keys [max-iters rel abs nevals alpha beta warmup info? record-data?]
-         :or {max-iters 10 rel 5.0e-4 abs 5.0e-4 nevals 10000 beta 0.75 warmup 0
-              info? false record-data? false}} options
-        max-iters (long max-iters)
-        rel (double rel)
-        abs (double abs)
-        nevals (long nevals)
-        beta (double beta)
-        warmup (long warmup)
+  (let [{:keys [^long max-iters ^double rel ^double abs ^long nevals alpha ^double beta ^long warmup info? record-data?]
+         :or {max-iters 10 rel 5.0e-4 abs 5.0e-4 nevals 10000 beta 0.75 warmup 0}} options
         [f lower upper] (cc/subst-multi (checked-integrand f) lower upper)
         dims (count lower)
         max-iters (m/+ max-iters warmup)
@@ -320,7 +313,7 @@
                                                                      :nevals nevals))
 
         ;; lower damping alpha for stratified sampling; the original VEGAS (one stratum per dimension) refines the grid faster
-        alpha (double (or alpha (if (every? #(= 1 %) nstrats) 1.5 0.5)))
+        alpha (double (or alpha (if (every? m/one? nstrats) 1.5 0.5)))
         hbeta (m// beta 2.0)]
 
     (loop [iter (long 1)
@@ -353,9 +346,9 @@
                                   iy (unchecked-int ny)
                                   ^doubles adx (dx dim)]
                               ;; write mapped y->x to a buffer
-                              (aset buff dim (m/+ (Array/get ^doubles (x dim) iy)
-                                                  (m/* (Array/get adx iy)
-                                                       (m/frac ny))))
+                              (Array/aset buff dim (m/+ (Array/get ^doubles (x dim) iy)
+                                                        (m/* (Array/get adx iy)
+                                                             (m/frac ny))))
                               (recur (m/long-inc dim)
                                      ;; calculate Jacobian
                                      (m/* Js nintervals (Array/get adx iy))))
@@ -376,8 +369,8 @@
                    x-dx rst next-nhs integrals rev-sigma-squares ndata))
 
           (let [variance-mc (m/max tiny-variance
-                                   (double (v/sum (map (fn [^double s ^double nh]
-                                                         (m// s nh)) hcsigmas nhs))))
+                                   (v/sum (map (fn [^double s ^double nh]
+                                                 (m// s nh)) hcsigmas nhs)))
                 new-integrals (conj integrals integral-mc)
                 new-rev-sigma-squares (conj rev-sigma-squares (m// variance-mc))
 
@@ -416,7 +409,7 @@
   "VEGAS / VEGAS+ Monte Carlo integration of `f` on the box `[lower, upper]`, see [[fastmath.calculus/vegas]] for options and result."
   ([f lower upper] (vegas f lower upper nil))
   ([f lower upper options]
-   (let [options (into {} (remove (comp nil? val)) options) ;; a nil option is a missing option
+   (let [options (cc/drop-nil-options options)
          [sign lower upper] (cc/normalize-bounds-multi lower upper)]
      (check-options options)
      (cc/orient sign

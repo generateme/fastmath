@@ -44,7 +44,7 @@
   [f ^long k]
   (fn ^double [^double x]
     (loop [init-h 0.5
-           attempt 1]
+           attempt (long 1)]
       (let [v ((finite/derivative f k {:extrapolate? {:init-h init-h}}) x)]
         (if (or (m/valid-double? v) (m/>= attempt 8))
           v

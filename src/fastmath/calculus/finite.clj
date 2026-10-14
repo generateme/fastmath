@@ -3,8 +3,12 @@
 
   Univariate derivatives of any order and any order of accuracy with central, forward and backward stencils ([[derivative]]), the stencil weights ([[fd-coeffs]], [[fd-coeffs-for-accuracy]]), multivariate derivatives ([[gradient]], [[hessian]], [[hessian-diagonal]], [[jacobian]], [[laplacian]]) and Richardson extrapolation ([[extrapolate]]).
 
-  When the step `:h` is not given (or is `0`) it is chosen automatically from the machine epsilon and the magnitude of the point, which balances the truncation and the rounding errors. An explicit `:h` is always an absolute step."
-  (:require [fastmath.core :as m])
+  When the step `:h` is not given (or is `0`) it is chosen automatically from the machine epsilon and the magnitude of the point, which balances the truncation and the rounding errors. An explicit `:h` is always an absolute step.
+
+  Options: a `nil` option is a missing option. Numeric options are coerced to `long` (an integer option) or `double` and only their ranges are checked, so a fractional `n`, `:acc` or `:max-evals` is truncated and a non-number gives a `ClassCastException`. The step given to a function returned by [[derivative]], [[gradient]], [[jacobian]], [[hessian]], [[hessian-diagonal]] or [[laplacian]] at call time is not checked: a step which is not positive means the automatic step."
+  (:require [fastmath.core :as m]
+            [fastmath.vector :as v]
+            [fastmath.calculus.common :as cc])
   (:import [fastmath.vector Vec3]
            [fastmath.java Array]
            [clojure.lang IFn$DDD]))
@@ -22,13 +26,13 @@
 (def ^:private methods-set #{:central :forward :backward})
 
 (defn- check-n!
-  [n]
-  (when-not (and (integer? n) (>= (long n) 0))
+  [^long n]
+  (when (m/neg? n)
     (invalid-option! :n n "an integer >= 0")))
 
 (defn- check-acc!
-  [acc]
-  (when-not (and (integer? acc) (>= (long acc) 1))
+  [^long acc]
+  (when-not (m/>= acc 1)
     (invalid-option! :acc acc "an integer >= 1")))
 
 (defn- check-method!
@@ -37,10 +41,9 @@
     (invalid-option! :method method "one of :central, :forward, :backward")))
 
 (defn- check-h!
-  [h]
-  (when-not (and (number? h)
-                 (m/valid-double? (double h))
-                 (>= (double h) 0.0))
+  [^double h]
+  (when-not (and (m/valid-double? h)
+                 (m/not-neg? h))
     (invalid-option! :h h "a finite number >= 0 (0 means automatic step)")))
 
 ;; extrapolation
@@ -69,75 +72,69 @@
 
   The stopping rule differs from Richardson.jl: the error estimate of the previous iteration is tested against the tolerance (one iteration later than in the original), therefore `g` can be evaluated once more. The result is not less accurate.
 
-  Throws `ex-info` with `{:option :value :expected}` when `:contract` is not in `(0, 1)`, `:max-evals` is not an integer >= 1 or `:init-h` is zero or not finite.
+  Throws `ex-info` with `{:option :value :expected}` when `:contract` is not in `(0, 1)`, `:max-evals` is less than 1 or `:init-h` is zero or not finite.
 
   See also [[derivative]] (the `:extrapolate?` option)."
   ([g] (extrapolate g nil))
-  ([g {:keys [contract power init-h rel abs max-evals tol]
-       :or {contract 0.5 power 1.0 init-h 0.5
-            abs m/MACHINE-EPSILON
-            max-evals Integer/MAX_VALUE tol 2.0}}]
-   (when-not (and (number? contract)
-                  (< 0.0 (double contract) 1.0))
-     (invalid-option! :contract contract "a number in the open interval (0, 1)"))
-   (when-not (and (integer? max-evals) (>= (long max-evals) 1))
-     (invalid-option! :max-evals max-evals "an integer >= 1"))
-   (when-not (and (number? init-h)
-                  (m/valid-double? (double init-h))
-                  (not (m/zero? (double init-h))))
-     (invalid-option! :init-h init-h "a finite nonzero number"))
-   (let [contract (double contract)
-         power (double power)
-         init-h (double init-h)
-         abs (double abs)
-         max-evals (long max-evals)
-         tol (double tol)
-         rel (double (or rel (m/sqrt (m/ulp init-h))))
-         invcontract (m/pow (m// contract) power)
-         nf (fn ^double [^double x0 ^double h] (cond
-                                                 (m/valid-double? x0) (g x0 h)
-                                                 (m/pos-inf? x0) (g 0.0 (m// 1.0 h))
-                                                 (m/neg-inf? x0) (g 0.0 (m// -1.0 h))
-                                                 :else ##NaN))]
-     (fn ^double [^double x0]
-       (loop [i (long 1)
-              h init-h
-              ;; keep in 3-tuple of doubles to avoid destructuring
-              ^Vec3 f0+err+invc (Vec3. (nf x0 init-h) ##Inf invcontract) ;; curr val, err, contraction den
-              neville (list f0+err+invc)]
-         (if (m/>= i max-evals)
-           (.x f0+err+invc)
-           (let [nh (m/* h contract)
-                 nf0 (nf x0 nh)
-                 res (reductions (fn [^Vec3 curr ^Vec3 ni+err+invc]
-                                   (let [ni (.x ni+err+invc)
-                                         ni+1 (.x curr)
-                                         c (.z curr)
-                                         n (m/+ ni+1 (m// (m/- ni+1 ni) (m/dec c)))]
-                                     (Vec3. n (m/abs (m/- n ni)) (m/* c invcontract))))
-                                 (Vec3. nf0 ##Inf invcontract) neville)
-                 ^Vec3 minimal (reduce (fn [^Vec3 a ^Vec3 b]
-                                         (if (m/< (.y a) (.y b)) a b)) res)
-                 minimal' (.y minimal)
-                 err (.y f0+err+invc)
-                 ^Vec3 minimal (if (or (m/invalid-double? minimal')
-                                       (m/< err minimal')) f0+err+invc minimal)]
-             (if (or (m/invalid-double? minimal')
-                     (m/> minimal' (m/* tol err))
-                     (m/<= err (m/max (m/* rel (m/abs (.x minimal))) abs)))
-               (.x minimal)
-               (recur (m/long-inc i)
-                      nh
-                      minimal
-                      res)))))))))
+  ([g options]
+   (let [{:keys [^double contract ^double power ^double init-h rel ^double abs ^long max-evals ^double tol]
+          :or {contract 0.5 power 1.0 init-h 0.5
+               abs m/MACHINE-EPSILON
+               max-evals Integer/MAX_VALUE tol 2.0}} (cc/drop-nil-options options)]
+     (when-not (m/< 0.0 contract 1.0)
+       (invalid-option! :contract contract "a number in the open interval (0, 1)"))
+     (when-not (m/>= max-evals 1)
+       (invalid-option! :max-evals max-evals "an integer >= 1"))
+     (when-not (and (m/valid-double? init-h)
+                    (m/not-zero? init-h))
+       (invalid-option! :init-h init-h "a finite nonzero number"))
+     (let [rel (double (or rel (m/sqrt (m/ulp init-h))))
+           invcontract (m/pow (m// contract) power)
+           nf (fn ^double [^double x0 ^double h] (cond
+                                                  (m/valid-double? x0) (g x0 h)
+                                                  (m/pos-inf? x0) (g 0.0 (m// 1.0 h))
+                                                  (m/neg-inf? x0) (g 0.0 (m// -1.0 h))
+                                                  :else ##NaN))]
+       (fn ^double [^double x0]
+         (loop [i (long 1)
+                h init-h
+                ;; keep in 3-tuple of doubles to avoid destructuring
+                ^Vec3 f0+err+invc (Vec3. (nf x0 init-h) ##Inf invcontract) ;; curr val, err, contraction den
+                neville (list f0+err+invc)]
+           (if (m/>= i max-evals)
+             (.x f0+err+invc)
+             (let [nh (m/* h contract)
+                   nf0 (nf x0 nh)
+                   res (reductions (fn [^Vec3 curr ^Vec3 ni+err+invc]
+                                     (let [ni (.x ni+err+invc)
+                                           ni+1 (.x curr)
+                                           c (.z curr)
+                                           n (m/+ ni+1 (m// (m/- ni+1 ni) (m/dec c)))]
+                                       (Vec3. n (m/abs (m/- n ni)) (m/* c invcontract))))
+                                   (Vec3. nf0 ##Inf invcontract) neville)
+                   ^Vec3 minimal (reduce (fn [^Vec3 a ^Vec3 b]
+                                           (if (m/< (.y a) (.y b)) a b)) res)
+                   minimal' (.y minimal)
+                   err (.y f0+err+invc)
+                   ^Vec3 minimal (if (or (m/invalid-double? minimal')
+                                         (m/< err minimal')) f0+err+invc minimal)]
+               (if (or (m/invalid-double? minimal')
+                       (m/> minimal' (m/* tol err))
+                       (m/<= err (m/max (m/* rel (m/abs (.x minimal))) abs)))
+                 (.x minimal)
+                 (recur (m/long-inc i)
+                        nh
+                        minimal
+                        res))))))))))
 
 ;; coefficients
 
 ;; generic (boxed) arithmetic on exact ratios, the boxed math warning is switched off on purpose
 (set! *unchecked-math* false)
 
-(defn- rat- [a b] (- a b))
-(defn- rat* [a b] (* a b))
+;; the promoting operators: the numerators and denominators of high orders do not fit in a long
+(defn- rat- [a b] (-' a b))
+(defn- rat* [a b] (*' a b))
 (defn- rat-div [a b] (/ a b))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -211,7 +208,7 @@
 
   Returns `[offsets coeffs]`, where `coeffs` is a vector of doubles of the same length as `offsets`. When there are not more than `n` offsets, the derivative is not determined and all weights are `0.0`.
 
-  Throws `ex-info` with `{:option :value :expected}` when `n` is not an integer >= 0 or when `offsets` is empty, contains duplicates or non-finite numbers.
+  Throws `ex-info` with `{:option :value :expected}` when `n` is negative or when `offsets` is empty, contains duplicates or non-finite numbers.
 
   See also [[fd-coeffs-for-accuracy]], [[derivative]]."
   [n offsets]
@@ -234,18 +231,16 @@
 
   Returns `[offsets coeffs]` as [[fd-coeffs]] does: the integer offsets in units of the step `h` and the weights of the stencil (divide the weighted sum by `h^n`).
 
-  Throws `ex-info` with `{:option :value :expected}` when `n` is not an integer >= 0, `acc` is not an integer >= 1 or `kind` is unknown.
+  Throws `ex-info` with `{:option :value :expected}` when `n` is negative, `acc` is less than 1 or `kind` is unknown.
 
   See also [[fd-coeffs]], [[derivative]]."
-  ([n] (fd-coeffs-for-accuracy n 2))
-  ([n acc] (fd-coeffs-for-accuracy n acc :central))
-  ([n acc kind]
+  ([^long n] (fd-coeffs-for-accuracy n 2))
+  ([^long n ^long acc] (fd-coeffs-for-accuracy n acc :central))
+  ([^long n ^long acc kind]
    (check-n! n)
    (check-acc! acc)
    (check-method! kind)
-   (let [n (long n)
-         acc (long acc)
-         num-central (m/long-add (m/long-sub (m/long-mult 2 (m/long-quot (m/long-inc n) 2)) 1) acc)
+   (let [num-central (m/long-add (m/long-sub (m/long-mult 2 (m/long-quot (m/long-inc n) 2)) 1) acc)
          num-side (m/long-quot num-central 2)
          num-coeffs (if (m/even? n) (m/long-inc num-central) num-central)]
      (fd-coeffs n (case kind
@@ -265,9 +260,9 @@
 (defn- auto-step-base
   "Automatic step for `|x| <= 10`: `eps^(1/(n+acc))`."
   ^double [^long n ^long acc method]
-  (m/pow m/MACHINE-EPSILON (m// 1.0 (double (m/long-add n (effective-acc acc method))))))
+  (m/pow m/MACHINE-EPSILON (m// 1.0 (m/long-add n (effective-acc acc method)))))
 
-(def ^:private ^:const ^double step-scale-start
+(def ^{:private true :const true :tag 'double} step-scale-start
   "The automatic step is the same up to this magnitude of the point. Functions of order-one variability (exp, sin) need no
   larger step there, while a step proportional to the point (the right one for powers and logarithms) is chosen above it.
   Measured on exp and sin for `|x|` up to 5, orders 1-4 and accuracies 2, 4, 6 the step never has a larger error than the
@@ -317,7 +312,7 @@
              s 0.0]
         (if (m/< i cnt)
           (recur (m/long-inc i)
-                 (m/+ s (m/* (Array/aget cfs i) ^double (f (m/+ x (m/* (Array/aget offs i) h))))))
+                 (m/+ s (m/* (Array/aget cfs i) (double (f (m/+ x (m/* (Array/aget offs i) h)))))))
           s)))))
 
 (defmacro ^:private produce-cases-for-accuracy
@@ -344,29 +339,25 @@
     - `:method` - `:central` (default), `:forward` or `:backward`.
     - `:extrapolate?` - when true or a map with options of [[extrapolate]] the derivative is Richardson-extrapolated to `h -> 0` (default: `false`); the extrapolation starts with the step given in its options (`:init-h`, default `0.5`) and `:power` is `2` for the central and `1` otherwise, unless given.
 
-  Returns a function of `x` returning the derivative as a double. The function has also the arities `(d x h)` with the absolute step `h` (0 means automatic) and `(d x h hn)` with the step and its precomputed power `h^n`. It is the function `(d x h)` that [[extrapolate]] uses.
+  Returns a function of `x` returning the derivative as a double. The function has also the arities `(d x h)` with the absolute step `h` (a step which is not positive means automatic) and `(d x h hn)` with the step and its precomputed power `h^n`. It is the function `(d x h)` that [[extrapolate]] uses.
 
-  Throws `ex-info` with `{:option :value :expected}` when `n` is not an integer >= 0, `:acc` is not an integer >= 1, `:method` is unknown or `:h` is negative or not finite.
+  Throws `ex-info` with `{:option :value :expected}` when `n` is negative, `:acc` is less than 1, `:method` is unknown or `:h` is negative or not finite.
 
   Higher orders and high accuracies need smaller relative steps and are more sensitive to rounding errors: the attainable relative error grows quickly with `n`.
 
   See also [[gradient]], [[hessian]], [[extrapolate]], [[fd-coeffs-for-accuracy]]."
   ([f] (derivative f 1))
-  ([f n] (derivative f n nil))
-  ([f n {:keys [acc h method extrapolate?]}]
-   (let [acc (if (nil? acc) 2 acc)
-         h (if (nil? h) 0.0 h)
-         method (if (nil? method) :central method)]
+  ([f ^long n] (derivative f n nil))
+  ([f ^long n options]
+   (let [{:keys [^long acc ^double h method extrapolate?]
+          :or {acc 2 h 0.0 method :central}} (cc/drop-nil-options options)]
      (check-n! n)
      (check-acc! acc)
      (check-method! method)
      (check-h! h)
-     (if (m/zero? (long n))
+     (if (m/zero? n)
        f
-       (let [n (long n)
-             acc (long acc)
-             h (double h)
-             hn (m/fpow h n)
+       (let [hn (m/fpow h n)
              fixed? (m/pos? h)
              base (auto-step-base n acc method)
              ^IFn$DDD stencil (case n
@@ -397,18 +388,13 @@
 
 ;; multivariate
 
-(defn- ->vec
-  "Input point as a vector of doubles."
-  [v]
-  (mapv double v))
-
-(def ^:private ^:const hessian-base (m/pow m/MACHINE-EPSILON 0.25))
+(def ^{:private true :const true :tag 'double} hessian-base (m/pow m/MACHINE-EPSILON 0.25))
 
 (defn- central-stencil
   "Nonzero offsets and weights of the central stencil as `[offsets coeffs]` double arrays."
   [^long n ^long acc]
   (let [[offsets coeffs] (fd-coeffs-for-accuracy n acc :central)
-        pairs (filter (fn [[_ c]] (not (m/zero? (double c)))) (map vector offsets coeffs))]
+        pairs (filter (fn [[_ ^double c]] (m/not-zero? c)) (map vector offsets coeffs))]
     [(m/seq->double-array (map first pairs))
      (m/seq->double-array (map second pairs))]))
 
@@ -418,24 +404,24 @@
   (let [vi (double (v i))
         hi (double hi)
         cnt (alength offs)]
-    (loop [k 0
+    (loop [k (long 0)
            s 0.0]
       (if (m/< k cnt)
         (recur (m/long-inc k)
                (m/+ s (m/* (Array/aget cfs k)
-                           ^double (f (assoc v i (m/+ vi (m/* (Array/aget offs k) hi)))))))
+                           (double (f (assoc v i (m/+ vi (m/* (Array/aget offs k) hi))))))))
         (m// s hi)))))
 
-(defn- vector-values
-  "Values of `f` at `v` as a vector of doubles."
+(defn- values-vector
+  "Values of the vector valued `f` at `v` as a vector, throws `ex-info` when `f` does not return a sequence or an array."
   [f v]
   (let [r (f v)]
     (when-not (and (some? r) (or (sequential? r) (.isArray (class r))))
       (invalid-option! :f r "a function returning a sequence of numbers"))
-    (mapv double r)))
+    (vec r)))
 
 (defn- partial-derivative-vector
-  "Partial derivatives of the vector valued `f` for the i-th component of `v`."
+  "Partial derivatives of the vector valued `f` for the i-th component of `v`, throws `ex-info` when the number of values changes."
   [f v i hi ^doubles offs ^doubles cfs]
   (let [vi (double (v i))
         hi (double hi)
@@ -444,15 +430,15 @@
            acc nil]
       (if (m/< k cnt)
         (let [c (Array/aget cfs k)
-              fv (vector-values f (assoc v i (m/+ vi (m/* (Array/aget offs k) hi))))
-              scaled (mapv (fn [^double y] (m/* c y)) fv)]
+              fv (values-vector f (assoc v i (m/+ vi (m/* (Array/aget offs k) hi))))
+              scaled (v/mult fv c)]
           (when (and acc (not= (count acc) (count scaled)))
             (invalid-option! :f (count scaled) (str "a function returning " (count acc) " values")))
           (recur (m/long-inc k)
                  (if acc
-                   (mapv (fn [^double a ^double b] (m/+ a b)) acc scaled)
+                   (v/add acc scaled)
                    scaled)))
-        (mapv (fn [^double y] (m// y hi)) acc)))))
+        (v/div acc hi)))))
 
 (defn gradient
   "Creates the gradient (vector of the first partial derivatives) of a multivariate scalar function `f`, approximated with central finite differences.
@@ -464,26 +450,23 @@
     - `:acc` - order of accuracy, an integer >= 1 (default: `2`); an odd value gives the next even accuracy.
     - `:h` - step, a number >= 0 (default: `0`). `0` means the automatic step for each component `i`: `eps^(1/(1+acc)) * max(1, |x_i|/10)` (with `acc` rounded up to even). An explicit positive `:h` is an absolute step used for every component.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the gradient as a vector of doubles. The function has also the arity `(g v h)` with an explicit absolute step (0 means automatic). The function `f` receives a vector and is called when the gradient is called, the result is not lazy. The gradient of the empty point is `[]`.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the gradient as a vector of doubles. The function has also the arity `(g v h)` with an explicit absolute step (a step which is not positive means automatic). The function `f` receives a vector and is called when the gradient is called, the result is not lazy. The gradient of the empty point is `[]`.
 
-  Throws `ex-info` with `{:option :value :expected}` when `:acc` is not an integer >= 1 or `:h` is negative or not finite.
+  Throws `ex-info` with `{:option :value :expected}` when `:acc` is less than 1 or `:h` is negative or not finite.
 
   See also [[hessian]], [[jacobian]], [[derivative]]."
   ([f] (gradient f nil))
-  ([f {:keys [h acc]}]
-   (let [acc (if (nil? acc) 2 acc)
-         h (if (nil? h) 0.0 h)]
+  ([f options]
+   (let [{:keys [^double h ^long acc]
+          :or {h 0.0 acc 2}} (cc/drop-nil-options options)]
      (check-acc! acc)
      (check-h! h)
-     (let [acc (long acc)
-           [^doubles offs ^doubles cfs] (central-stencil 1 acc)
+     (let [[^doubles offs ^doubles cfs] (central-stencil 1 acc)
            base (auto-step-base 1 acc :central)]
        (fn local-gradient
          ([v] (local-gradient v h))
-         ([v h2]
-          (check-h! h2)
-          (let [h2 (double h2)
-                v (->vec v)]
+         ([v ^double h2]
+          (let [v (vec v)]
             (mapv (fn [^long i]
                     (partial-derivative f v i (if (m/pos? h2) h2 (scaled-step base (v i))) offs cfs))
                   (range (count v))))))))))
@@ -498,33 +481,31 @@
     - `:acc` - order of accuracy, an integer >= 1 (default: `2`).
     - `:h` - step, a number >= 0 (default: `0` = automatic step for each component, `eps^(1/(1+acc)) * max(1, |x_i|/10)`); an explicit positive value is an absolute step.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the matrix as a vector of `m` rows, each a vector of `n` partial derivatives `d f_j / d x_i`. The function has also the arity `(j v h)` with an explicit absolute step (0 means automatic). The function `f` is called when the Jacobian is called. For the empty point the result is a vector of `m` empty rows.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the matrix as a vector of `m` rows, each a vector of `n` partial derivatives `d f_j / d x_i`. The function has also the arity `(j v h)` with an explicit absolute step (a step which is not positive means automatic). The function `f` is called when the Jacobian is called. For the empty point the result is a vector of `m` empty rows.
 
-  Throws `ex-info` with `{:option :value :expected}` when `:acc` or `:h` are invalid, when `f` returns a number instead of a sequence or the number of returned values changes between calls.
+  Throws `ex-info` with `{:option :value :expected}` when `:acc` is less than 1, `:h` is negative or not finite, `f` returns a number instead of a sequence or the number of returned values differs between the calls.
 
   See also [[gradient]], [[hessian]]."
   ([f] (jacobian f nil))
-  ([f {:keys [h acc]}]
-   (let [acc (if (nil? acc) 2 acc)
-         h (if (nil? h) 0.0 h)]
+  ([f options]
+   (let [{:keys [^double h ^long acc]
+          :or {h 0.0 acc 2}} (cc/drop-nil-options options)]
      (check-acc! acc)
      (check-h! h)
-     (let [acc (long acc)
-           [^doubles offs ^doubles cfs] (central-stencil 1 acc)
+     (let [[^doubles offs ^doubles cfs] (central-stencil 1 acc)
            base (auto-step-base 1 acc :central)]
        (fn local-jacobian
          ([v] (local-jacobian v h))
-         ([v h2]
-          (check-h! h2)
-          (let [h2 (double h2)
-                v (->vec v)
+         ([v ^double h2]
+          (let [v (vec v)
                 columns (mapv (fn [^long i]
                                 (partial-derivative-vector f v i (if (m/pos? h2) h2 (scaled-step base (v i))) offs cfs))
                               (range (count v)))]
             (if (seq columns)
-              (mapv (fn [^long j] (mapv (fn [col] (col j)) columns))
-                    (range (count (first columns))))
-              (mapv (constantly []) (vector-values f v))))))))))
+              (do (when-not (apply = (map count columns))
+                    (invalid-option! :f (mapv count columns) "a function returning the same number of values at every point"))
+                  (apply mapv vector columns))
+              (mapv (constantly []) (values-vector f v))))))))))
 
 (defn hessian
   "Creates the Hessian matrix of a multivariate scalar function `f`, approximated with central finite differences of the second order.
@@ -535,26 +516,24 @@
   - `options` (map, optional):
     - `:h` - step, a number >= 0 (default: `0`). `0` means the automatic step for each component `i`: `eps^(1/4) * max(1, |x_i|/10)`. An explicit positive `:h` is an absolute step used for every component.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the symmetric matrix as a vector of vectors of doubles. The function has also the arity `(hs v h)` with an explicit absolute step (0 means automatic). The diagonal term is `(f(x+h_i) - 2 f(x) + f(x-h_i)) / h_i^2` and the mixed term is `(f(++) - f(+-) - f(-+) + f(--)) / (4 h_i h_j)`. The function `f` is called when the Hessian is called. The Hessian of the empty point is `[]`.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the symmetric matrix as a vector of vectors of doubles. The function has also the arity `(hs v h)` with an explicit absolute step (a step which is not positive means automatic). The diagonal term is `(f(x+h_i) - 2 f(x) + f(x-h_i)) / h_i^2` and the mixed term is `(f(++) - f(+-) - f(-+) + f(--)) / (4 h_i h_j)`. The function `f` is called when the Hessian is called. The Hessian of the empty point is `[]`.
 
   Throws `ex-info` with `{:option :value :expected}` when `:h` is negative or not finite.
 
   See also [[hessian-diagonal]], [[laplacian]], [[gradient]]."
   ([f] (hessian f nil))
-  ([f {:keys [h]}]
-   (let [h (if (nil? h) 0.0 h)]
+  ([f options]
+   (let [{:keys [^double h] :or {h 0.0}} (cc/drop-nil-options options)]
      (check-h! h)
      (fn local-hessian
        ([v] (local-hessian v h))
-       ([v h2]
-        (check-h! h2)
-        (let [h2 (double h2)
-              v (->vec v)
+       ([v ^double h2]
+        (let [v (vec v)
               cv (count v)
               hs (mapv (fn [x] (if (m/pos? h2) h2 (scaled-step hessian-base x))) v)
               buff (double-array (m/long-mult cv cv))]
           (when (m/pos? cv)
-            (let [fv-2 (m/* -2.0 ^double (f v))]
+            (let [fv-2 (m/* -2.0 (double (f v)))]
               (dotimes [i cv]
                 (dotimes [j cv]
                   (when (m/<= i j)
@@ -588,25 +567,23 @@
   - `options` (map, optional):
     - `:h` - step, a number >= 0 (default: `0`). `0` means the automatic step for each component `i`: `eps^(1/4) * max(1, |x_i|/10)`. An explicit positive `:h` is an absolute step used for every component.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the diagonal `(f(x+h_i) - 2 f(x) + f(x-h_i)) / h_i^2` as a `double[]`. The function has also the arity `(hd v h)` with an explicit absolute step (0 means automatic). The function `f` is called when the diagonal is computed.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the diagonal `(f(x+h_i) - 2 f(x) + f(x-h_i)) / h_i^2` as a `double[]`. The function has also the arity `(hd v h)` with an explicit absolute step (a step which is not positive means automatic). The function `f` is called when the diagonal is computed.
 
   Throws `ex-info` with `{:option :value :expected}` when `:h` is negative or not finite.
 
   See also [[hessian]], [[laplacian]]."
   ([f] (hessian-diagonal f nil))
-  ([f {:keys [h]}]
-   (let [h (if (nil? h) 0.0 h)]
+  ([f options]
+   (let [{:keys [^double h] :or {h 0.0}} (cc/drop-nil-options options)]
      (check-h! h)
      (fn local-hessian-diagonal
        ([v] (local-hessian-diagonal v h))
-       ([v h2]
-        (check-h! h2)
-        (let [h2 (double h2)
-              v (->vec v)
+       ([v ^double h2]
+        (let [v (vec v)
               cv (count v)
               buff (double-array cv)]
           (when (m/pos? cv)
-            (let [fv-2 (m/* -2.0 ^double (f v))]
+            (let [fv-2 (m/* -2.0 (double (f v)))]
               (dotimes [i cv]
                 (let [^double vi (v i)
                       hi (if (m/pos? h2) h2 (scaled-step hessian-base vi))
@@ -624,20 +601,14 @@
   - `options` (map, optional): as in [[hessian-diagonal]]
     - `:h` - step, a number >= 0 (default: `0` = automatic step for each component, `eps^(1/4) * max(1, |x_i|/10)`); an explicit positive value is an absolute step.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the Laplacian as a double. The function has also the arity `(l v h)` with an explicit absolute step (0 means automatic). The Laplacian of the empty point is `0.0`.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the Laplacian as a double. The function has also the arity `(l v h)` with an explicit absolute step (a step which is not positive means automatic). The Laplacian of the empty point is `0.0`.
 
   Throws `ex-info` with `{:option :value :expected}` when `:h` is negative or not finite.
 
   See also [[hessian-diagonal]], [[hessian]]."
   ([f] (laplacian f nil))
   ([f options]
-   (let [hd (hessian-diagonal f options)
-         total (fn ^double [^doubles diagonal]
-                 (loop [i 0
-                        s 0.0]
-                   (if (m/< i (alength diagonal))
-                     (recur (m/long-inc i) (m/+ s (Array/aget diagonal i)))
-                     s)))]
+   (let [hd (hessian-diagonal f options)]
      (fn local-laplacian
-       (^double [v] (total (hd v)))
-       (^double [v h] (total (hd v h)))))))
+       (^double [v] (v/sum (hd v)))
+       (^double [v ^double h] (v/sum (hd v h)))))))

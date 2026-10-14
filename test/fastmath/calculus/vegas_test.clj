@@ -235,12 +235,13 @@
               reversed (sut/vegas g [##Inf ##-Inf] [##-Inf ##Inf] (opts))]
           (t/is (m/delta-eq (m/- (:result base)) (:result reversed) 0.0 1.0e-12)))))
     (t/testing "equal bounds in any dimension give zero"
-      (doseq [[lower upper] [[[1 1] [1 1]] [[0 1] [1 1]] [[0 0 0] [1 0 1]] [[2] [2]] [[##Inf 0] [##Inf 1]]]]
+      (doseq [[lower upper] [[[1 1] [1 1]] [[0 1] [1 1]] [[0 0 0] [1 0 1]] [[2] [2]]]]
         (t/is (= 0.0 (sut/vegas f lower upper (dissoc (opts) :info?))))
         (t/is (= {:result 0.0 :sd 0.0 :iterations 0 :evaluations 0}
                  (select-keys (sut/vegas f lower upper (opts)) [:result :sd :iterations :evaluations])))))
-    (t/testing "empty and mismatched bounds throw ex-info"
-      (doseq [[lower upper] [[[] []] [[0 0] [1]] [[0] [1 1]] [nil nil]]]
+    (t/testing "empty and mismatched bounds, NaN bounds and two equal infinite bounds throw ex-info"
+      (doseq [[lower upper] [[[] []] [[0 0] [1]] [[0] [1 1]] [nil nil]
+                             [[0 0] [##NaN 1]] [[##NaN 0] [1 1]] [[##Inf 0] [##Inf 1]] [[##-Inf 0] [##-Inf 1]]]]
         (t/is (some? (ex-data-of #(sut/vegas f lower upper (opts)))))))))
 
 (t/deftest dimensions

@@ -10,13 +10,16 @@
 
   Improper integrals (infinite bounds) are mapped to finite intervals by a substitution. Reversed bounds change the sign of the integral.
 
+  Options: a `nil` option is a missing option. Except for [[vegas]], which checks its options, integer options are coerced to `long` and only their ranges are checked, so a fractional value is truncated and a non-number gives a `ClassCastException`.
+
   Derivatives (finite differences):
 
   * [[derivative]] - derivatives of any order and any order of accuracy, forward, backward and central, optionally with Richardson extrapolation ([[extrapolate]]).
   * [[gradient]], [[jacobian]], [[hessian]], [[hessian-diagonal]], [[laplacian]] - derivatives of multivariate functions.
 
   Divided differences, including repeated nodes (Hermite): [[divided]], [[divided-all]]."
-  (:require [fastmath.calculus.common :as cc]
+  (:require [fastmath.core :as m]
+            [fastmath.calculus.common :as cc]
             [fastmath.calculus.vegas :as vegas]
             [fastmath.calculus.cubature :as cubature]
             [fastmath.calculus.quadrature :as quadrature]
@@ -81,7 +84,7 @@
   - an equal `lower` and `upper` in any dimension returns `0.0` (with `:info?` a map with zero `:sd`, `:iterations` and `:evaluations`).
   - throws `ex-info` with `{:option :value :expected}` for an invalid option value (unknown options are ignored), and with `{:rng value}` for an `:rng` which is not a generator.
   - throws `ex-info` with `{:x point :value v}` when `f` returns `NaN` or an infinite value.
-  - throws `ex-info` for empty bounds and for bounds of different lengths.
+  - throws `ex-info` for empty bounds, for bounds of different lengths, for NaN bounds and for two equal infinite bounds in any dimension.
 
   See also [[cubature]], [[integrate]]."
   ([f lower upper] (vegas f lower upper nil))
@@ -119,8 +122,8 @@
 
   - an integrand with `NaN` values never converges and ends with a limit.
   - a limit is checked after the convergence: a result which converged in the last allowed round has `:fail?` `false`. When the first round alone uses more than `:max-evals`, its result is returned with `:fail?` `:max-evals`.
-  - throws `ex-info` with `{:option :value :expected}` when `:initdiv` is not an integer >= 1.
-  - throws `ex-info` for empty bounds and for bounds of different lengths.
+  - throws `ex-info` with `{:option :value :expected}` when `:initdiv` is less than 1.
+  - throws `ex-info` for empty bounds, for bounds of different lengths, for NaN bounds and for two equal infinite bounds in any dimension.
 
   See also [[vegas]], [[integrate]]."
   ([f lower upper] (cubature f lower upper nil))
@@ -182,7 +185,7 @@
 (defn- integrate-commons
   "Integration with an Apache Commons Math integrator on oriented, finite or infinite bounds."
   [f ^double lower ^double upper {:keys [info? integrator] :as options}]
-  (if (== lower upper)
+  (if (m/== lower upper)
     ;; the Commons integrators reject an empty interval
     (if info?
       {:result 0.0 :iterations 0 :evaluations 0 :integrator integrator :fail? false}
@@ -228,15 +231,15 @@
   - an interval of zero length gives `0.0`.
   - the integrand must be finite inside of the interval; the Gauss-Kronrod rule does not evaluate it at the bounds, but the Romberg, trapezoid and Simpson rules do, also at the end points of the substituted infinite interval.
   - slowly decaying integrands of infinite intervals (like `x^-1.5`) do not converge with the trapezoid, midpoint, Simpson and Romberg rules; the evaluation limit stops them.
-  - throws `ex-info` with `{:option :value :expected}` when `:integration-points` or `:initdiv` is not an integer >= 1, when `:points` contains a non-number and for an unknown `:integrator`.
+  - throws `ex-info` with `{:option :value :expected}` when `:integration-points` or `:initdiv` is less than 1, when `:points` contains a non-number and for an unknown `:integrator`.
   - throws `ex-info` for NaN bounds and for two equal infinite bounds.
 
   See also [[cubature]], [[vegas]], [[integrate-samples]]."
   ([f] (integrate f 0.0 1.0))
   ([f lower upper] (integrate f lower upper nil))
   ([f lower upper options]
-   (let [[sign lower upper] (cc/normalize-bounds lower upper)
-         {:keys [integrator abs peak-guard]} options
+   (let [{:keys [integrator abs peak-guard] :as options} (cc/drop-nil-options options)
+         [sign lower upper] (cc/normalize-bounds lower upper)
          integrator (if (nil? integrator) :gauss-kronrod integrator)]
      (cc/orient sign
                 (if (= integrator :gauss-kronrod)
@@ -288,8 +291,8 @@
 
   See also [[fx->gx-h]], [[extrapolate]]."
   [f]
-  (fn [^double x ^double h]
-    (f (+ x h))))
+  (fn ^double [^double x ^double h]
+    (f (m/+ x h))))
 
 (defn fx->gx-h
   "Converts `f(x)` to the function `g(x, h) = f(x - h)`, which is the input of [[extrapolate]].
@@ -302,8 +305,8 @@
 
   See also [[fx->gx+h]], [[extrapolate]]."
   [f]
-  (fn [^double x ^double h]
-    (f (- x h))))
+  (fn ^double [^double x ^double h]
+    (f (m/- x h))))
 
 (defn extrapolate
   "Richardson extrapolation of a function `g(x, h)` to `h -> 0`, returns the extrapolated function of `x`.
@@ -328,7 +331,7 @@
 
   The stopping rule differs from Richardson.jl: the error estimate of the previous iteration is tested against the tolerance (one iteration later than in the original), therefore `g` can be evaluated once more. The result is not less accurate.
 
-  Throws `ex-info` with `{:option :value :expected}` when `:contract` is not in `(0, 1)`, `:max-evals` is not an integer >= 1 or `:init-h` is zero or not finite.
+  Throws `ex-info` with `{:option :value :expected}` when `:contract` is not in `(0, 1)`, `:max-evals` is less than 1 or `:init-h` is zero or not finite.
 
   See also [[derivative]] (the `:extrapolate?` option), [[fx->gx+h]], [[fx->gx-h]]."
   ([g] (extrapolate g nil))
@@ -347,16 +350,16 @@
     - `:method` - `:central` (default), `:forward` or `:backward`.
     - `:extrapolate?` - when true or a map with options of [[extrapolate]] the derivative is Richardson-extrapolated to `h -> 0` (default: `false`); the extrapolation starts with the step given in its options (`:init-h`, default `0.5`) and `:power` is `2` for the central and `1` otherwise, unless given.
 
-  Returns a function of `x` returning the derivative as a double. The function has also the arities `(d x h)` with the absolute step `h` (0 means automatic) and `(d x h hn)` with the step and its precomputed power `h^n`. It is the function `(d x h)` that [[extrapolate]] uses.
+  Returns a function of `x` returning the derivative as a double. The function has also the arities `(d x h)` with the absolute step `h` (a step which is not positive means automatic) and `(d x h hn)` with the step and its precomputed power `h^n`. It is the function `(d x h)` that [[extrapolate]] uses.
 
-  Throws `ex-info` with `{:option :value :expected}` when `n` is not an integer >= 0, `:acc` is not an integer >= 1, `:method` is unknown or `:h` is negative or not finite.
+  Throws `ex-info` with `{:option :value :expected}` when `n` is negative, `:acc` is less than 1, `:method` is unknown or `:h` is negative or not finite.
 
   Higher orders and high accuracies need smaller relative steps and are more sensitive to rounding errors: the attainable relative error grows quickly with `n`.
 
   See also [[f']], [[gradient]], [[hessian]], [[extrapolate]], [[fastmath.calculus.finite/fd-coeffs-for-accuracy]]."
   ([f] (derivative f 1))
-  ([f n] (derivative f n nil))
-  ([f n options] (finite/derivative f n options)))
+  ([f ^long n] (derivative f n nil))
+  ([f ^long n options] (finite/derivative f n options)))
 
 (defn f'
   "Creates the first central derivative of `f` with order of accuracy 2.
@@ -404,9 +407,9 @@
     - `:acc` - order of accuracy, an integer >= 1 (default: `2`); an odd value gives the next even accuracy.
     - `:h` - step, a number >= 0 (default: `0`). `0` means the automatic step for each component `i`: `eps^(1/(1+acc)) * max(1, |x_i|/10)` (with `acc` rounded up to even). An explicit positive `:h` is an absolute step used for every component.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the gradient as a vector of doubles. The function has also the arity `(g v h)` with an explicit absolute step (0 means automatic). The function `f` receives a vector and is called when the gradient is called, the result is not lazy. The gradient of the empty point is `[]`.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the gradient as a vector of doubles. The function has also the arity `(g v h)` with an explicit absolute step (a step which is not positive means automatic). The function `f` receives a vector and is called when the gradient is called, the result is not lazy. The gradient of the empty point is `[]`.
 
-  Throws `ex-info` with `{:option :value :expected}` when `:acc` is not an integer >= 1 or `:h` is negative or not finite.
+  Throws `ex-info` with `{:option :value :expected}` when `:acc` is less than 1 or `:h` is negative or not finite.
 
   See also [[hessian]], [[jacobian]], [[derivative]]."
   ([f] (gradient f nil))
@@ -422,9 +425,9 @@
     - `:acc` - order of accuracy, an integer >= 1 (default: `2`).
     - `:h` - step, a number >= 0 (default: `0` = automatic step for each component, `eps^(1/(1+acc)) * max(1, |x_i|/10)`); an explicit positive value is an absolute step.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the matrix as a vector of `m` rows, each a vector of `n` partial derivatives `d f_j / d x_i`. The function has also the arity `(j v h)` with an explicit absolute step (0 means automatic). The function `f` is called when the Jacobian is called. For the empty point the result is a vector of `m` empty rows.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the matrix as a vector of `m` rows, each a vector of `n` partial derivatives `d f_j / d x_i`. The function has also the arity `(j v h)` with an explicit absolute step (a step which is not positive means automatic). The function `f` is called when the Jacobian is called. For the empty point the result is a vector of `m` empty rows.
 
-  Throws `ex-info` with `{:option :value :expected}` when `:acc` or `:h` are invalid, when `f` returns a number instead of a sequence or the number of returned values changes between calls.
+  Throws `ex-info` with `{:option :value :expected}` when `:acc` is less than 1, `:h` is negative or not finite, `f` returns a number instead of a sequence or the number of returned values differs between the calls.
 
   See also [[gradient]], [[hessian]]."
   ([f] (jacobian f nil))
@@ -439,7 +442,7 @@
   - `options` (map, optional):
     - `:h` - step, a number >= 0 (default: `0`). `0` means the automatic step for each component `i`: `eps^(1/4) * max(1, |x_i|/10)`. An explicit positive `:h` is an absolute step used for every component.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the symmetric matrix as a vector of vectors of doubles. The function has also the arity `(hs v h)` with an explicit absolute step (0 means automatic). The diagonal term is `(f(x+h_i) - 2 f(x) + f(x-h_i)) / h_i^2` and the mixed term is `(f(++) - f(+-) - f(-+) + f(--)) / (4 h_i h_j)`. The function `f` is called when the Hessian is called. The Hessian of the empty point is `[]`.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the symmetric matrix as a vector of vectors of doubles. The function has also the arity `(hs v h)` with an explicit absolute step (a step which is not positive means automatic). The diagonal term is `(f(x+h_i) - 2 f(x) + f(x-h_i)) / h_i^2` and the mixed term is `(f(++) - f(+-) - f(-+) + f(--)) / (4 h_i h_j)`. The function `f` is called when the Hessian is called. The Hessian of the empty point is `[]`.
 
   Throws `ex-info` with `{:option :value :expected}` when `:h` is negative or not finite.
 
@@ -456,7 +459,7 @@
   - `options` (map, optional):
     - `:h` - step, a number >= 0 (default: `0`). `0` means the automatic step for each component `i`: `eps^(1/4) * max(1, |x_i|/10)`. An explicit positive `:h` is an absolute step used for every component.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the diagonal `(f(x+h_i) - 2 f(x) + f(x-h_i)) / h_i^2` as a vector of doubles. The function has also the arity `(hd v h)` with an explicit absolute step (0 means automatic). The function `f` is called when the diagonal is computed. It needs `2n + 1` evaluations of `f` for `n` components, while [[hessian]] needs more.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the diagonal `(f(x+h_i) - 2 f(x) + f(x-h_i)) / h_i^2` as a `double[]`. The function has also the arity `(hd v h)` with an explicit absolute step (a step which is not positive means automatic). The function `f` is called when the diagonal is computed. It needs `2n + 1` evaluations of `f` for `n` components, while [[hessian]] needs more.
 
   Throws `ex-info` with `{:option :value :expected}` when `:h` is negative or not finite.
 
@@ -477,7 +480,7 @@
   - `options` (map, optional): as in [[hessian-diagonal]]
     - `:h` - step, a number >= 0 (default: `0` = automatic step for each component, `eps^(1/4) * max(1, |x_i|/10)`); an explicit positive value is an absolute step.
 
-  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the Laplacian as a double. The function has also the arity `(l v h)` with an explicit absolute step (0 means automatic). The Laplacian of the empty point is `0.0`.
+  Returns a function of a point `v` (any sequence of numbers or a `double[]`) returning the Laplacian as a double. The function has also the arity `(l v h)` with an explicit absolute step (a step which is not positive means automatic). The Laplacian of the empty point is `0.0`.
 
   Throws `ex-info` with `{:option :value :expected}` when `:h` is negative or not finite.
 

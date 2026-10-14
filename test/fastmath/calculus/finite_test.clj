@@ -61,6 +61,10 @@
                                  c coeffs))
               (str "coeffs " [n acc kind]))))))
 
+(t/deftest fd-coeffs-high-order
+  (t/is (= (vec (range -13 14)) (vec (first (sut/fd-coeffs-for-accuracy 20 8)))))
+  (t/is (= (sut/fd-coeffs-for-accuracy 20 8) (sut/fd-coeffs 20 (range -13 14)))))
+
 (t/deftest fd-coeffs-arities
   (t/is (= (sut/fd-coeffs-for-accuracy 1 2 :central) (sut/fd-coeffs-for-accuracy 1)))
   (t/is (= (sut/fd-coeffs-for-accuracy 2 2 :central) (sut/fd-coeffs-for-accuracy 2)))
@@ -87,7 +91,9 @@
 
 (t/deftest fd-coeffs-moment-conditions
   (t/testing "high orders: sum(c_i * x_i^k) = k! if k = n else 0, for k below the number of nodes"
-    (doseq [[n offsets] [[9 (range -6 7)] [10 (range 0 14)] [12 (range -8 9)]]
+    (doseq [[n offsets] [[9 (range -6 7)] [10 (range 0 14)] [12 (range -8 9)]
+                         ;; exact intermediate ratios do not fit in a long: the stencil of (fd-coeffs-for-accuracy 20 8)
+                         [20 (range -13 14)]]
             :let [[_ c] (sut/fd-coeffs n offsets)]
             k (range (count offsets))
             :let [moment (reduce + (map (fn [x ^double w] (* w (Math/pow (double x) k))) offsets c))
@@ -102,15 +108,37 @@
 (t/deftest validation
   (t/testing "derivative"
     (t/is (invalid? #(sut/derivative identity -1) :n -1))
-    (t/is (invalid? #(sut/derivative identity 1.5) :n 1.5))
     (t/is (invalid? #(sut/derivative identity 1 {:acc 0}) :acc 0))
     (t/is (invalid? #(sut/derivative identity 1 {:acc -2}) :acc -2))
-    (t/is (invalid? #(sut/derivative identity 1 {:acc 2.5}) :acc 2.5))
     (t/is (invalid? #(sut/derivative identity 1 {:method :bogus}) :method :bogus))
     (t/is (invalid? #(sut/derivative identity 1 {:h -1.0}) :h -1.0))
     (t/is (invalid-option? #(sut/derivative identity 1 {:h ##NaN}) :h))
-    (t/is (invalid-option? #(sut/derivative identity 1 {:h ##Inf}) :h))
-    (t/is (invalid? #(sut/derivative identity 1 {:h "a"}) :h "a")))
+    (t/is (invalid-option? #(sut/derivative identity 1 {:h ##Inf}) :h)))
+  (t/testing "options are not type checked: an integer option is truncated"
+    (t/is (= ((sut/derivative m/sin 2) 0.7) ((apply sut/derivative [m/sin 2.9]) 0.7)))
+    (t/is (= ((sut/derivative m/sin 1 {:acc 2}) 0.7) ((sut/derivative m/sin 1 {:acc 2.5}) 0.7)))
+    (let [f (fn [v] (Math/sin (double (v 0))))]
+      (t/is (= ((sut/gradient f) [0.7]) ((sut/gradient f {:acc 2.5}) [0.7])))))
+  (t/testing "a nil option is a missing option"
+    (t/is (= ((sut/derivative m/sin 2) 0.7)
+             ((sut/derivative m/sin 2 {:acc nil :h nil :method nil :extrapolate? nil}) 0.7)))
+    (t/is (= ((sut/derivative m/sin 1 {:extrapolate? true}) 0.7)
+             ((sut/derivative m/sin 1 {:extrapolate? {:contract nil :power nil :init-h nil :rel nil :abs nil :max-evals nil :tol nil}}) 0.7)))
+    (let [f (fn [v] (Math/sin (double (v 0))))
+          g (fn [v] [(Math/sin (double (v 0))) (double (v 0))])]
+      (t/is (= ((sut/gradient f) [0.7]) ((sut/gradient f {:acc nil :h nil}) [0.7])))
+      (t/is (= ((sut/jacobian g) [0.7]) ((sut/jacobian g {:acc nil :h nil}) [0.7])))
+      (t/is (= ((sut/hessian f) [0.7]) ((sut/hessian f {:h nil}) [0.7])))
+      (t/is (= (vec ((sut/hessian-diagonal f) [0.7])) (vec ((sut/hessian-diagonal f {:h nil}) [0.7]))))
+      (t/is (= ((sut/laplacian f) [0.7]) ((sut/laplacian f {:h nil}) [0.7])))))
+  (t/testing "the step given at the call is not checked: a step which is not positive is the automatic step"
+    (let [f (fn [v] (Math/sin (double (v 0))))]
+      (doseq [h [0.0 -1.0 ##NaN]]
+        (t/is (= ((sut/gradient f) [0.7]) ((sut/gradient f) [0.7] h)))
+        (t/is (= ((sut/hessian f) [0.7]) ((sut/hessian f) [0.7] h)))
+        (t/is (= (vec ((sut/hessian-diagonal f) [0.7])) (vec ((sut/hessian-diagonal f) [0.7] h))))
+        (t/is (= ((sut/laplacian f) [0.7]) ((sut/laplacian f) [0.7] h)))
+        (t/is (= ((sut/derivative m/sin 1) 0.7) ((sut/derivative m/sin 1) 0.7 h))))))
   (t/testing "derivative accepts the boundary values"
     (t/is (fn? (sut/derivative identity 0)))
     (t/is (fn? (sut/derivative identity 1 {:acc 1})))
@@ -128,9 +156,7 @@
     (t/is (invalid-option? #(sut/fd-coeffs 1 [0 ##Inf]) :offsets)))
   (t/testing "gradient"
     (t/is (invalid? #(sut/gradient identity {:acc 0}) :acc 0))
-    (t/is (invalid? #(sut/gradient identity {:acc 2.0}) :acc 2.0))
-    (t/is (invalid? #(sut/gradient identity {:h -1.0}) :h -1.0))
-    (t/is (invalid? #((sut/gradient (fn [_] 0.0)) [1.0] -1.0) :h -1.0)))
+    (t/is (invalid? #(sut/gradient identity {:h -1.0}) :h -1.0)))
   (t/testing "jacobian"
     (t/is (invalid? #(sut/jacobian identity {:acc 0}) :acc 0))
     (t/is (invalid? #(sut/jacobian identity {:h -1.0}) :h -1.0)))
@@ -138,8 +164,7 @@
     (t/is (invalid? #(sut/hessian identity {:h -1.0}) :h -1.0))
     (t/is (invalid-option? #(sut/hessian identity {:h ##NaN}) :h))
     (t/is (invalid? #(sut/hessian-diagonal identity {:h -1.0}) :h -1.0))
-    (t/is (invalid? #(sut/laplacian identity {:h -1.0}) :h -1.0))
-    (t/is (invalid? #((sut/hessian (fn [_] 0.0)) [1.0] -2.0) :h -2.0))))
+    (t/is (invalid? #(sut/laplacian identity {:h -1.0}) :h -1.0))))
 
 (t/deftest extrapolate-validation
   (t/is (invalid? #(sut/extrapolate identity {:contract 1.0}) :contract 1.0))
@@ -149,7 +174,6 @@
   (t/is (invalid-option? #(sut/extrapolate identity {:contract ##NaN}) :contract))
   (t/is (invalid? #(sut/extrapolate identity {:max-evals 0}) :max-evals 0))
   (t/is (invalid? #(sut/extrapolate identity {:max-evals -3}) :max-evals -3))
-  (t/is (invalid? #(sut/extrapolate identity {:max-evals 2.5}) :max-evals 2.5))
   (t/is (invalid? #(sut/extrapolate identity {:init-h 0.0}) :init-h 0.0))
   (t/is (invalid? #(sut/extrapolate identity {:init-h 0}) :init-h 0))
   (t/is (invalid-option? #(sut/extrapolate identity {:init-h ##NaN}) :init-h))
@@ -491,7 +515,12 @@
       (t/is (= 4 @calls))))
   (t/testing "wrong shapes"
     (t/is (invalid-option? #((sut/jacobian (fn [_] 1.0)) [1.0 2.0]) :f))
-    (t/is (invalid-option? #((sut/jacobian (fn [[x _]] (if (> x 1.0) [1.0] [1.0 2.0]))) [1.0 2.0]) :f))))
+    (t/is (invalid-option? #((sut/jacobian (fn [_] nil)) [1.0 2.0]) :f))
+    (t/is (invalid-option? #((sut/jacobian (fn [[x _]] (if (> x 1.0) [1.0] [1.0 2.0]))) [1.0 2.0]) :f)
+          "the number of values changes between the points of one column")
+    (t/is (invalid-option? #((sut/jacobian (fn [[_ y]] (if (== y 2.0) [1.0] [1.0 2.0]))) [1.0 2.0]) :f)
+          "the number of values differs between the columns")
+    (t/is (invalid-option? #((sut/jacobian (fn [_] 1.0)) []) :f) "empty point")))
 
 ;; ------------------------------------------------------------------ hessian
 
@@ -551,13 +580,13 @@
       (t/is (all-close? (vec (hd (double-array [1.0 2.0]))) [6.0 144.0] 1.0e-6)))
     (t/testing "explicit step is absolute (the former behaviour used by acm): the second difference of a cubic is exact"
       (let [hd (sut/hessian-diagonal (fn [[x]] (* x x x)) {:h 0.1})]
-        (t/is (close? (aget ^doubles (hd [1.0]) 0) 6.0 1.0e-10)))
+        (t/is (close? (get (hd [1.0]) 0) 6.0 1.0e-10)))
       (t/is (= (vec ((sut/hessian-diagonal f {:h 1.0e-3}) [1.0 2.0])) (vec (hd [1.0 2.0] 1.0e-3))))
       (t/is (= (vec (hd [1.0 2.0])) (vec (hd [1.0 2.0] 0.0)))))
     (t/testing "agrees with the diagonal of the hessian"
       (t/is (all-close? (vec (hd [1.0 2.0])) (map-indexed (fn [i row] (row i)) ((sut/hessian f) [1.0 2.0])) 1.0e-9)))
     (t/testing "empty point"
-      (t/is (= 0 (alength ^doubles ((sut/hessian-diagonal (fn [_] 0.0))  [])))))))
+      (t/is (= 0 (count ((sut/hessian-diagonal (fn [_] 0.0))  [])))))))
 
 ;; ------------------------------------------------------------------ laplacian
 
