@@ -16,7 +16,7 @@
   "Number of nearest neighbours used in every local fit: the integer part of `bandwidth * n`, rounded up when
   the product is within 1e-10 below an integer (statsmodels rule)."
   ^long [^double bandwidth ^long n]
-  (long (m/+ (m/* bandwidth (double n)) 1.0e-10)))
+  (long (m/+ (m/* bandwidth n) 1.0e-10)))
 
 (defn- tricube
   "Tricube weight of the relative distance `d` in [0, 1]."

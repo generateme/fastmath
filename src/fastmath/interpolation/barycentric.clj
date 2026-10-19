@@ -67,9 +67,7 @@
                          (str "order has to be an integer between 0 and " (m/dec n) " (count of xs - 1), got " order)
                          {:order order :count n}))
     (let [d (long order)
-          sorted (sort-nodes xs ys)
-          ^doubles xs (nth sorted 0)
-          ^doubles ys (nth sorted 1)]
+          [^doubles xs ^doubles ys] (sort-nodes xs ys)]
       (loop [i 1]
         (when (m/< i n)
           (when (m/== (Array/aget xs i) (Array/aget xs (m/dec i)))

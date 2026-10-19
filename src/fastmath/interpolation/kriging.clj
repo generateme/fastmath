@@ -12,16 +12,6 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(defn- euclidean-arrays
-  "Euclidean distance of two arrays of an equal length."
-  ^double [^doubles a ^doubles b]
-  (let [n (alength a)]
-    (m/sqrt (double (loop [i (long 0)
-                           sum 0.0]
-                      (if (m/< i n)
-                        (recur (m/inc i) (m/+ sum (m/sq (m/- (Array/aget a i) (Array/aget b i)))))
-                        sum))))))
-
 (defn- ->points
   "Converts the nodes to double arrays (a number is a one element point), checks their dimension."
   [xss]
@@ -131,8 +121,7 @@
   ([xss ys] (kriging xss ys nil))
   ([xss ys variogram] (kriging xss ys variogram nil))
   ([xss ys variogram opts]
-   (let [{:keys [error distance rng N]}
-         (into {} (remove (fn [[_ v]] (nil? v))) opts)
+   (let [{:keys [error distance rng N]} (into {} (remove (fn [[_ v]] (nil? v))) opts)
          polynomial-terms (if (contains? opts :polynomial-terms)
                             (:polynomial-terms opts)
                             (constantly [1.0]))
@@ -141,7 +130,7 @@
          ysize (count xss)
          ;; the default distance works on arrays: numbers, vectors, Vec2 and lists can be mixed
          pts (if distance xss (->points xss))
-         dist (or distance euclidean-arrays)
+         dist (or distance v/dist)
          ->query (if distance identity (query-converter (alength ^doubles (first pts))))
          variogram (or variogram
                        (vgram/fit (vgram/empirical (if distance xss (mapv vec pts)) ys {:distance (or distance d/euclidean)})
@@ -163,7 +152,7 @@
                   (if (m/< i ysize)
                     (recur (m/inc i)
                            (m/+ sum (m/* (Array/aget ws i)
-                                         ^double (variogram (dist (pts i) q)))))
+                                         (double (variogram (dist (pts i) q))))))
                     sum)))]
          (if c
            (m/+ s (v/dot c (polynomial-terms x)))

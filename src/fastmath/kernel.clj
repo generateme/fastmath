@@ -19,7 +19,7 @@
   "True when a preset value and a user value are the same: numbers are compared by value (`3` equals `3.0`), the rest with `=`."
   [a b]
   (if (and (number? a) (number? b))
-    (= (double a) (double b))
+    (m/== (double a) (double b))
     (= a b)))
 
 (defn- resolve-params
@@ -285,7 +285,7 @@
   See also [[scale]], [[sum]], [[product]]."
   ([k] (exp k 1.0))
   ([k ^double t]
-   (fn ^double [x y] (m/exp (* t ^double (k x y))))))
+   (fn ^double [x y] (m/exp (* t (double (k x y)))))))
 
 (defn scale
   "Kernel wrapper. Creates the kernel `factor k(x, y)` of the kernel `k`.
@@ -299,7 +299,7 @@
 
   See also [[exp]], [[sum]], [[product]]."
   [k ^double factor]
-  (fn ^double [x y] (* factor ^double (k x y))))
+  (fn ^double [x y] (* factor (double (k x y)))))
 
 (defn sum
   "Kernel wrapper. Creates the kernel which is the sum of the values of the given kernels.
@@ -316,7 +316,7 @@
   ([k1] (check-kernels "sum" [k1]) k1)
   ([k1 k2]
    (check-kernels "sum" [k1 k2])
-   (fn ^double [x y] (+ ^double (k1 x y) ^double (k2 x y))))
+   (fn ^double [x y] (+ (double (k1 x y)) (double (k2 x y)))))
   ([k1 k2 & ks]
    (let [kernels (vec (list* k1 k2 ks))]
      (check-kernels "sum" kernels)
@@ -337,11 +337,11 @@
   ([k1] (check-kernels "product" [k1]) k1)
   ([k1 k2]
    (check-kernels "product" [k1 k2])
-   (fn ^double [x y] (* ^double (k1 x y) ^double (k2 x y))))
+   (fn ^double [x y] (* (double (k1 x y)) (double (k2 x y)))))
   ([k1 k2 & ks]
    (let [kernels (vec (list* k1 k2 ks))]
      (check-kernels "product" kernels)
-     (fn ^double [x y] (double (reduce (fn [^double acc k] (* acc ^double (k x y))) 1.0 kernels))))))
+     (fn ^double [x y] (double (reduce (fn [^double acc k] (* acc (double (k x y)))) 1.0 kernels))))))
 
 (defn mult
   "Kernel wrapper. Multiplies one or more kernels, the alias of [[product]] kept for compatibility.
@@ -382,7 +382,7 @@
        (throw (ex-info (str "wmean needs finite weights with a non-zero sum, got: " (pr-str weights))
                        {:type :invalid-input :function "wmean" :value weights :expected "finite weights with a non-zero sum"})))
      (fn ^double [x y]
-       (/ ^double (reduce (fn [^double acc i] (+ acc (* ^double (ws i) ^double ((ks i) x y))))
+       (/ ^double (reduce (fn [^double acc i] (+ acc (* (double (ws i)) (double ((ks i) x y)))))
                           0.0 (range (count ks)))
           total)))))
 
@@ -612,7 +612,5 @@
   rbf->kernel vk/rbf->kernel)
 
 ;; variograms
-
-
 
 (m/unuse-primitive-operators)

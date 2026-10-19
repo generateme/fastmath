@@ -22,10 +22,6 @@
                        (str option " has to be " expected ", got " (pr-str value))
                        {:option option :value value :expected expected})))
 
-(defn- ->point
-  ^doubles [x]
-  (m/seq->double-array x))
-
 (defn microsphere-projection
   "Creates the microsphere projection interpolator of scattered data in any dimension.
 
@@ -74,7 +70,7 @@
            _ (check-option! :elements elements (fn [^double x] (m/>= x 1.0)) "a number >= 1")
            _ (check-option! :exponent exponent (fn [^double x] (and (m/valid-double? x) (m/>= x 0.0)))
                             "a finite number >= 0")
-           pts (mapv ->point xss)
+           pts (mapv m/seq->double-array xss)
            dims (alength ^doubles (first pts))
            _ (doseq [^doubles pt pts]
                (when-not (m/== dims (alength pt))
@@ -87,10 +83,9 @@
              (InterpolatingMicrosphere. dims elements max-dark-friction dark-threshold background
                                         (UnitSphereRandomVectorGenerator. dims ^RandomGenerator (r/ensure-rng rng))))
            ^MultivariateFunction obj (-> (MicrosphereProjectionInterpolator. sphere exponent false no-interpolation-tolerance)
-                                         (.interpolate (into-array (class (double-array 0)) pts)
-                                                       (m/seq->double-array ys)))
+                                         (.interpolate (m/seq->double-double-array pts) (m/seq->double-array ys)))
            value (fn ^double [x]
-                   (let [q (->point x)]
+                   (let [q (m/seq->double-array x)]
                      (when-not (m/== dims (alength q))
                        (ic/invalid-input! :microsphere-projection :dimension-mismatch
                                           (str "the query has the dimension " (alength q) ", the nodes have " dims)

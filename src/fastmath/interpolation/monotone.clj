@@ -43,7 +43,7 @@
               (Array/aset ms (m/inc i) 0.0))
           (let [alpha (m// (Array/aget ms i) di)
                 beta (m// (Array/aget ms (m/inc i)) di)
-                h (Math/hypot alpha beta)]
+                h (m/hypot alpha beta)]
             (when (m/> h 3.0)
               (let [tau (m// 3.0 h)]
                 (Array/aset ms i (m/* tau alpha di))
@@ -54,11 +54,11 @@
   "Non-centered, shape-preserving three point end tangent (h0 is the end segment width, m0 its secant)."
   ^double [^double h0 ^double h1 ^double m0 ^double m1]
   (let [d (m// (m/- (m/* (m/+ (m/* 2.0 h0) h1) m0) (m/* h0 m1)) (m/+ h0 h1))
-        sd (Math/signum d)
-        s0 (Math/signum m0)]
+        sd (m/signum d)
+        s0 (m/signum m0)]
     (cond
       (m/not== sd s0) 0.0
-      (and (m/not== s0 (Math/signum m1)) (m/> (m/abs d) (m/* 3.0 (m/abs m0)))) (m/* 3.0 m0)
+      (and (m/not== s0 (m/signum m1)) (m/> (m/abs d) (m/* 3.0 (m/abs m0)))) (m/* 3.0 m0)
       :else d)))
 
 (defn- pchip-tangents

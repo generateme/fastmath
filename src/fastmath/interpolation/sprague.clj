@@ -8,12 +8,8 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(defn- fix-search
-  ^long [^long id]
-  (m/dec (if (m/neg? id) (m/dec (m/abs id)) id)))
-
 (def ^:private coeffs0 (double-array [4.229665071770334 -9.37799043062201 14.511961722488037
-                                    -12.669856459330143 5.167464114832535 -0.8612440191387559]))
+                                      -12.669856459330143 5.167464114832535 -0.8612440191387559]))
 (def ^:private coeffs1 (double-array [2.430622009569378 -2.5837320574162677 2.3349282296650715
                                     -1.755980861244019 0.6889952153110047 -0.11483253588516745]))
 (def ^:private coeffs2 (double-array [-0.11483253588516745 0.6889952153110047 -1.755980861244019
@@ -78,7 +74,7 @@
     (System/arraycopy ay 0 ny 2 len)
     
     (fn ^double [^double x]
-      (let [i (m/constrain (fix-search (java.util.Arrays/binarySearch nx x)) 2 len)
+      (let [i (m/constrain (ic/binary-search nx x) 2 len)
             xx (m// (m/- x (Array/aget nx i))
                     (m/- (Array/aget nx (m/inc i))
                          (Array/aget nx i)))

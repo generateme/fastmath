@@ -83,9 +83,9 @@
 
 (defn- check-finite
   ^double [model property value]
-  (if (and (number? value) (Double/isFinite (double value)))
+  (if (and (number? value) (m/valid-double? (double value)))
     (double value)
-    (double (invalid-parameter model property value "a finite number"))))
+    (invalid-parameter model property value "a finite number")))
 
 (defn- check-nonneg!
   [model property value]
@@ -104,9 +104,9 @@
   (check-pos! model :range range))
 
 (defn- check-beta!
-  [model beta max-beta]
+  [model beta ^double max-beta]
   (let [b (check-finite model :beta beta)
-        mx (double max-beta)]
+        mx max-beta]
     (when-not (and (m/pos? b) (m/<= b mx))
       (invalid-parameter model :beta beta (if (m/pos-inf? mx) "a number > 0" (str "a number in (0, " mx "]"))))))
 
@@ -606,7 +606,7 @@
                                     (m/* order (m/log (m// 2.0 d))))))]
             (m/max 0.0 (m/- 1.0 (m/* scale (special/bessel-J order d)))))))
 
-(def ^:const ^:private matern-large-order 20.0)
+(def ^{:const true :private true :tag 'double} matern-large-order 20.0)
 
 (defn- matern-series
   "1 - 2^(1-order) / Gamma(order) d^order K_order(d) for small d as minus the series of the regular
@@ -654,7 +654,7 @@
                                       (matern-series order d)
                                       (m/- 1.0 (matern-debye order d)))
     :else (let [v (m/* g (m/pow d order) (special/bessel-K order d))]
-            (if (Double/isFinite v) (m/max 0.0 (m/- 1.0 v)) 0.0))))
+            (if (m/valid-double? v) (m/max 0.0 (m/- 1.0 v)) 0.0))))
 
 (defn ->bessel
   "Creates a BesselJ semivariogram model constructor for a given Bessel function `order`.
@@ -1120,7 +1120,7 @@
   (when-not (ifn? semivariogram)
     (throw (ex-info "The semivariogram has to be a function."
                     {:type :invalid-input :property :semivariogram :value semivariogram})))
-  (when-not (and (number? sill) (Double/isFinite (double sill)) (m/not-neg? (double sill)))
+  (when-not (and (number? sill) (m/valid-double? (double sill)) (m/not-neg? (double sill)))
     (throw (ex-info "The sill has to be a finite number >= 0."
                     {:type :invalid-input :property :sill :value sill})))
   (let [sill (double sill)]
@@ -1392,7 +1392,7 @@
 
 (defn- finite-seq?
   [diffs]
-  (every? (fn [^double d] (Double/isFinite d)) diffs))
+  (every? m/valid-double? diffs))
 
 (defn empirical
   "Computes the empirical (experimental) semivariogram from spatial data.
@@ -1451,28 +1451,28 @@
   [[dowd-estimator]], [[->quantile-estimator]], [[robust-m-estimator]]."
   ([xs ys] (empirical xs ys nil))
   ([xs ys params]
-   (let [{:keys [cutoff diagonal-den bins estimator quantile remove-outliers? distance]
+   (let [{:keys [cutoff ^double diagonal-den ^long bins estimator ^double quantile remove-outliers? distance]
           :or {bins 15 diagonal-den 3.0 estimator :classical quantile 0.9
                remove-outliers? false distance dist/euclidean}}
          (into {} (remove (fn [[_ v]] (nil? v))) params)
          nxs (count xs)
-         _ (when-not (== nxs (count ys))
+         _ (when-not (m/== nxs (count ys))
              (invalid-input (str "xs and ys have different lengths: " nxs " and " (count ys))
                             :ys (count ys) (str "a sequence of the length " nxs)))
-         _ (when (< nxs 2)
+         _ (when (m/< nxs 2)
              (invalid-input "At least two points are needed to form a pair." :xs nxs "at least 2 points"))
          bins (long bins)
-         _ (when (< bins 1)
+         _ (when (m/< bins 1)
              (invalid-input "The number of bins has to be at least 1." :bins bins "a number >= 1"))
          estimator-fn (resolve-estimator estimator quantile)
-         cutoff (double (or cutoff (/ (bounding-box-diagonal distance xs) (double diagonal-den))))
+         cutoff (double (or cutoff (m// (bounding-box-diagonal distance xs) diagonal-den)))
          combined (-> (map vector (range) xs ys)
                       (maybe-remove-outliers ys remove-outliers?))
          distances (->> (for [[^long id1 x1 ^double y1] combined
                               [^long id2 x2 ^double y2] combined
-                              :when (< id1 id2)
+                              :when (m/< id1 id2)
                               :let [d (double (distance x1 x2))]
-                              :when (and (pos? d) (<= d cutoff))]
+                              :when (and (m/pos? d) (m/<= d cutoff))]
                           (Vec2. d (m/- y1 y2)))
                         (sort-by first))
          _ (when-not (seq distances)
@@ -1480,7 +1480,7 @@
                             :cutoff cutoff "a cutoff which keeps at least one pair of distinct points"))
          max-dist (.x ^Vec2 (last distances))
          ;; the last bin has no upper limit, so the largest distance never falls out
-         uppers (concat (butlast (rest (m/slice-range 0 max-dist (inc bins)))) [##Inf])
+         uppers (concat (butlast (rest (m/slice-range 0 max-dist (m/long-inc bins)))) [##Inf])
          result (loop [buff []
                        distances distances
                        uppers uppers]
@@ -1493,7 +1493,7 @@
                         (let [n (count found)
                               diffs (map second found)
                               gamma (m/* 0.5 (double (estimator-fn n diffs)))]
-                          (recur (if (or (Double/isFinite gamma) (not (finite-seq? diffs)))
+                          (recur (if (or (m/valid-double? gamma) (not (finite-seq? diffs)))
                                    (conj buff {:n n
                                                :h (stats/mean (map first found))
                                                :gamma gamma})
@@ -1556,7 +1556,7 @@
                    "a non-empty sequence of maps with :h, :gamma and :n"))
   (doseq [{:keys [h gamma n] :as bin} empirical-semivariogram
           [property value] [[:h h] [:gamma gamma] [:n n]]]
-    (when-not (and (number? value) (Double/isFinite (double value)))
+    (when-not (and (number? value) (m/valid-double? (double value)))
       (invalid-input (str "The empirical semivariogram has a non-finite or missing " property " in the bin " (pr-str bin))
                      property value "a finite number in every bin"))))
 
@@ -1565,8 +1565,8 @@
   (let [nbins (long (count ns))]
     (cond
       (not weights) (repeat nbins 1.0)
-      (sequential? weights) (if (and (== (count weights) nbins)
-                                     (every? (fn [w] (and (number? w) (Double/isFinite (double w)))) weights))
+      (sequential? weights) (if (and (m/== (count weights) nbins)
+                                     (every? (fn [w] (and (number? w) (m/valid-double? (double w)))) weights))
                               weights
                               (invalid-input (str "Explicit weights have to be " nbins " finite numbers, one for every bin")
                                              :weights weights (str "a sequence of " nbins " finite numbers")))

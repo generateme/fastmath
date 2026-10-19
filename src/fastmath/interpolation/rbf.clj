@@ -13,16 +13,6 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(defn- euclidean-arrays
-  "Euclidean distance of two arrays of an equal length."
-  ^double [^doubles a ^doubles b]
-  (let [n (alength a)]
-    (m/sqrt (double (loop [i (long 0)
-                           sum 0.0]
-                      (if (m/< i n)
-                        (recur (m/inc i) (m/+ sum (m/sq (m/- (Array/aget a i) (Array/aget b i)))))
-                        sum))))))
-
 (defn- ->points
   "Converts the nodes to double arrays (a number is a one element point), checks their dimension."
   [xss]
@@ -130,20 +120,18 @@
   ([xss ys] (rbf xss ys nil))
   ([xss ys kernel] (rbf xss ys kernel nil))
   ([xss ys kernel opts]
-   (let [{:keys [kscale lambda regularization distance polynomial-terms]
+   (let [{:keys [^double kscale ^double lambda regularization distance polynomial-terms]
           :or {kscale 1.0 lambda 0.0 regularization :normal}}
          (into {} (remove (fn [[_ v]] (nil? v))) opts)
          _ (check-lambda! lambda)
          _ (check-regularization! regularization)
          _ (check-data! xss ys)
-         kscale (double kscale)
-         lambda (double lambda)
          kernel (or kernel (k/rbf :gaussian))
          xss (vec xss)
          ysize (count xss)
          ;; the default distance works on arrays: numbers, vectors, Vec2 and lists can be mixed
          pts (if distance xss (->points xss))
-         dist (or distance euclidean-arrays)
+         dist (or distance v/dist)
          ->query (if distance identity (query-converter (alength ^doubles (first pts))))
          ridge? (and (= :ridge regularization) (m/pos? lambda))
          kfn (fn ^double [xs1 xs2] (m/* kscale (double (kernel (dist xs1 xs2)))))
@@ -163,7 +151,7 @@
                   (if (m/< i ysize)
                     (recur (m/inc i)
                            (m/+ sum (m/* (Array/aget ws i)
-                                         ^double (kfn (pts i) q))))
+                                         (double (kfn (pts i) q)))))
                     sum)))]
          (if c
            (m/+ s (v/dot c (polynomial-terms x)))

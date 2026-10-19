@@ -7,7 +7,7 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(def ^:private ^:const break-mult
+(def ^{:private true :const true :tag 'double} break-mult
   ;; the node slope is defined by the weights only when the sum of the weights is
   ;; larger than this fraction of the largest sum (the same cutoff as scipy)
   1.0e-9)
@@ -57,7 +57,7 @@
         (Array/aset sl 0 (m/- (m/* 2.0 (Array/aget sl 1)) (Array/aget sl 2)))
         (Array/aset sl (m/inc n) (m/- (m/* 2.0 (Array/aget sl n)) (Array/aget sl (m/dec n))))
         (Array/aset sl (m/+ n 2) (m/- (m/* 2.0 (Array/aget sl (m/inc n))) (Array/aget sl n)))
-        (let [cutoff (m/* ^double break-mult (max-weight-sum sl makima? n))
+        (let [cutoff (m/* break-mult (max-weight-sum sl makima? n))
               t (double-array n)]
           (dotimes [i n]
             (let [f1 (slope-weight sl makima? (m/+ i 2))

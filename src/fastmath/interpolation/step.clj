@@ -6,7 +6,6 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
-(m/use-primitive-operators)
 
 (defn step-after
   "Creates a right-continuous piecewise constant (step) interpolator, the step occurs after each node.
@@ -52,7 +51,7 @@
         l (dec (alength xs))]
     (fn ^double [^double x]
       (let [b (java.util.Arrays/binarySearch xs x)
-            ^long i (if (neg? b) (m/constrain (dec (- b)) 0 l) b)]
+            ^long i (if (m/neg? b) (m/constrain (m/dec (m/- b)) 0 l) b)]
         (Array/aget ys i)))))
 
 (defn step
@@ -78,20 +77,19 @@
    (let [xs (m/seq->double-array xs)
          ys (m/seq->double-array ys)
          _ (ic/validate-xy! :step xs ys {:min-points 2})
-         l (dec (alength xs))
-         lst (dec (- l))]
+         l (m/dec (alength xs))
+         lst (m/dec (m/- l))]
      (fn ^double [^double x]
        (let [b (java.util.Arrays/binarySearch ^doubles xs x) 
              ^long i (cond
-                       (== b -1) 0
-                       (< b lst) l
-                       (< b -1) (let [b-2 (- (- b) 2)
-                                      b-1 (dec (- b))
-                                      x1 (Array/aget xs b-2)
-                                      x2 (Array/aget xs b-1)
-                                      diff (+ x1 (* point (- x2 x1)))]
-                                  (if (< x diff) b-2 b-1))
+                       (m/== b -1) 0
+                       (m/< b lst) l
+                       (m/< b -1) (let [b-2 (m/- (m/- b) 2)
+                                        b-1 (m/dec (m/- b))
+                                        x1 (Array/aget xs b-2)
+                                        x2 (Array/aget xs b-1)
+                                        diff (m/+ x1 (m/* point (m/- x2 x1)))]
+                                    (if (m/< x diff) b-2 b-1))
                        :else b)]
          (Array/aget ys i))))))
 
-(m/unuse-primitive-operators)

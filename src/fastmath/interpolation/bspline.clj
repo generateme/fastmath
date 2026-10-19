@@ -15,7 +15,7 @@
   "Knots of the interpolating B-spline for strictly increasing `xs` and degree `k`: odd degree not-a-knot, even degree midpoints (as scipy), with `k+1` copies of both ends."
   ^doubles [^doubles xs ^long k]
   (let [n (alength xs)
-        odd? (m/== 1 (m/long-rem k 2))
+        odd? (m/odd? k)
         k2 (if odd? (m/long-quot (m/long-inc k) 2) (m/long-quot k 2))
         ;; interior candidates: data points (odd) or midpoints (even)
         cnt (long (if odd? n (m/dec n)))

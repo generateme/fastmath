@@ -409,13 +409,13 @@
   ([gp-object xvals] (prior-samples gp-object xvals nil))
   ([^GaussianProcess gp-object xvals rng]
    (let [xvals (->points xvals (.dim gp-object))
-         rng (r/ensure-rng (or rng r/default-rng))
+         rng (r/ensure-rng rng)
          ystddev (.ystddev gp-object)]
      (if (empty? xvals)
        ()
        (let [cov (scale-matrix (add-diagonal (kernel-matrix (.kernel gp-object) xvals xvals (.kscale gp-object))
-                                         (.noise gp-object))
-                           (m/* ystddev ystddev))
+                                             (.noise gp-object))
+                               (m/* ystddev ystddev))
              mu (double-array (count xvals) (.ymean gp-object))]
          (seq (sample-normal mu cov rng)))))))
 
@@ -449,7 +449,7 @@
   ([gp-object xvals stddev?] (posterior-samples gp-object xvals stddev? nil))
   ([^GaussianProcess gp-object xvals stddev? rng]
    (let [xvals (->points xvals (.dim gp-object))
-         rng (r/ensure-rng (or rng r/default-rng))]
+         rng (r/ensure-rng rng)]
      (if (empty? xvals)
        ()
        (let [kv (cross-cov gp-object xvals)

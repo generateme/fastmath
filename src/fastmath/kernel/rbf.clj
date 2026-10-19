@@ -49,14 +49,14 @@
   (let [v (get params property)]
     (cond
       (not (number? v)) (invalid-input! family property "required parameter is missing or is not a number" v)
-      (not (Double/isFinite (double v))) (invalid-input! family property "must be finite" v)
+      (not (m/valid-double? (double v))) (invalid-input! family property "must be finite" v)
       :else (double v))))
 
 (defn- required-long
   "Returns the integer valued number under `property` in `params` as a long or throws `ex-info`."
   ^long [family params property]
   (let [v (required-double family params property)]
-    (if (== v (m/floor v))
+    (if (m/== v (m/floor v))
       (long v)
       (invalid-input! family property "must be an integer" v))))
 
