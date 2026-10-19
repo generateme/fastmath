@@ -130,7 +130,7 @@
          ysize (count xss)
          ;; the default distance works on arrays: numbers, vectors, Vec2 and lists can be mixed
          pts (if distance xss (->points xss))
-         dist (or distance v/dist)
+         dist (or distance d/euclidean)
          ->query (if distance identity (query-converter (alength ^doubles (first pts))))
          variogram (or variogram
                        (vgram/fit (vgram/empirical (if distance xss (mapv vec pts)) ys {:distance (or distance d/euclidean)})

@@ -70,6 +70,7 @@ Use:
 
 - `fastmath.core` (alias `m`) for every primitive math operations.
 - `fastmath.java.Array` (import it first) for `Array/aget` and `Array/aset`.
+- `^{:private true :const true :tag 'double}` metadata for constant, private, double values (use `'long` for long values, etc.)
 
 ### Naming & Formatting
 

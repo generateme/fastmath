@@ -1461,7 +1461,6 @@
                             :ys (count ys) (str "a sequence of the length " nxs)))
          _ (when (m/< nxs 2)
              (invalid-input "At least two points are needed to form a pair." :xs nxs "at least 2 points"))
-         bins (long bins)
          _ (when (m/< bins 1)
              (invalid-input "The number of bins has to be at least 1." :bins bins "a number >= 1"))
          estimator-fn (resolve-estimator estimator quantile)
@@ -1562,7 +1561,7 @@
 
 (defn- weights-sequence
   [weights ns hs hs+]
-  (let [nbins (long (count ns))]
+  (let [nbins (count ns)]
     (cond
       (not weights) (repeat nbins 1.0)
       (sequential? weights) (if (and (m/== (count weights) nbins)

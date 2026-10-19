@@ -333,11 +333,12 @@
       (t/is (= (sut/posterior-samples g qs false (r/rng :isaac 5)) (sut/posterior-samples g qs false (r/rng :isaac 5))))
       (t/is (not= (sut/posterior-samples g qs false (r/rng :isaac 5)) (sut/posterior-samples g qs false (r/rng :isaac 6))))
       (t/is (= (sut/posterior-samples g qs true (r/rng :isaac 5)) (sut/posterior-samples g qs true (r/rng :isaac 5)))))
-    (t/testing "the default arities use the default generator"
+    (t/testing "a missing rng gives a fresh generator: the calls differ, the shared default-rng is not used"
       (let [draw (fn [f] (with-redefs [r/default-rng (r/rng :isaac 77)] (f)))
             a (draw #(sut/posterior-samples g qs))]
-        (t/is (= a (draw #(sut/posterior-samples g qs false)) (draw #(sut/posterior-samples g qs false nil))))
-        (t/is (not= a (draw #(sut/posterior-samples g qs false (r/rng :isaac 78))))))
+        (t/is (not= a (draw #(sut/posterior-samples g qs))))
+        (t/is (not= a (draw #(sut/posterior-samples g qs false))))
+        (t/is (not= a (draw #(sut/posterior-samples g qs false nil)))))
       (t/is (= 3 (count (sut/posterior-samples g qs)))))
     (t/testing "with the standard deviation: pairs of the sample and the posterior sd of predict"
       (let [res (sut/posterior-samples g qs true (r/rng :isaac 5))
@@ -391,6 +392,8 @@
           grid (vec (range 0.0 3.0 0.01))]
       (t/is (= (sut/prior-samples g [0.1 0.2] (r/rng :isaac 8)) (sut/prior-samples g [0.1 0.2] (r/rng :isaac 8))))
       (t/is (= 2 (count (sut/prior-samples g [0.1 0.2]))))
+      (t/is (not= (with-redefs [r/default-rng (r/rng :isaac 77)] (sut/prior-samples g [0.1 0.2]))
+                  (with-redefs [r/default-rng (r/rng :isaac 77)] (sut/prior-samples g [0.1 0.2]))))
       (t/is (= (count grid) (count (sut/prior-samples g grid (r/rng :isaac 8)))))
       (t/is (empty? (sut/prior-samples g []))))))
 

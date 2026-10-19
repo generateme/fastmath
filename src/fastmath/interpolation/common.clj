@@ -75,17 +75,16 @@
                       (str "at least " min-points " points are required in " (name axis) ", got " n)
                       {:axis axis :min-points min-points :count n}))
     (dotimes [i n]
-      (when (m/< i n)
-        (let [a (Array/aget arr i)]
-          (when-not (m/valid-double? a)
-            (invalid-input! method :not-finite
-                            (str (name axis) " has to be finite, got " a " at index " i)
-                            {:axis axis :index i :value a}))
-          (when (and sorted? (m/pos? i) (m/<= a (Array/aget arr (m/dec i))))
-            (invalid-input! method :not-increasing
-                            (str (name axis) " has to be strictly increasing, got " a " after "
-                                 (Array/aget arr (m/dec i)) " at index " i)
-                            {:axis axis :index i :value a})))))))
+      (let [a (Array/aget arr i)]
+        (when-not (m/valid-double? a)
+          (invalid-input! method :not-finite
+                          (str (name axis) " has to be finite, got " a " at index " i)
+                          {:axis axis :index i :value a}))
+        (when (and sorted? (m/pos? i) (m/<= a (Array/aget arr (m/dec i))))
+          (invalid-input! method :not-increasing
+                          (str (name axis) " has to be strictly increasing, got " a " after "
+                               (Array/aget arr (m/dec i)) " at index " i)
+                          {:axis axis :index i :value a}))))))
 
 (defn validate-xy!
   "Checks the data of a one dimensional interpolator and throws `ex-info` when it is invalid.

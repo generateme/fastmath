@@ -5,6 +5,7 @@
             [fastmath.kernel :as k]
             [fastmath.core :as m]
             [fastmath.matrix :as mat]
+            [fastmath.distance :as d]
             [fastmath.interpolation.common :as ic])
   (:import [fastmath.java Array]
            [org.apache.commons.math3.linear MatrixUtils
@@ -131,7 +132,7 @@
          ysize (count xss)
          ;; the default distance works on arrays: numbers, vectors, Vec2 and lists can be mixed
          pts (if distance xss (->points xss))
-         dist (or distance v/dist)
+         dist (or distance d/euclidean)
          ->query (if distance identity (query-converter (alength ^doubles (first pts))))
          ridge? (and (= :ridge regularization) (m/pos? lambda))
          kfn (fn ^double [xs1 xs2] (m/* kscale (double (kernel (dist xs1 xs2)))))

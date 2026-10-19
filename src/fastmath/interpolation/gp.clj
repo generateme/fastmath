@@ -399,7 +399,7 @@
 
   - `gp-object` (`GaussianProcess`): a model created by [[gaussian-process]]
   - `xvals` (sequence): the points (numbers for one dimensional data, sequences of numbers otherwise); their dimension has to be the dimension of the training points
-  - `rng` (random number generator, optional, default: `fastmath.random/default-rng`): the generator of the random numbers, for example a seeded `(fastmath.random/rng :isaac 42)`
+  - `rng` (random number generator, optional, default: `nil`): the generator of the random numbers, see [[fastmath.random/ensure-rng]]; when missing or `nil` a new unseeded generator is created for every call (the shared `fastmath.random/default-rng` is never used), so give a seeded one to reproduce the samples, for example `(fastmath.random/rng :isaac 42)`
 
   Returns a sequence of values, one for each point. The covariance is decomposed into the eigenvalues with the negative ones clipped to zero, so a dense grid does not fail.
 
@@ -438,7 +438,7 @@
   - `gp-object` (`GaussianProcess`): a model created by [[gaussian-process]]
   - `xvals` (sequence): the points (numbers for one dimensional data, sequences of numbers otherwise); their dimension has to be the dimension of the training points
   - `stddev?` (boolean, default: `false`): return pairs `[value standard-deviation]` where the second element is the posterior standard deviation at the point
-  - `rng` (random number generator, optional, default: `fastmath.random/default-rng`): the generator of the random numbers, for example a seeded `(fastmath.random/rng :isaac 42)`; to give it, give `stddev?` as well
+  - `rng` (random number generator, optional, default: `nil`): the generator of the random numbers, see [[fastmath.random/ensure-rng]]; when missing or `nil` a new unseeded generator is created for every call (the shared `fastmath.random/default-rng` is never used), so give a seeded one to reproduce the samples, for example `(fastmath.random/rng :isaac 42)`; to give it, give `stddev?` as well
 
   Returns a sequence of values, one for each point (or pairs). The covariance is symmetrised and decomposed into the eigenvalues, negative eigenvalues (rounding) are clipped to zero: a dense grid (hundreds of points) or points at the training points do not fail. The sample is one random function evaluated at the points, the values at different points are correlated.
 
