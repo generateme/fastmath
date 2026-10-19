@@ -672,6 +672,14 @@
 
 ;;
 
+(defn- inverse-cdf-nodes
+  "Returns `[cumulative-probabilities keys]` without the repeated cumulative probabilities (zero probability keys, or probabilities lost in the rounding of the cumulative sum): the first key of every run of equal values stays, which is the smallest key with that cumulative probability. The step interpolator needs strictly increasing nodes."
+  [cumsum ks]
+  (let [pairs (->> (map vector cumsum ks)
+                   (partition-by first)
+                   (map first))]
+    [(map first pairs) (map second pairs)]))
+
 (defn integer-discrete-distribution
   [data probabilities rng]
   (let [cnt (count data)
@@ -684,7 +692,8 @@
         cumsum (reductions m/+ probs)
         ks (keys pmf)
         mnk (double (first ks))
-        step-before (step-interp/step-before cumsum ks)
+        [icdf-cumsum icdf-ks] (inverse-cdf-nodes cumsum ks)
+        step-before (step-interp/step-before icdf-cumsum icdf-ks)
         step-after (step-interp/step-after ks cumsum)
         mean (delay (v/dot ks probs))
         icdf (fn ^long [^double x] (step-before x))
@@ -717,12 +726,13 @@
         cumsum (reductions m/+ probs)
         ks (keys pmf)
         mnk (double (first ks))
-        step-before (step-interp/step-before cumsum ks)
+        [icdf-cumsum icdf-ks] (inverse-cdf-nodes cumsum ks)
+        step-before (step-interp/step-before icdf-cumsum icdf-ks)
         step-after (step-interp/step-after ks cumsum)
         mean (delay (v/dot ks probs))]
     (->distribution {:pdf (fn ^double [^double k] (get pmf k 0.0))
                      :icdf (fn ^double [^double x] (step-before x))
-                     :cdf (fn ^double [^double x] (if (m/< x mnk) 0.0 (step-after x)))                     
+                     :cdf (fn ^double [^double x] (if (m/< x mnk) 0.0 (step-after x)))
                      :rng rng
                      :dimensions 1
                      :continuous? false

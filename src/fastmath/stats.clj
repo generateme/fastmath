@@ -291,7 +291,10 @@
 
 (defn- wquantile-interpolator
   [vs ws method]
-  (let [sorted (sort-by first (map vector vs ws))
+  (let [sorted (->> (map vector vs ws)
+                    ;; the interpolators need distinct cumulative weights: zero weights are skipped
+                    (filter (fn [[_ ^double w]] (m/pos? w)))
+                    (sort-by first))
         probabilities (map second sorted)
         data (map first sorted)
         data (conj data (first data))

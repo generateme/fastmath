@@ -231,7 +231,7 @@
                normalize-y? true
                normalize-x? true
                utility-function-type :rgp-ucb
-               kernel :mattern-12
+               kernel :matern-12
                optimizer :bfgs
                jitter 0.1}}]
    (let [args (ensure-prepared-args args)
@@ -256,12 +256,12 @@
 (comment
   (def gp (gp/gaussian-process [[1 1] [2 2] [3 3] [9 -1] [5 -2]] [-2 -1 1 -1 2] {:noise 0.001
                                                                                  :normalize? true
-                                                                                 :kernel (k/kernel :mattern-52 1.48796)
+                                                                                 :kernel (k/kernel :matern-52 {:theta 1.48796})
                                                                                  :kscale 0.87396}))
 
   (def gp (gp/gaussian-process [[1 1]] [-2] {:noise 0.001
                                              :normalize? true
-                                             :kernel (k/kernel :mattern-52)
+                                             :kernel (k/kernel :matern-52)
                                              :kscale 0.87396}))
 
   (gp/predict gp '(4.62100181160906 -3.5))
@@ -281,7 +281,7 @@
                                        (let [gp (gp/gaussian-process [[1 1] [2 2] [3 3] [9 -1] [5 -2]] [-2 -1 1 -1 2]
                                                                      {:noise 0.0001
                                                                       :normalize? true
-                                                                      :kernel (k/kernel :mattern-52 k)
+                                                                      :kernel (k/kernel :matern-52 {:theta k})
                                                                       :kscale s})]
                                          (gp/L gp))) {:bounds [[0.001 20] [0.001 20]]
                                                       :initial [3.0]}))

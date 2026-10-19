@@ -4468,3 +4468,25 @@
   (t/testing "a distribution still gets samples of the given length"
     (t/is (= 10 (count (sut/->seq (sut/distribution :normal) 10 :r2))))))
 
+
+;; step interpolators need distinct nodes: values of zero probability are skipped
+
+(t/deftest discrete-distributions-zero-probability
+  (doseq [kind [:integer-discrete-distribution :real-discrete-distribution]]
+    (let [d (sut/distribution kind {:data [1 2 3 4] :probabilities [0.0 0.5 0.0 0.5]})]
+      (t/testing (str kind " construction and cdf")
+        (t/is (== 0.0 (sut/cdf d 0.5)))
+        (t/is (== 0.0 (sut/cdf d 1.5)))
+        (t/is (== 0.5 (sut/cdf d 2.0)))
+        (t/is (== 0.5 (sut/cdf d 3.5)))
+        (t/is (== 1.0 (sut/cdf d 4.0)))
+        (t/is (== 1.0 (sut/cdf d 10.0))))
+      (t/testing (str kind " icdf never returns a value of zero probability")
+        (t/is (== 2.0 (sut/icdf d 0.2)))
+        (t/is (== 2.0 (sut/icdf d 0.5)))
+        (t/is (== 4.0 (sut/icdf d 0.51)))
+        (t/is (== 4.0 (sut/icdf d 1.0))))
+      (t/testing (str kind " pdf keeps the zero entries")
+        (t/is (== 0.0 (sut/pdf d 1)))
+        (t/is (== 0.5 (sut/pdf d 2)))
+        (t/is (== 0.0 (sut/pdf d 3)))))))

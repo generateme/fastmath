@@ -2370,3 +2370,16 @@ matches auc-roc"
   (t/testing "pooled-mad"
     (t/is (m/delta-eq 3.7065055462640055 (sut/pooled-mad pooled-groups)))
     (t/is (m/delta-eq 2.5 (sut/pooled-mad pooled-groups 1.0)))))
+
+;; weighted quantiles with zero weights: the cumulative weights must stay distinct
+
+(t/deftest wquantile-zero-weights
+  (let [vs [5.0 1.0 3.0 2.0 4.0]
+        ws [1.0 0.0 1.0 0.0 1.0]
+        vs+ [3.0 4.0 5.0]
+        ws+ [1.0 1.0 1.0]]
+    (doseq [method [:linear :average :step]]
+      (t/testing (str method)
+        (t/is (v/delta-eq (sut/wquantiles vs+ ws+ [0.1 0.25 0.5 0.75 0.9] method)
+                          (sut/wquantiles vs ws [0.1 0.25 0.5 0.75 0.9] method)
+                          1.0e-12))))))

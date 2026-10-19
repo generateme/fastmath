@@ -32,8 +32,9 @@ Mathematics, statistics, machine learning, numerical methods/computing.
 | `fastmath.easings` | ease | easing functions |
 | `fastmath.efloat` | efloat | floating point ops with error tracking |
 | `fastmath.grid` | grid | euclidean (2d) grid cells: square, hexagonal, rhombus, triangle and coordinate ops |
-| `fastmath.interpolation` | interp | 1d and nd interpolation functions: linear, cubic, monotone, sprague, step, barycentric, neville, divided difference, loess, akima, b-spline, microsphere projection, bicubic, bilinear, shepard, rbf, kriging, gaussian processes; isotonic: pava, cir; extrapolation |
-| `fastmath.kernel` | k, kernel | Kernel functions: rbf (`fastmath.kernel.rbf`), covariance (`fastmath.kernel.vector`), KDE (`fastmath.kernel.density`), window (`fastmath.kernel.vector`), variograms (`fastmath.kernel.variogram`) with estimation and fitting |
+| `fastmath.interpolation` | interp | 1d interpolation functions: linear, cubic, monotone, pchip, akima (and makima), sprague, step, barycentric, polynomial, neville, divided difference, b-spline; smoothing: loess, cubic smoothing spline; 2d grid: bilinear, bicubic, cubic-2d; scattered data: microsphere projection, shepard, rbf, kriging, gaussian processes (`fastmath.interpolation.gp`); isotonic: pava, cir; extrapolation |
+| `fastmath.kernel` | k, kernel | Kernel functions: rbf (`fastmath.kernel.rbf`), vector/covariance kernels (`fastmath.kernel.vector`), KDE (`fastmath.kernel.density`), window (`fastmath.kernel.window`), kernel combinators (`sum`, `product`, `wmean`); the variograms are not re-exported here |
+| `fastmath.kernel.variogram` | vgram | semivariogram models, empirical variogram (classical, Cressie, Dowd, Genton, quantile and M-robust estimators), model fitting, variogram to covariance |
 | `fastmath.ml.regression` | reg, regr | LM, GLM |
 | `fastmath.ml.regression.contrast` | contrast | categorical encoding functions |
 | `fastmath.ml.clustering` | clust | kmeans++, fuzzy-kmeans, dbscan |

@@ -15,16 +15,53 @@
 (set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
+(defn- same-value?
+  "True when a preset value and a user value are the same: numbers are compared by value (`3` equals `3.0`), the rest with `=`."
+  [a b]
+  (if (and (number? a) (number? b))
+    (= (double a) (double b))
+    (= a b)))
+
+(defn- resolve-params
+  "Validates the parameters `params` given to the registered kernel `nm` of the registry `kind` (`:rbf` or `:kernel`) and merges them with the `preset`.
+
+  Returns the preset (possibly `nil`) for `nil` params, otherwise the merged map. Throws `ex-info` (`:type :invalid-input`) when `params` is neither `nil` nor a map, or when it holds a value which differs from the value fixed by the preset."
+  [kind nm params preset]
+  (cond
+    (nil? params) preset
+    (map? params) (do (doseq [[pk pv] preset
+                              :let [uv (get params pk)]
+                              :when (some? uv)]
+                        (when-not (same-value? pv uv)
+                          (throw (ex-info (str "(" (name kind) " " nm ") fixes " pk " to " (pr-str pv)
+                                               ", conflicting value given: " (pr-str uv))
+                                          {:type :invalid-input
+                                           :kind kind
+                                           :name nm
+                                           :option pk
+                                           :value uv
+                                           :expected pv}))))
+                      (merge params preset))
+    :else (throw (ex-info (str "(" (name kind) " " nm ") expects a map of parameters or nil, got: " (pr-str params))
+                          {:type :invalid-input
+                           :kind kind
+                           :name nm
+                           :value params
+                           :expected "a map or nil"}))))
+
 (defmacro ^:private emit
   ([kind nm f] `(emit ~kind ~nm ~f nil))
-  ([kind nm f params]
-   (if params
-     `(defmethod ~kind ~nm
-        ([_#] (~f ~params))
-        ([_# params#] (~f (merge params# ~params))))
-     `(defmethod ~kind ~nm
-        ([_#] (~f))
-        ([_# params#] (~f params#))))))
+  ([kind nm f preset]
+   (let [kw (keyword (name kind))]
+     (if preset
+       `(defmethod ~kind ~nm
+          ([_#] (~f ~preset))
+          ([_# params#] (~f (resolve-params ~kw ~nm params# ~preset))))
+       `(defmethod ~kind ~nm
+          ([_#] (~f))
+          ([_# params#]
+           (let [p# (resolve-params ~kw ~nm params# nil)]
+             (if (nil? p#) (~f) (~f p#)))))))))
 
 
 (defmulti rbf
@@ -42,18 +79,25 @@
   - `:linear`, `:gaussian` - no extra parameters besides `:scale`.
   - `:truncated-power` - needs `:k` exponent; presets `:truncated-power-1`, `:truncated-power-2`, `:truncated-power-3`, `:truncated-power-half`, `:truncated-power-third` fix `:k` to `1`, `2`, `3`, `0.5` and `1/3` respectively.
   - `:gaussians-laguerre` - needs `:dimension` and `:degree`; presets `:gaussians-laguerre-11`, `-12`, `-21`, `-22` fix `dimension`/`degree` to `1`/`1`, `1`/`2`, `2`/`1`, `2`/`2`.
-  - `:poisson` - needs `:d`; presets `:poisson-2`, `:poisson-3`, `:poisson-4` fix `:d` to `2`, `3`, `4`.
+  - `:poisson` - needs `:d` (at least `1`), the kernel is normalised to `1` at `0`; presets `:poisson-2`, `:poisson-3`, `:poisson-4` fix `:d` to `2`, `3`, `4`.
   - `:matern` - needs odd `:order` (i.e. `order/2` such as `1/2`, `3/2`, `5/2`); presets `:matern-c0`, `:matern-c2`, `:matern-c4` fix `:order` to `1`, `3`, `5`.
-  - `:generalized-multiquadratic` - needs `:beta` exponent and optional `:negate?` (`true`, `false` or `:auto`, default `:auto`); presets `:multiquadratic` and `:inverse-multiquadratic` fix `:beta` to `0.5` and `-0.5` with `:negate?` `false`.
+  - `:generalized-multiquadratic` - needs `:beta` exponent and optional `:negate?` (`true`, `false` or `:auto`, default `:auto`: the sign is `(-1)^ceil(beta)` for positive `beta`, `+1` otherwise); presets `:multiquadratic` and `:inverse-multiquadratic` fix `:beta` to `0.5` and `-0.5` with `:negate?` `false`.
   - `:radial-powers` - needs `:beta` and optional `:negate?`; preset `:radial-powers-3` fixes `:beta` to `3.0` with `:negate?` `false`.
-  - `:thin-plate-splines` - needs `:beta` and optional `:negate?`; preset `:thin-plate` fixes `:beta` to `1.0` with `:negate?` `false`.
-  - `:shifted-surface-splines` - needs `:s` (long) and `:beta` (double, greater than half of `s`).
-  - `:wendland` - needs `:s` (double) and `:k` (long, only values less than `5` are supported).
+  - `:thin-plate-splines` - needs `:beta` (greater than `0`) and optional `:negate?` (`:auto` gives `(-1)^(ceil(beta) + 1)`, valid for integer `beta`); preset `:thin-plate` fixes `:beta` to `1.0` with `:negate?` `false`.
+  - `:shifted-surface-splines` - needs `:s` (positive integer) and `:beta` (greater than half of `s`, an integer for even `s`).
+  - `:wendland` - needs `:s` (dimension, at least `1`) and `:k` (integer from `0` to `4`); the degree is `floor(s/2) + k + 1`.
   - `:gneiting` - needs `:s` and `:l`.
-  - `:wu` - needs `:l` (double) and `:k` (long); presets `:wu-10` through `:wu-33` fix `:l` to `1`, `2` or `3` and `:k` from `0` up to `l`. Combinations outside the presets fall back to numerical integration/differentiation and may be less stable.
+  - `:wu` - needs `:l` (at least `0`) and `:k` (integer, at least `0`); presets `:wu-10` through `:wu-33` fix `:l` to `1`, `2` or `3` and `:k` from `0` up to `l`. Combinations outside the presets fall back to numerical integration/differentiation and may be less stable.
   - `:whittaker` - needs `:alpha`, `:k` and `:beta`; closed-form expressions exist for `alpha` `0` or `1` combined with `k` `2` or `3`, other combinations use numerical integration.
 
-  Returns a function of a single `double` (the radius) returning a `double`. Throws when `k` is not a registered kernel name.
+  Returns a function of a single `double` (the radius) returning a `double`.
+
+  Corner cases and exceptions:
+
+  - `params` must be a map or `nil`. A number (for example `(rbf :gaussian 2.0)`) or any other value throws `ex-info` with `:type :invalid-input`, the message names the keyword and the received value. Use `{:scale 2.0}` instead.
+  - A preset keyword (for example `:matern-c2`) fixes some parameters. A `params` map holding a conflicting value for a fixed key (`(rbf :matern-c2 {:order 5})`) throws `ex-info` (`:type :invalid-input`, with `:option`, `:value` and `:expected`); the same value (`{:order 3}`, `{:order 3.0}`) or other keys are accepted.
+  - A missing required parameter throws `ex-info` from the kernel constructor in `fastmath.kernel.rbf`, naming the key.
+  - Throws `IllegalArgumentException` when `k` is not a registered kernel name.
 
   See also [[kernel-list]] for the full, up-to-date list of registered RBF names, [[kernel]] for vector (non-radial) kernels."
   (fn [k & _] k))
@@ -68,7 +112,7 @@
 (emit-rbf :truncated-power rbf/truncated-power)
 (emit-rbf :truncated-power-1 rbf/truncated-power {:k 1.0})
 (emit-rbf :truncated-power-2 rbf/truncated-power {:k 2.0})
-(emit-rbf :truncated-power-3 rbf/truncated-power {:k [3.0]})
+(emit-rbf :truncated-power-3 rbf/truncated-power {:k 3.0})
 (emit-rbf :truncated-power-half rbf/truncated-power {:k 0.5})
 (emit-rbf :truncated-power-third rbf/truncated-power {:k m/THIRD})
 
@@ -135,15 +179,15 @@
   - `:hyperbolic-tangent` - hyperbolic tangent of the (shifted, scaled) dot product; params `:alpha` (default `1.0`), `:c` (default `0.0`).
   - `:gaussian`, `:exponential`, `:laplacian`, `:wave`, `:cauchy` - exponential-family kernels of the distance; param `:sigma` (default `1.0`) plus `:distance`.
   - `:periodic` - exponential of a squared sine of the distance; params `:sigma`, `:periodicity` (both default `1.0`) plus `:distance`.
-  - `:power`, `:log` - negative power (resp. negative log of one plus power) of the distance; param `:p` (default `2.0`) plus `:distance`.
+  - `:power`, `:log` - negative power (resp. negative log of one plus power) of the distance; param `:p` (default `2.0`) plus `:distance`. Conditionally positive definite for `0 < p <= 2`.
   - `:rational-quadratic`, `:multiquadratic`, `:inverse-multiquadratic` - functions of the squared distance shifted by `:c` (default `1.0`) plus `:distance`.
-  - `:generalized-t-student` - reciprocal of one plus a power of the distance; params `:p`, `:distance`.
+  - `:generalized-t-student` - reciprocal of one plus a power of the distance; params `:p` (default `2.0`), `:distance`.
   - `:pearson` - Pearson VII kernel; params `:sigma`, `:omega` (both default `1.0`) plus `:distance`.
   - `:hyperbolic-secant` - hyperbolic secant of a scaled distance; param `:a` (default `1.0`) plus `:distance`.
   - `:bessel` - Bessel function of the first kind of the (scaled) distance; params `:sigma`, `:n`, `:v` (defaults `1.0`, `2.0`, `-1.0`) plus `:distance`.
   - `:bessel2` - alternative (R kernlab) Bessel kernel; params `:sigma`, `:degree`, `:order` (defaults `1.0`, `1.0`, `0.0`) plus `:distance`.
-  - `:matern` - Matern kernel; params `:order` (odd, default `1`, use `5` for Matern 5/2 etc.), `:theta` (default `1.0`) plus `:distance`; presets `:matern-12`, `:matern-32`, `:matern-52` fix `:order` to `1`, `3`, `5`.
-  - `:geometric` - compactly supported kernel; params `:n` (dimension), `:r` (default `1.0`) plus `:distance`; presets `:triangular`, `:circular`, `:spherical` fix `:n` to `1`, `2`, `3`.
+  - `:matern` - Matern kernel; params `:order` (odd positive integer, default `1`, use `5` for Matern 5/2 etc.), `:theta` (default `1.0`, equal to `sqrt(2)` times the length scale of the scikit-learn Matern kernel) plus `:distance`; presets `:matern-12`, `:matern-32`, `:matern-52` fix `:order` to `1`, `3`, `5`.
+  - `:geometric` - compactly supported kernel (support radius `2 r`); params `:n` (dimension, required, minimal map `{:n 4}`), `:r` (default `1.0`) plus `:distance`; presets `:triangular`, `:circular`, `:spherical` fix `:n` to `1`, `2`, `3`.
   - `:anova` - sum, over elementwise powers of the vectors, of a Gaussian-like term; params `:sigma`, `:k`, `:d` (all default `1.0`).
   - `:spline` - product, over vector elements, of a fixed cubic-spline expression, no parameters.
   - `:b-spline` - product, over vector elements, of a B-spline basis of degree `:n` (default `2.0`).
@@ -152,9 +196,16 @@
   - `:dirichlet` - Dirichlet kernel; param `:n` dimensionality (default `1.0`).
   - `:hellinger` - Hellinger kernel (sum of the square roots of elementwise products), no parameters.
 
-  Returns a function of two arguments `x` and `y` (vectors or numbers, matching `fastmath.vector` conventions) returning a `double`. Throws when `k` is not a registered kernel name.
+  Returns a function of two arguments `x` and `y` (vectors or numbers, matching `fastmath.vector` conventions) returning a `double`.
 
-  See also [[kernel-list]] for the full, up-to-date list of registered kernel names, [[rbf]] for radial (single-argument) kernels, [[exp]], [[scale]], [[mult]], [[wmean]] for combining kernels."
+  Corner cases and exceptions:
+
+  - `params` must be a map or `nil`. A number (for example `(kernel :gaussian 1.0)`, which was silently ignored before) or any other value throws `ex-info` with `:type :invalid-input`, the message names the keyword and the received value. Use `{:sigma 1.0}` instead.
+  - A preset keyword (for example `:matern-32`) fixes some parameters. A `params` map holding a conflicting value for a fixed key (`(kernel :matern-32 {:order 5})`) throws `ex-info` (`:type :invalid-input`, with `:option`, `:value` and `:expected`); the same value (`{:order 3}`, `{:order 3.0}`) or other keys are accepted.
+  - A missing required parameter throws `ex-info` naming the key (`:geometric` needs `:n`).
+  - Throws `IllegalArgumentException` when `k` is not a registered kernel name.
+
+  See also [[kernel-list]] for the full, up-to-date list of registered kernel names, [[rbf]] for radial (single-argument) kernels, [[exp]], [[scale]], [[sum]], [[product]], [[mult]], [[wmean]] for combining kernels, [[rbf->kernel]]."
   (fn [k & _] k))
 
 (defmacro ^:private emit-kernel
@@ -210,32 +261,130 @@
 (emit-kernel :matern-32 vk/matern {:order 3})
 (emit-kernel :matern-52 vk/matern {:order 5})
 
+(defn- check-kernels
+  "Throws `ex-info` (`:type :invalid-input`) when `kernels` is empty or holds a value which is not a function."
+  [who kernels]
+  (when (empty? kernels)
+    (throw (ex-info (str who " needs at least one kernel")
+                    {:type :invalid-input :function who :value kernels :expected "at least one kernel"})))
+  (doseq [k kernels]
+    (when-not (ifn? k)
+      (throw (ex-info (str who " expects kernel functions, got: " (pr-str k))
+                      {:type :invalid-input :function who :value k :expected "a function of two arguments"})))))
+
 (defn exp
-  "Kernel wraper. exp of kernel `k` with optional scaling value `t`."
+  "Kernel wrapper. Creates the kernel `exp(t k(x, y))` of the kernel `k`.
+
+  Parameters:
+
+  - `k` - a kernel, a function of two arguments returning a double
+  - `t` (optional) - multiplier of the kernel value inside the exponential (default: `1.0`)
+
+  Returns a function `(fn [x y])` returning a double. The exponential of a positive definite kernel with `t >= 0` is positive definite.
+
+  See also [[scale]], [[sum]], [[product]]."
   ([k] (exp k 1.0))
   ([k ^double t]
-   (fn [x y] (m/exp (* t ^double (k x y))))))
+   (fn ^double [x y] (m/exp (* t ^double (k x y))))))
 
 (defn scale
-  "Kernel wrapper. Scale kernel result."
-  [k ^double scale]
-  (fn [x y] (* scale ^double (k x y))))
+  "Kernel wrapper. Creates the kernel `factor k(x, y)` of the kernel `k`.
+
+  Parameters:
+
+  - `k` - a kernel, a function of two arguments returning a double
+  - `factor` - multiplier of the kernel value
+
+  Returns a function `(fn [x y])` returning a double. A positive definite kernel stays positive definite for `factor >= 0`.
+
+  See also [[exp]], [[sum]], [[product]]."
+  [k ^double factor]
+  (fn ^double [x y] (* factor ^double (k x y))))
+
+(defn sum
+  "Kernel wrapper. Creates the kernel which is the sum of the values of the given kernels.
+
+  Parameters:
+
+  - `k1`, `ks` - one or more kernels, functions of two arguments returning a double
+
+  Returns a function `(fn [x y])` returning `k1(x, y) + k2(x, y) + ...` as a double, summed from left to right. With one kernel the kernel itself is returned. The sum of positive definite kernels is positive definite.
+
+  Throws `ex-info` when an argument is not a function.
+
+  See also [[product]], [[wmean]], [[scale]]."
+  ([k1] (check-kernels "sum" [k1]) k1)
+  ([k1 k2]
+   (check-kernels "sum" [k1 k2])
+   (fn ^double [x y] (+ ^double (k1 x y) ^double (k2 x y))))
+  ([k1 k2 & ks]
+   (let [kernels (vec (list* k1 k2 ks))]
+     (check-kernels "sum" kernels)
+     (fn ^double [x y] (double (reduce (fn [^double acc k] (+ acc ^double (k x y))) 0.0 kernels))))))
+
+(defn product
+  "Kernel wrapper. Creates the kernel which is the product of the values of the given kernels.
+
+  Parameters:
+
+  - `k1`, `ks` - one or more kernels, functions of two arguments returning a double
+
+  Returns a function `(fn [x y])` returning `k1(x, y) * k2(x, y) * ...` as a double, multiplied from left to right. With one kernel the kernel itself is returned. The product of positive definite kernels is positive definite.
+
+  Throws `ex-info` when an argument is not a function.
+
+  See also [[mult]] (the same function), [[sum]], [[wmean]], [[scale]]."
+  ([k1] (check-kernels "product" [k1]) k1)
+  ([k1 k2]
+   (check-kernels "product" [k1 k2])
+   (fn ^double [x y] (* ^double (k1 x y) ^double (k2 x y))))
+  ([k1 k2 & ks]
+   (let [kernels (vec (list* k1 k2 ks))]
+     (check-kernels "product" kernels)
+     (fn ^double [x y] (double (reduce (fn [^double acc k] (* acc ^double (k x y))) 1.0 kernels))))))
 
 (defn mult
-  "Kernel wrapper. Multiply two or more kernels."
-  ([k1] k1)
-  ([k1 k2] (fn [x y] (* ^double (k1 x y) ^double (k2 x y))))
-  ([k1 k2 k3] (fn [x y] (* ^double (k1 x y) ^double (k2 x y) ^double (k3 x y))))
-  ([k1 k2 k3 & r]
-   (let [k (mult k1 k2 k3)]
-     (if-not (seq r) k
-             (apply mult k r)))))
+  "Kernel wrapper. Multiplies one or more kernels, the alias of [[product]] kept for compatibility.
+
+  Parameters:
+
+  - `k1`, `ks` - one or more kernels, functions of two arguments returning a double
+
+  Returns a function `(fn [x y])` returning the product of the values of the kernels as a double. With one kernel the kernel itself is returned.
+
+  See also [[product]], [[sum]]."
+  [k1 & ks]
+  (apply product k1 ks))
 
 (defn wmean
-  "Kernel wrapper. (Weighted) mean of kernel results."
+  "Kernel wrapper. Creates the weighted mean of the values of the given kernels: `sum(w_i k_i(x, y)) / sum(w_i)`.
+
+  Parameters:
+
+  - `kernels` - a sequence of one or more kernels, functions of two arguments returning a double
+  - `weights` (optional) - a sequence of numbers of the same length as `kernels` (default: all `1.0`, the arithmetic mean); the weights are normalised by their sum, so only their ratios matter
+
+  Returns a function `(fn [x y])` returning the weighted mean as a double. For non-negative weights with a positive sum the mean of positive definite kernels is positive definite.
+
+  Throws `ex-info` when `kernels` is empty, holds a value which is not a function, the number of weights differs from the number of kernels, a weight is not finite or the weights sum to zero.
+
+  See also [[sum]], [[product]], [[scale]]."
   ([kernels] (wmean kernels (repeat (count kernels) 1.0)))
   ([kernels weights]
-   (fn [x y] (wmean (map (fn [k] (k x y)) kernels) weights))))
+   (let [ks (vec kernels)
+         ws (mapv double weights)
+         total (double (reduce + 0.0 ws))]
+     (check-kernels "wmean" ks)
+     (when (not= (count ks) (count ws))
+       (throw (ex-info (str "wmean needs one weight per kernel, got " (count ws) " weights for " (count ks) " kernels")
+                       {:type :invalid-input :function "wmean" :value weights :expected (count ks)})))
+     (when (or (not (every? #(Double/isFinite (double %)) ws)) (== total 0.0))
+       (throw (ex-info (str "wmean needs finite weights with a non-zero sum, got: " (pr-str weights))
+                       {:type :invalid-input :function "wmean" :value weights :expected "finite weights with a non-zero sum"})))
+     (fn ^double [x y]
+       (/ ^double (reduce (fn [^double acc i] (+ acc (* ^double (ws i) ^double ((ks i) x y))))
+                          0.0 (range (count ks)))
+          total)))))
 
 ;; kernel density estimation
 
@@ -433,11 +582,34 @@
 
 ;;
 
-(def kernel-list ^{:doc "List of available kernels: vector, rbf, kde, windows (tapering)"}
+(def ^{:doc "Map of the names of the available kernels, each value is a sorted sequence of keywords.
+
+  Keys:
+
+  - `:vector` - names accepted by [[kernel]] (vector kernels and their presets)
+  - `:rbf` - names accepted by [[rbf]] (radial basis functions and their presets)
+  - `:kde` - names accepted by [[kernel-density]], [[kernel-density-ci]] and [[bandwidth]]
+  - `:window` - names accepted by [[window]] (tapering windows)
+
+  The lists are built when the namespace is loaded; a kernel registered later with `defmethod` is not included."}
+  kernel-list
   {:vector (sort (keys (methods kernel)))
    :rbf (sort (keys (methods rbf)))
    :kde (sort (keys dens/kde-data))
    :window (sort (keys windows))})
+
+(def ^{:doc "Converts a radial basis function into a vector kernel using a distance function; the function of `fastmath.kernel.vector`.
+
+  Parameters:
+
+  - `rbf-kernel` - a function of one double (the distance), for example created by [[rbf]]
+  - `distance` (optional) - distance function of two points (default: euclidean)
+
+  Returns a function `(fn [x y])` which applies `rbf-kernel` to the distance of `x` and `y`.
+
+  See also [[rbf]], [[kernel]]."
+       :arglists '([rbf-kernel] [rbf-kernel distance])}
+  rbf->kernel vk/rbf->kernel)
 
 ;; variograms
 

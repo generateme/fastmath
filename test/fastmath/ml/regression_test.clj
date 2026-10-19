@@ -761,3 +761,47 @@
   (t/is (= [0.0 [:a :b]] (sut/with-offset [:a :b] false)))
   (t/testing "exception when offset is not a number"
     (t/is (= :z (try (sut/with-offset [:z 1 2] true) (catch clojure.lang.ExceptionInfo e (:offset (ex-data e))))))))
+
+;; isotonic regression: order decoding
+;; Oracle: scikit-learn IsotonicRegression(increasing=True / False) with sample weights on 14 cases
+;; (utils/fastmath/dev/generate_interp1d_reference.py, section :isotonic).
+;; `:desc` was decoded as ascending (code 0).
+
+(t/deftest isotonic-order
+  (let [cases (:isotonic (edn/read-string (slurp (io/resource "interpolation/interp1d_reference.edn"))))]
+    (t/is (= 14 (count cases)))
+    (t/testing "weighted cases: :desc and :decreasing equal sklearn increasing=False, :asc and :increasing increasing=True"
+      (doseq [[k c] (map-indexed vector cases)]
+        (let [ys (:ys c)
+              ws (:ws c)
+              desc (sut/pava ys ws :desc)
+              decreasing (sut/pava ys ws :decreasing)]
+          (t/is (= (count ys) (count desc)))
+          ;; measured max difference to sklearn: 4.4e-16 (data up to 9.8)
+          (t/is (v/edelta-eq desc (:decreasing c) 1.0e-15) (str "case " k ": :desc vs sklearn"))
+          (t/is (v/edelta-eq decreasing (:decreasing c) 1.0e-15) (str "case " k ": :decreasing vs sklearn"))
+          (t/is (= (vec desc) (vec decreasing)) (str "case " k ": :desc equals :decreasing"))
+          (doseq [o [:asc :increasing nil]]
+            (t/is (v/edelta-eq (sut/pava ys ws o) (:increasing c) 1.0e-15) (str "case " k " " o))))))
+    (t/testing ":desc differs from :asc when the data decrease"
+      (let [ys [5 4 6 2 1]]
+        (t/is (v/delta-eq [5.0 5.0 5.0 2.0 1.0] (sut/pava ys :desc) 1.0e-15))
+        (t/is (v/delta-eq [3.6 3.6 3.6 3.6 3.6] (sut/pava ys :asc) 1.0e-15))
+        (t/is (= (vec (sut/pava ys :desc)) (vec (sut/pava ys :decreasing))))))
+    (t/testing "cir: :desc equals :decreasing"
+      (let [xs [1 2 3 4 5 6]
+            ys [6 7 4 4 5 1]]
+        (t/is (= (mapv vec (sut/cir xs ys :desc)) (mapv vec (sut/cir xs ys :decreasing))))
+        (t/is (not= (mapv vec (sut/cir xs ys :desc)) (mapv vec (sut/cir xs ys :asc))))))
+    (t/testing "nil order is ascending; all accepted keywords decode"
+      (t/is (= (vec (sut/pava [3 1 2] nil nil)) (vec (sut/pava [3 1 2] nil :asc))))
+      (doseq [o [:asc :increasing :desc :decreasing :non-decreasing :non-increasing]]
+        (t/is (= 3 (count (sut/pava [3 1 2] o))) (str o))))
+    (t/testing "unknown order throws ex-info listing the accepted values"
+      (doseq [o [:bogus :ascending "asc" 1 false :descending]]
+        (let [e (try (sut/pava [3 1 2] o) nil (catch clojure.lang.ExceptionInfo e e))]
+          (t/is (some? e) (str "pava " (pr-str o)))
+          (t/is (= o (:order (ex-data e))))
+          (t/is (= [:asc :increasing :desc :decreasing :non-decreasing :non-increasing] (:accepted (ex-data e))))
+          (t/is (re-find #":desc" (ex-message e))))
+        (t/is (thrown? clojure.lang.ExceptionInfo (sut/cir [1 2 3] [3 1 2] o)) (str "cir " (pr-str o)))))))

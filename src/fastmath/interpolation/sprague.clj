@@ -1,5 +1,6 @@
 (ns fastmath.interpolation.sprague
   (:require [fastmath.core :as m]
+            [fastmath.interpolation.common :as ic]
             [fastmath.polynomials :as poly]
             [fastmath.vector :as v])
   (:import [fastmath.java Array]))
@@ -32,8 +33,26 @@
                                2.083333333333333 -1.0416666666666665 0.20833333333333331]))
 
 (defn sprague
+  "Creates a 1D fifth-order Sprague interpolator for uniformly spaced data.
+
+  On every interval the interpolant is a polynomial of degree 5 built from the six data points around the interval (three on each side; Sprague, 1880), as used in the CIE 167:2005 recommendation for the interpolation of spectral data. The interpolant passes through all data points and reproduces polynomials of degree 4 exactly on the intervals which have all six points inside the data (that is, not on the first two and the last two intervals).
+
+  Near the ends two synthetic points are added on each side. Their values are computed from the first (last) six data points with fixed coefficients (the CIE boundary rule), which equals `colour.SpragueInterpolator`. The boundary rule is of second order only: on the boundary intervals the interpolant reproduces polynomials of degree 1 exactly, but not a quadratic (on a unit grid the error of x^2 is about 0.1 on the first interval), while the interior intervals converge with the fourth to fifth order.
+
+  Parameters:
+
+  - `xs` (sequence of numbers): nodes, finite and strictly increasing; at least 6 points. The spacing is assumed to be uniform and this is not checked: the spacing of the first and the last interval defines the synthetic points, and nonuniform data gives inaccurate values.
+  - `ys` (sequence of numbers): values, the same length as `xs`.
+
+  Returns a function `f` such that `(f x)` returns the interpolated `double` value at `x`. Outside the domain the polynomial of the first or the last interval is continued (extrapolation, which grows quickly with the distance from the domain; `colour.SpragueInterpolator` raises an error instead).
+
+  Throws `ex-info` (with `:type :invalid-input`, `:method :sprague` and a `:property`) when the lengths differ, there are fewer than 6 points, `xs` contains `NaN` or an infinity, or `xs` is not strictly increasing.
+
+  See also [[fastmath.interpolation.cubic/cubic]], [[fastmath.interpolation.monotone/monotone]]."
   [xs ys]
   (let [ax (m/seq->double-array xs)
+        ay (m/seq->double-array ys)
+        _ (ic/validate-xy! :sprague ax ay {:min-points 6})
         len (alength ax)
         nlen (m/+ len 4)
         last (m/dec len)
@@ -42,11 +61,8 @@
         x1 (Array/aget ax last)
         diff1 (m/- x1 (Array/aget ax (m/dec last)))
         ^doubles nx (double-array nlen)
-        
-        ay (m/seq->double-array ys)
         ytemp (double-array 6)
         ny (double-array nlen)]
-    
     (Array/aset nx 0 (m/- x0 (m/* 2.0 diff0)))
     (Array/aset nx 1 (m/- x0 diff0))
     (Array/aset nx (m/+ 2 len) (m/+ x1 diff1))

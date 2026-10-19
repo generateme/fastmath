@@ -168,17 +168,26 @@
 (defn- goal-comparator [goal] (if (= goal :minimize) m/< m/>))
 
 (defn- generate-points
-  "Evaluates `f` (a function of a sequence) at `N` (at least `4.5 + d log2 d` for `d` dimensions) points of the bounds and returns the points sorted from the best one."
+  "Evaluates `f` (a function of a sequence) at `N` (at least `4.5 + d log2 d` for `d` dimensions) points of the bounds and returns the points with a finite value sorted from the best one.
+
+  At most `1000 N` points are drawn from the generator. When fewer than `N` of them have a finite value, the finite ones are returned; when none has, `ex-info` is thrown (`:type :invalid-input`, `:attempts` and `:N` in the data). The sequence is realized by the call."
   [f bounds goal N jitter rng]
   (let [dim (count bounds)
         lo (map first bounds)
         hi (map second bounds)
         N (long (m/max (m/+ 4.5 (m/* dim (m/log2 dim))) (long N)))
-        gen (r/jittered-sequence-generator (if (m/< dim 15) :r2 :sobol) dim jitter rng)]
-    (->> (if (m/one? dim) (map vector gen) gen)
-         (map (fn [v] (let [p (v/einterpolate lo hi v)] [(f p) p])))
-         (filter (comp m/valid-double? first))
-         (take N)
+        max-attempts (long (m/* 1000 N))
+        gen (r/jittered-sequence-generator (if (m/< dim 15) :r2 :sobol) dim jitter rng)
+        scanned (->> (if (m/one? dim) (map vector gen) gen)
+                     (take max-attempts)
+                     (map (fn [v] (let [p (v/einterpolate lo hi v)] [(f p) p])))
+                     (filter (comp m/valid-double? first))
+                     (take N)
+                     (doall))]
+    (when (empty? scanned)
+      (throw (ex-info (str "The function returned no finite value on the " max-attempts " scanned points (N = " N ")")
+                      {:type :invalid-input :attempts max-attempts :N N :bounds bounds})))
+    (->> scanned
          (sort-by first (goal-comparator goal))
          (map second))))
 
@@ -213,6 +222,8 @@
   Returns the best result of the form of [[minimize]] (`[point value]` or a map). With `:take-last-n` returns a sequence of results sorted from the best one. Returns `nil` (an empty sequence) when all optimization runs failed.
 
   Runs which throw an exception, for example when a limit is exceeded, are skipped. Exceptions of the evaluation of the scanned points, an unknown method and invalid bounds or options throw.
+
+  Scanned points where the function is `NaN` or infinite are dropped, at most `1000 N` points are tried. When fewer than `N` points have a finite value, the optimization starts from the found ones. When there is none, `ex-info` is thrown (`:type :invalid-input`, `:attempts` and `:N` in the data).
 
   See also [[scan-and-minimize]], [[scan-and-maximize]], [[minimize]]."
   [method f {:keys [bounds N n jitter parallel? vector-arg? goal take-last-n stats? rng]
@@ -252,7 +263,7 @@
   - `f` (function): the function to minimize.
   - `opts` (map): `:bounds` (required), the options of the method and the scan options `:N`, `:n`, `:jitter`, `:parallel?`, `:rng`, `:take-last-n`, see [[scan-and-optimize]]. `:goal` is overridden.
 
-  Returns the best result of the form of [[minimize]], or `nil` when all runs failed.
+  Returns the best result of the form of [[minimize]], or `nil` when all runs failed. Points where `f` is not finite are dropped from the scan (fewer than `:N` points are used when there are not enough finite values), and `ex-info` is thrown when `f` is not finite on any scanned point.
 
   See also [[scan-and-maximize]], [[scan-and-optimize]]."
   [method f opts]
@@ -267,7 +278,7 @@
   - `f` (function): the function to maximize.
   - `opts` (map): `:bounds` (required), the options of the method and the scan options `:N`, `:n`, `:jitter`, `:parallel?`, `:rng`, `:take-last-n`, see [[scan-and-optimize]]. `:goal` is overridden.
 
-  Returns the best result of the form of [[maximize]], or `nil` when all runs failed.
+  Returns the best result of the form of [[maximize]], or `nil` when all runs failed. Points where `f` is not finite are dropped from the scan (fewer than `:N` points are used when there are not enough finite values), and `ex-info` is thrown when `f` is not finite on any scanned point.
 
   See also [[scan-and-minimize]], [[scan-and-optimize]]."
   [method f opts]
@@ -395,7 +406,7 @@
   - `:util-fn` - the current utility function,
   - `:util-best` - the maximum of the utility function, the point evaluated in the step.
 
-  Throws `ex-info` for invalid bounds and an unknown `:utility-function-type` or `:optimizer`, and when the maximum of the utility function cannot be found (all runs of the optimizer failed).
+  Throws `ex-info` for invalid bounds and an unknown `:utility-function-type` or `:optimizer`, and when the maximum of the utility function cannot be found (all runs of the optimizer failed). The scan of the utility function drops the points where it is not finite (see [[scan-and-optimize]]); when it is not finite on any scanned point (for example a Gaussian process with `NaN` predictions), `ex-info` is thrown (`:type :invalid-input`) instead of the scan running forever.
 
   See also [[scan-and-maximize]], [[maximize]]."
   [f {:keys [^long warm-up init-points bounds utility-function-type utility-param kernel kscale

@@ -1824,16 +1824,22 @@
 
 ;; https://www.jstatsoft.org/article/view/v102c01
 
-(defn- ir-decode-order [order]
-  (if order
-    (case order
-      :asc 0
-      :desc 0
-      :increasing 0
-      :decreasing 1
-      :non-decreasing 2
-      :non-increasing 3)
-    0))
+(defn- ir-decode-order
+  "Decodes the `order` of isotonic regression to the code of `Monotone`: 0 ascending, 1 descending, 2 and 3 the
+  `:non-decreasing` and `:non-increasing` variants. `nil` is ascending."
+  [order]
+  (case order
+    nil 0
+    :asc 0
+    :increasing 0
+    :desc 1
+    :decreasing 1
+    :non-decreasing 2
+    :non-increasing 3
+    (throw (ex-info (str "Unknown order of isotonic regression: " (pr-str order)
+                         ". Accepted values: nil, :asc, :increasing, :desc, :decreasing, :non-decreasing, :non-increasing.")
+                    {:order order
+                     :accepted [:asc :increasing :desc :decreasing :non-decreasing :non-increasing]}))))
 
 (defn pava
   "Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks variant.

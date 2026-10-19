@@ -1996,79 +1996,41 @@
               (recur (m/inc k) nfrac nsum-term)))
           (recur (m/inc k) nfrac sum-term))))))
 
-(def ^{:private true :const true :tag 'double} SQPI 9.869604401089358)
-(def ^{:private true :const true :tag 'double} SQPI2 19.739208802178716)
-(def ^{:private true :const true :tag 'double} SQPI10 98.69604401089359)
-(def ^{:private true :const true :tag 'double} SQSQPI7 681.863637238017)
-
 (defn- en-expand-origin-general
   ^double [^double v ^double x]
-  (let [omv (m/- 1.0 v)
-        invomv (m// omv)
-        aomv (m/abs omv)
-        -x (m/- x)        
-        gamma-term (m/* (gamma omv) (m/pow x (m/dec v)))
-        ^Vec2 bs (loop [k (long 1)
-                        frac 1.0
-                        blowup (if (m/< aomv 0.5) invomv 0.0)
-                        sum-term (if (m/< aomv 0.5) 0.0 invomv)]                   
-                   (let [nfrac (m/* frac (m// -x k))
-                         den (m/+ k omv)]
-                     (if (m/< (m/abs den) 0.5)
-                       (recur (m/inc k) nfrac (m/+ blowup (m// nfrac den)) sum-term)
-                       (let [nsum-term (m/+ sum-term (m// nfrac den))]
-                         (if (or (m/< (m/abs (m/- nsum-term sum-term))
-                                      (m/* m/MACHINE-EPSILON10 (m/abs sum-term)))
-                                 (m/== k 1000))
-                           (Vec2. blowup sum-term)
-                           (recur (m/inc k) nfrac blowup nsum-term))))))]
-    (if (m/< (m/abs (m/- gamma-term (.x bs))) (m/* 1.0e-3 (m/abs (.x bs))))
-      (let [delta (m/- (m/round v) v)
-            delta2 (m/* delta delta)
-            delta3 (m/* delta2 delta)
-            delta4 (m/* delta3 delta)
-            n (m/long-dec (m/round v))
-            n+ (m/inc n)
-            logx (m/log x)
-            logx2 (m/* logx logx)
-            logx3 (m/* logx2 logx)
-            logx4 (m/* logx3 logx)
-            logx5 (m/* logx4 logx)
-            series1 (m/- (m/- logx)
-                         (m// (m/* logx2 delta) 2.0)
-                         (m// (m/* logx3 delta2) 6.0)
-                         (m// (m/* logx4 delta3) 24.0)
-                         (m// (m/* logx5 delta4) 120.0))
-            psi0 (polygamma 0 n+)
-            psi02 (m/* psi0 psi0)
-            psi03 (m/* psi02 psi0)
-            psi04 (m/* psi03 psi0)
-            psi05 (m/* psi04 psi0)
-            psi1 (polygamma 1 n+)
-            psi13 (m/* 3.0 psi1)
-            psi2 (polygamma 2 n+)
-            psi3 (polygamma 3 n+)
-            psi4 (polygamma 4 n+)
-            series2 (m/+ psi0
-                         (m// (m/* delta (m/+ (m/* 3.0 psi02) SQPI (m/* -3.0 psi1))) 6.0)
-                         (m// (m/* delta2 (m/+ psi03 psi2 (m/* psi0 (m/- SQPI psi13)))) 6.0)
-                         (m// (m/* delta3 (m/+ SQSQPI7 (m/* -15.0 psi3)
-                                               (m/* 15.0 (m/+ psi04 (m/* 4.0 psi0 psi2)
-                                                              (m/* 2.0 psi02 (m/- SQPI psi13))
-                                                              (m/* psi1 (m/- psi13 SQPI2)))))) 360.0)
-                         (m// (m/* delta4 (m/+ (m/* 3.0 psi05) (m/* -30.0 psi1 psi2)
-                                               (m/* SQPI10 psi2) (m/* 3.0 psi4)
-                                               (m/* psi03 (m/- SQPI10 (m/* 30.0 psi1)))
-                                               (m/* 30.0 psi02 psi2)
-                                               (m/* psi0 (m/+ (m/* 45.0 psi1 psi1)
-                                                              (m/* -3.0 SQPI10 psi1)
-                                                              (m/* -15.0 psi3)
-                                                              SQSQPI7)))) 360.0))]
-        (m/- (m/* (m/+ series1 series2)
-                  (en-safe-expfact n x)
-                  (m/pow x (m/- v n 1.0)))
-             (.y bs)))
-      (m/- gamma-term (.x bs) (.y bs)))))
+  ;; En(x) = Gamma(1-v) x^(v-1) - sum_k (-x)^k / (k! (k+1-v)).
+  ;; For v near an integer m >= 1 the term k0 = m-1 has the vanishing denominator
+  ;; delta = m-v and cancels against the Gamma term. With the reflection formula
+  ;; Gamma(1-v) x^(v-1) - (-x)^k0 / (k0! delta) = (-x)^k0 / k0! * expm1(f) / delta,
+  ;; f = lnGamma(1+delta) - delta ln(x) - sum_{j=1}^{k0} ln(1-delta/j),
+  ;; which is evaluated without cancellation for every delta in [-0.5, 0.5].
+  (let [m (m/round v)
+        k0 (m/long-dec m)
+        omv (m/- 1.0 v)
+        -x (m/- x)
+        sum-term (double (loop [k (long 1)
+                                frac 1.0
+                                sum-term (if (m/== k0 0) 0.0 (m// omv))]
+                           (let [nfrac (m/* frac (m// -x k))]
+                             (if (m/== k k0)
+                               (recur (m/inc k) nfrac sum-term)
+                               (let [nsum-term (m/+ sum-term (m// nfrac (m/+ k omv)))]
+                                 (if (or (m/< (m/abs (m/- nsum-term sum-term))
+                                              (m/* m/MACHINE-EPSILON10 (m/abs sum-term)))
+                                         (m/== k 1000))
+                                   nsum-term
+                                   (recur (m/inc k) nfrac nsum-term)))))))]
+    (cond
+      (m/neg? k0) (m/- (m/* (gamma omv) (m/pow x (m/dec v))) sum-term)
+      ;; the singular term x^k0/k0! is negligible, and k0 is beyond the series length
+      (m/> k0 1000) (m/- sum-term)
+      :else (let [delta (m/- m v)
+                  f (double (loop [j (long 1)
+                                   acc (m/- (log-gamma-1p delta) (m/* delta (m/log x)))]
+                              (if (m/> j k0)
+                                acc
+                                (recur (m/inc j) (m/- acc (m/log1p (m/- (m// delta j))))))))]
+              (m/- (m/* (en-safe-expfact k0 x) (m// (m/expm1 f) delta)) sum-term)))))
 
 (defn- en-safe-gamma-term
   ^double [^double v ^double x]
