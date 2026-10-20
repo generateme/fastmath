@@ -2079,12 +2079,10 @@ matches auc-roc"
 ;; :pearson  -> 3*median(y)-2*mean(y)
 ;; :histogram -> rice-rule bins (k=ceiling(2*n^(1/3))=5) + the classical grouped-data mode
 ;;   formula L+h*(fm-f1)/(2fm-f1-f2), matching fastmath's own histogram bin edges/counts
-;; :kde -> fastmath's :nrd bandwidth (Silverman's rule, scale 1.06) uses Apache Commons'
-;;   :legacy/type-6 IQR internally, NOT R's own bw.nrd() (which uses IQR type=7) -- confirmed
-;;   by hand-deriving R's quantile(y, type=6) reproduces fastmath's bandwidth exactly
-;;   (1.1230099004 both ways); this is a genuine, correctly-implemented convention difference,
-;;   not a bug. The KDE argmax-among-data-points logic itself is then verified independently
-;;   via R's density(y, bw=<that confirmed bandwidth>, kernel="gaussian").
+;; :kde -> fastmath's :nrd bandwidth (1.06 * min(sd, IQR/1.34) * n^-0.2) uses the IQR of type 7 as R's
+;;   bw.nrd(): 0.8734521448 both ways. Before the kernel density audit the type-6 IQR of Apache Commons
+;;   gave 1.1230099004. The mode is the same (4.0) for both bandwidths: the KDE argmax-among-data-points
+;;   logic is verified independently via R's density(y, bw=0.8734521448, kernel="gaussian").
 
 (t/deftest mode-estimation-methods-test
   (let [y [2.0 3 3 4 4 4 5 5 6 20]]

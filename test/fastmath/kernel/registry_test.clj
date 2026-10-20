@@ -312,3 +312,48 @@
             :when (str/includes? doc "Parameters:")
             :let [after (second (str/split doc #"Parameters:\n\n" 2))]]
       (is (str/starts-with? (or after "") "  - ") (str (:name (meta var)))))))
+
+(deftest window-registry-test
+  (let [names (set (:window k/kernel-list))]
+    (testing "the registered windows: 61 of the earlier version without :low-sidelobe plus the 15 added in the audit"
+      (is (= 76 (count names)))
+      (is (not (contains? names :low-sidelobe)))
+      (is (every? names [:cosine :kaiser :general-gaussian :flat-top-hp :flat-top-srs :flat-top-bk :hft70 :hft90d
+                         :hft95 :hft116d :hft144d :hft169d :hft196d :hft223d :hft248d])))
+    (testing "every registered window is a function of the same name in fastmath.kernel.window"
+      (doseq [nm names
+              :let [v (ns-resolve 'fastmath.kernel.window (symbol (name nm)))]]
+        (is (some? v) (str nm))))
+    (testing "every window: N = 0 gives (), N = 1 gives (1.0) (symmetric and periodic), N = 8 gives 8 finite numbers"
+      (doseq [nm names
+              symmetric? [true false]
+              :let [opts {:symmetric? symmetric?}
+                    default-1 (k/window nm 1 opts)]]
+        (is (= () (k/window nm 0 opts)) (str nm))
+        (is (= 1 (count default-1)) (str nm))
+        (let [w (k/window nm 8 opts)]
+          (is (= 8 (count w)) (str nm))
+          (is (every? #(Double/isFinite (double %)) w) (str nm)))))
+    (testing "the periodic window is the symmetric window of N + 1 samples without the last one"
+      (doseq [nm [:hann :tukey :kaiser :cosine :hft95 :dolph-chebyshev]]
+        (is (= (take 9 (k/window nm 10)) (k/window nm 9 {:symmetric? false})) (str nm))))
+    (testing "nil :symmetric? is the default"
+      (is (= (k/window :hann 7) (k/window :hann 7 {:symmetric? nil}))))))
+
+(deftest window-validation-test
+  (testing "unknown window: the message lists the valid keys"
+    (let [e (try (k/window :low-sidelobe 8) (catch clojure.lang.ExceptionInfo e e))]
+      (is (= :invalid-input (:type (ex-data e))))
+      (is (= :low-sidelobe (:value (ex-data e))))
+      (is (str/includes? (ex-message e) ":hann"))))
+  (testing "N: an integer >= 0"
+    (doseq [bad [-1 3.5 nil "5" ##NaN ##Inf]]
+      (is (thrown? clojure.lang.ExceptionInfo (k/window :hann bad)) (pr-str bad))
+      (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [n _] (repeat n 1.0)) bad)) (pr-str bad)))
+    (is (= 5 (count (k/window :hann 5.0)))))
+  (testing "a custom window function must return N coefficients, in both modes"
+    (is (= [1 2 3 4] (k/window (fn [n _] (range 1 (inc n))) 4)))
+    (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [_ _] [1.0 2.0 3.0]) 4)))
+    (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [_ _] [1.0 2.0 3.0]) 4 {:symmetric? false})))
+    (is (= (range 1 5) (k/window (fn [n _] (range 1 (inc n))) 4 {:symmetric? false})))
+    (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [_ _] 5) 4)))))

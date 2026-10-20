@@ -395,71 +395,86 @@
 
   Parameters:
 
-  - `kernel` - a keyword naming a kernel registered in [[kernel-list]] under `:kde`, used by the `:nrd-adjust` method and by the cross-validation targets (`:rlcv`, `:lcv`, `:lscv`).
+  - `kernel` - a keyword naming a kernel registered in [[kernel-list]] under `:kde`, or a kernel function (the selectors `:nrd-adjust`, `:sj` and `:sj-dpi` need a registered kernel).
   - `data` - a sequence of numbers to estimate the bandwidth from.
-  - `h` - selects the estimation method, a keyword, one of:
-      - `:nrd` - rule-of-thumb, scaled by `1.06` (Silverman's rule).
-      - `:nrd0` - rule-of-thumb, scaled by `0.9`.
-      - `:nrd-adjust` - `:nrd` further adjusted by a kernel-specific canonical bandwidth factor; not supported for `silverman` and `cauchy` kernels.
-      - `:rlcv` - robust likelihood cross-validation.
-      - `:lcv` - likelihood cross-validation.
+  - `h` - a number (returned as it is) or the keyword of a selector (`nil` means `:nrd`):
+      - `:nrd` - the normal reference rule `1.06 * s * n^-0.2`, `s = min(sd, IQR / 1.34)` with the type 7 quantiles of R.
+      - `:nrd0` - Silverman's rule of thumb `0.9 * s * n^-0.2`.
+      - `:nrd-adjust` - `:nrd` multiplied by the canonical bandwidth factor of the kernel; not supported for `:silverman`, `:cauchy` and custom kernels.
+      - `:sj`, `:sj-dpi` - the Sheather-Jones solve-the-equation and direct plug-in selectors (`bw.SJ` of R) scaled to the kernel.
       - `:lscv` - least squares cross-validation.
+      - `:lcv` - likelihood cross-validation.
+      - `:rlcv` - robust likelihood cross-validation (Wu, 2019).
+  - `opts` (optional map): `:info?` (return a map with `:h`, `:value`, `:at-bound?` and `:status`), `:bounds`, `:grid`, `:bins`, `:rlcv-form`, `:radius`, `:extent`; see [[fastmath.kernel.density/bandwidth]] for the algorithms, the search interval of the cross validation and the defaults.
 
-  Returns the estimated bandwidth as a `double`.
+  Returns the estimated bandwidth as a `double` (a map with `:info?`).
 
-  See also [[kernel-density]], [[kernel-density-ci]] which accept the same set of keywords (or a plain number) as a bandwidth."
-  [kernel data h] (dens/bandwidth kernel data h))
+  Throws `ex-info` (`:type :invalid-input`) for invalid data (empty, not finite, a single point for the selectors), an unknown kernel or selector and invalid options.
+
+  See also [[kernel-density]], [[kernel-density-ci]]."
+  ([kernel data h] (dens/bandwidth kernel data h))
+  ([kernel data h opts] (dens/bandwidth kernel data h opts)))
+
+(defn- density-params
+  "The map of parameters of the density functions: a number or a keyword is a bandwidth."
+  [bandwidth]
+  (if (or (number? bandwidth) (keyword? bandwidth))
+    {:bandwidth bandwidth}
+    bandwidth))
 
 (defn kernel-density
   "Returns a 1d kernel density estimation (KDE) for `data`.
 
-  A kernel density estimate is a smoothed histogram: it places a scaled copy of `kernel` at every data point and sums the contributions, weighted by a bandwidth that controls how much each point spreads out.
+  A kernel density estimate is a smoothed histogram: it places a scaled copy of `kernel` at every data point and sums the contributions, weighted by a bandwidth that controls how much each point spreads out. The evaluation is exact: every data point within the radius of the kernel contributes (all points for `:cauchy` and for a custom kernel without `:radius`).
 
   Parameters:
 
   - `kernel` - a keyword naming a kernel registered in [[kernel-list]] under `:kde`, or a custom kernel function accepting and returning a `double`.
-  - `data` - a sequence of numbers to estimate the density from.
-  - `bandwidth` (optional) - either a plain number (used directly as `h`), or a map accepted as `params`:
-      - `:bandwidth` - the bandwidth `h`, a number or one of the keywords accepted by [[bandwidth]] (`:nrd`, `:nrd0`, `:nrd-adjust`, `:rlcv`, `:lcv`, `:lscv`). Default: `:nrd`.
-      - `:binned?` - whether `data` should be pre-binned before evaluation to speed up estimation on large datasets. When `true`, bin width is `h` divided by `5`; when a number, that number is used as the divisor instead. Default: `false`.
+  - `data` - a sequence of numbers to estimate the density from (finite, not empty).
+  - `bandwidth` (optional) - a number or a keyword of a selector (used as the bandwidth `h`), or a map `params`:
+      - `:bandwidth` - the bandwidth `h`, a number or one of the keywords accepted by [[bandwidth]] (`:nrd`, `:nrd0`, `:nrd-adjust`, `:sj`, `:sj-dpi`, `:rlcv`, `:lcv`, `:lscv`). Default: `:nrd`.
+      - `:bandwidth-options` - a map of the options of [[bandwidth]] (`:bounds`, `:grid`, `:bins`, `:rlcv-form`).
+      - `:binned?` - `false` (default) for the exact sum. `true` or a number: the data are replaced by a linear binning on a regular grid with the spacing `h / divisor` (`5` for `true`, the number otherwise); a finite number greater than 0.
+      - `:radius`, `:extent` - for a custom kernel: the distance beyond which the kernel is ignored (default `##Inf`) and beyond which the density is zero for the support `:mn`, `:mx` (default `5.0`).
   - `info?` (optional, default `false`) - when `true`, returns the estimator together with its fitting details instead of the bare function.
 
-  Returns a function of a single `double` returning the estimated density at that point as a `double`. When `info?` is `true`, returns a map instead:
+  Returns a function of a single `double` returning the density estimate at that point. When `info?` is `true`, returns a map instead:
 
   - `:kde` - the density function described above.
   - `:factor` - the normalizing factor, equal to `1/(n*h)`.
   - `:h` - the bandwidth actually used.
-  - `:mn` and `:mx` - the inferred support extent of the estimator (data range expanded by the kernel radius).
+  - `:mn` and `:mx` - the support of the estimator (data range expanded by `1.01 * h * extent` of the kernel).
+
+  Throws `ex-info` (`:type :invalid-input`) for invalid input.
 
   See also [[bandwidth]] (bandwidth estimation alone), [[kernel-density-ci]] (density with confidence intervals)."
   ([kernel data] (kernel-density kernel data {:bandwidth :nrd}))
   ([kernel data bandwidth] (kernel-density kernel data bandwidth false))
   ([kernel data bandwidth info?]
-   (let [h (if (number? bandwidth) {:bandwidth bandwidth} bandwidth)
+   (let [params (density-params bandwidth)
          f (if info? dens/kernel-density+ dens/kernel-density)]
-     (f kernel data h))))
+     (f kernel data params))))
 
 (defn kernel-density-ci
   "Returns a 1d KDE for `data` that also reports pointwise asymptotic confidence intervals.
 
-  Uses the standard asymptotic normal approximation of the kde variance (see section 6.1.5 of http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html): for a density estimate `f(x)` obtained with normalizing factor `1/(n*h)`, the variance is approximated as `k2 * f(x) / (n*h)`, where `k2` is the kernel roughness (integral of the squared kernel), and confidence bounds are derived from the normal quantile at the requested `alpha`.
+  Uses the asymptotic normal approximation of the kde variance (see section 6.1.5 of http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html): for a density estimate `f(x)` obtained with normalizing factor `1/(n*h)`, the variance is approximated as `k2 * f(x) / (n*h)`, where `k2` is the kernel roughness (integral of the squared kernel), and confidence bounds are derived from the normal quantile at the requested `alpha`. The bias of the estimate is ignored and the lower bound is not clipped at zero.
 
   Parameters:
 
   - `kernel` - a keyword naming a kernel registered in [[kernel-list]] under `:kde` (a custom kernel function is not accepted, since its roughness constant `k2` must be looked up).
   - `data` - a sequence of numbers to estimate the density from.
-  - `bandwidth-or-params` (optional) - either a plain number (used directly as bandwidth `h`), or a map with the same keys as [[kernel-density]] plus:
-      - `:alpha` - the confidence level parameter, the resulting interval has coverage `1 - alpha`. Default: `0.05`.
+  - `bandwidth-or-params` (optional) - a number or a keyword of a selector (the bandwidth), or a map with the same keys as [[kernel-density]] plus:
+      - `:alpha` - the confidence level parameter, a number in `(0, 1)`, the resulting interval has coverage `1 - alpha`. Default: `0.05`.
 
   Returns a function of a single `double` `x` returning a 3-element vector `[fx lower upper]`, where `fx` is the estimated density at `x`, and `lower`/`upper` are the corresponding confidence bounds.
 
-  Throws an assertion error when `kernel` is not one of the kernels known to [[kernel-list]] `:kde`.
+  Throws `ex-info` (`:type :invalid-input`) when `kernel` is not one of the kernels registered under `:kde`, for `alpha` outside of `(0, 1)` and for invalid input of [[kernel-density]].
 
   See also [[kernel-density]], [[bandwidth]]."
   ([kernel data] (kernel-density-ci kernel data {:bandwidth :nrd}))
   ([kernel data bandwidth-or-params]
-   (let [p (if (number? bandwidth-or-params) {:bandwidth bandwidth-or-params} bandwidth-or-params)]
-     (dens/kernel-density-ci kernel data p))))
+   (dens/kernel-density-ci kernel data (density-params bandwidth-or-params))))
 
 ;; window
 
@@ -504,7 +519,6 @@
    :nutall-3rd win/nutall-3rd
    :nutall-5th win/nutall-5th
    :mottaghi-kashtiban-shayesteh win/mottaghi-kashtiban-shayesteh
-   :low-sidelobe win/low-sidelobe
    :exponential win/exponential
    :hanning-poisson win/hanning-poisson
    :gaussian win/gaussian
@@ -524,31 +538,69 @@
    :shayesteh-kashtiban win/shayesteh-kashtiban
    :kaiser-bessel-derived win/kaiser-bessel-derived
    :vorbis win/vorbis
+   :cosine win/cosine
+   :kaiser win/kaiser
+   :general-gaussian win/general-gaussian
    :flat-top win/flat-top
-   :flat-top-3 win/flat-top-3})
+   :flat-top-3 win/flat-top-3
+   :flat-top-hp win/flat-top-hp
+   :flat-top-srs win/flat-top-srs
+   :flat-top-bk win/flat-top-bk
+   :hft70 win/hft70
+   :hft90d win/hft90d
+   :hft95 win/hft95
+   :hft116d win/hft116d
+   :hft144d win/hft144d
+   :hft169d win/hft169d
+   :hft196d win/hft196d
+   :hft223d win/hft223d
+   :hft248d win/hft248d})
+
+(defn- window-length!
+  "Returns `N` as a long or throws `ex-info` unless it is an integer valued number `>= 0`."
+  ^long [N]
+  (if (and (number? N)
+           (let [d (double N)]
+             (and (m/valid-double? d) (m/== d (Math/floor d)) (m/<= 0.0 d 2.147483647E9))))
+    (long (double N))
+    (throw (ex-info (str "window, N: must be an integer >= 0, got: " (pr-str N))
+                    {:type :invalid-input :function :window :property :N :value N :expected "integer >= 0"}))))
+
+(defn- window-result!
+  "Returns the coefficients `res` of a custom window function or throws `ex-info` when their number is not `expected`."
+  [res expected]
+  (let [res (if (nil? res) () res)]
+    (when-not (and (sequential? res) (m/== (count res) (long expected)))
+      (throw (ex-info (str "window, custom function: expected a sequence of " expected " coefficients, got "
+                           (if (sequential? res) (str (count res) " coefficients") (pr-str res)))
+                      {:type :invalid-input :function :window :property :window-name
+                       :value res :expected (str "a sequence of " expected " numbers")})))
+    res))
 
 (defn window
   "Returns tapering window coefficients, `N` numbers shaped to fade toward the edges.
 
-  Windows (also called taper functions) are used to reduce spectral leakage before a Fourier transform, to design FIR filters, or to smooth signal edges.
+  Windows (also called taper functions) are used to reduce spectral leakage before a Fourier transform, to design FIR filters, or to smooth signal edges. The windows, their formulas, the scale and the equivalents in scipy and Octave are documented in [[fastmath.kernel.window]].
 
   Parameters:
 
-  - `window-name` - a keyword naming one of the windows registered in [[kernel-list]] under `:window`, or a custom function `(fn [N options] ...)` returning a sequence of `N` coefficients.
-  - `N` - the number of samples to generate (default: `256`).
+  - `window-name` - a keyword naming one of the windows registered in [[kernel-list]] under `:window`, or a custom function `(fn [N options] ...)` returning a sequence of exactly `N` coefficients.
+  - `N` - the number of samples, an integer `>= 0` (default: `256`). `N = 0` gives `()` and `N = 1` gives `(1.0)` for the default `:normalize?` (the symmetric and the periodic window).
   - `options` (optional map), common to every window:
-      - `:symmetric?` - `true` (default) for a symmetric window (suitable for FIR filter design), `false` for a periodic window (suitable for spectral analysis / FFT-based methods). A periodic window of size `N` is obtained by sampling a symmetric window of size `N+1` and dropping the last coefficient.
-      - `:normalize?` - controls how a continuous window is rescaled after sampling. `true` (the default for most windows) rescales it to a maximum value of `1.0`; `false` leaves the raw sampled values (whose integral over the window is `1.0`); other accepted values are `:L1`, `:L2`, `:LInf`, `:N`, or a plain number to divide by (see `fastmath.kernel.window/normalize-coefficients`). Exceptions to the `true` default are `:rectangular05` and `:kaiser-bessel-derived`, which default to `false`.
+      - `:symmetric?` - `true` (default) for a symmetric window (suitable for FIR filter design), `false` for a periodic window (suitable for spectral analysis / FFT-based methods). A periodic window of size `N` is obtained by sampling a symmetric window of size `N+1` and dropping the last coefficient. `nil` is the default.
+      - `:normalize?` - controls the scale of the window. `true` (the default for most windows) divides by the value of the window function at the middle (continuous model windows: for an even `N` the maximum is below `1.0`, as in scipy) or by the maximum (windows defined on the index), so that the maximum is `1.0`; `false` leaves the raw values (the integral of the continuous function over the window is `1.0` and the mean of the Doerry discrete windows is `1.0`); other values are `:LInf` (alias `:Linf`), `:L1`, `:L2`, `:N` and a finite non-zero number to divide by, see [[fastmath.kernel.window/normalize-coefficients]]. `nil` is the default of the window, any other value throws. The default is `false` for `:rectangular05`, `:kaiser-bessel-derived`, `:vorbis` and `:cosine`.
 
-  Some windows accept additional `options` keys beyond `:symmetric?`/`:normalize?`:
+  Some windows accept additional `options` keys; a value out of the documented range (given in [[fastmath.kernel.window]]) or a `NaN` throws `ex-info`, `nil` is the default:
 
   - `:triangular` - `:shift` (long, default `2`).
   - `:parzen` - `:discrete?` (default `true`).
   - `:b-spline` - `:order` (long, default `3`).
   - `:connes`, `:exponential`, `:hanning-poisson`, `:gaussian`, `:cauchy`, `:kaiser-bessel`, `:kaiser-bessel-derived` - `:alpha` shape parameter (default `1.0`).
+  - `:kaiser` - `:beta` shape parameter of the Kaiser window (default `pi`, which is `:kaiser-bessel` with `:alpha 1.0`).
+  - `:general-gaussian` - `:p` shape (default `1.5`), `:sig` standard deviation relative to the window length (default `0.25`).
   - `:parzen-algebraic` - `:gamma` (default `1.0`), `:u` (default `3.0`).
-  - `:singla-singh` - `:order` (double, default `1.0`).
-  - `:lanczos` - `:L` (double, default `3.0`).
+  - `:singla-singh` - `:order` (default `1.0`).
+  - `:lanczos` - `:L` (double, default `3.0`; `1.0` is the window of scipy).
   - `:raised-cosine` - `:alpha` (default `0.5`).
   - `:webster-hamming` - `:v` (default `1.0`).
   - `:power-of-cosine` - `:m` (default `1.0`).
@@ -556,29 +608,34 @@
   - `:parzen-cosine` - `:gamma` (default `1.0`), `:m` (default `2.0`).
   - `:trapezoid` - `:alpha` (default `0.25`).
   - `:tukey` - `:alpha` (default `0.5`).
-  - `:blackman-harris-family` - `:coeffs` vector of coefficients (default `[0.5 0.5]`).
+  - `:blackman-harris-family` - `:coeffs` vector of the amplitudes of the cosine terms (default `[0.5 0.5]`); the window is not clipped at zero, so a negative lobe is kept.
   - `:parzen-exponential`, `:parzen-geometric` - `:alpha` (default `1.0`), `:r` (default `1.0`).
   - `:dolph-chebyshev`, `:saramaki`, `:legendre` - `:level` target sidelobe attenuation in dB (default `-50.0`).
   - `:taylor` - `:level` (default `-50.0`), `:n` number of nearly constant-level sidelobes, a long (default `4`).
   - `:cosh`, `:avci-nacaroglu`, `:knab`, `:bessel-I1` - `:alpha` shape parameter (default `2.0`).
   - `:ultraspherical` - `:level` (default `-50.0`), `:alpha` (default `2.0`).
 
-  The remaining registered windows (e.g. `:rectangular`, `:welch`, `:sinc`, `:fejer`, `:hamming`, `:hann`, `:bohman`, `:blackman` and its variants, the `:nutall-*`/`:blackman-*` family, `:vorbis`, `:flat-top`, `:flat-top-3`, and others) only accept the common `:symmetric?`/`:normalize?` options.
+  The remaining registered windows only accept the common options: `:rectangular`, `:welch`, `:sinc`, `:fejer`, `:de-la-vallee-poussin`, `:hamming`, `:hamming-exact`, `:hann`, `:bohman`, `:bartlett-hann`, `:cosine`, `:vorbis`, `:blackman` and `:blackman-exact`, the `:blackman-harris*`, `:nutall-*`, `:blackman-nutall` and `:mottaghi-kashtiban-shayesteh`, `:shayesteh-kashtiban`, and the flat-top windows `:flat-top`, `:flat-top-3`, `:flat-top-hp`, `:flat-top-srs`, `:flat-top-bk` (Octave flattopwin), `:hft70`, `:hft90d`, `:hft95`, `:hft116d`, `:hft144d`, `:hft169d`, `:hft196d`, `:hft223d`, `:hft248d`.
 
   Returns a sequence of `N` `double` window coefficients.
 
-  Throws `ex-info` when `window-name` is neither a registered keyword nor a function.
+  Throws `ex-info` (`:type :invalid-input`) when `window-name` is neither a registered keyword (the message lists the valid keys) nor a function, when `N` is not an integer `>= 0`, when a custom window function does not return `N` coefficients, and for an invalid option value.
 
   See also [[kernel-list]] for the full, up-to-date list of registered window names."
   ([window-name] (window window-name 256))
-  ([window-name ^long N] (window window-name N nil))
-  ([window-name ^long N {:keys [symmetric?]
-                         :or {symmetric? true}
-                         :as options}]
-   (if-let [wind (or (windows window-name)
-                     (when (fn? window-name) window-name))]
-     (if symmetric? (wind N options) (butlast (wind (m/inc N) options)))
-     (throw (ex-info "Unknown window." {:window-name window-name})))))
+  ([window-name N] (window window-name N nil))
+  ([window-name N options]
+   (let [wind (or (windows window-name)
+                  (when (fn? window-name) window-name))
+         _ (when-not wind
+             (throw (ex-info (str "Unknown window " (pr-str window-name) ", expected a function or one of " (vec (sort (keys windows))))
+                             {:type :invalid-input :function :window :property :window-name
+                              :value window-name :expected "a window function or one of the keys of kernel-list :window"})))
+         N (window-length! N)
+         symmetric? (if (nil? (:symmetric? options)) true (boolean (:symmetric? options)))]
+     (if (or symmetric? (m/<= N 1))
+       (window-result! (wind N options) N)
+       (take N (window-result! (wind (m/inc N) options) (m/inc N)))))))
 
 ;;
 

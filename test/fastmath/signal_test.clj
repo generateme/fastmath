@@ -235,7 +235,13 @@
   (t/testing "default window: Gaussian of length min(N, 256)"
     (t/is (= 3 (count (:freqs (sut/stft (range 4))))) "N=4, window 4")
     (t/is (= 129 (count (:freqs (sut/stft (range 1000))))) "window 256")
-    (t/is (= [[2.0]] (:spectrum (sut/stft [2.0] {:method :amplitude}))) "one sample, window [1.0]")))
+    (t/is (= [[2.0]] (:spectrum (sut/stft [2.0] {:method :amplitude}))) "one sample, window [1.0]"))
+  (t/testing "default window is (k/window :gaussian (min N 256)): the Gaussian with the default :alpha 1.0, unchanged by the window audit"
+    (let [x (map #(Math/sin (* 0.7 %)) (range 40))
+          explicit (fn [n] (sut/stft x {:window (vec (k/window :gaussian n))}))]
+      (t/is (= (explicit 40) (sut/stft x)))
+      (t/is (= (sut/stft (range 300) {:window (vec (k/window :gaussian 256))}) (sut/stft (range 300)))
+            "window of 256 samples for N > 256"))))
 
 ;; convolution and filtering
 

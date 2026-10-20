@@ -529,7 +529,12 @@
                   :linear linear-interp/linear
                   :cubic cubic-interp/cubic
                   (if (fn? interpolator) interpolator linear-interp/linear))]
-     [(let [i (intpol xs ys)] (fn [^double x] (m/constrain (double (i x)) 0.0 1.0)))
+     [(let [i (intpol xs ys)]
+        ;; outside of the integrated range the interpolator extrapolates, the cdf is 0 below and 1 above
+        (fn [^double x] (cond
+                          (m/<= x mn) 0.0
+                          (m/>= x mx) 1.0
+                          :else (m/constrain (double (i x)) 0.0 1.0))))
       (intpol ys xs)])))
 
 (defn- find-first-non-zero
