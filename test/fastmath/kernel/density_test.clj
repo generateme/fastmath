@@ -8,6 +8,7 @@
             [fastmath.core :as m]
             [fastmath.kernel :as k]
             [fastmath.kernel.density :as d]
+            [fastmath.calculus.quadrature :as quad]
             [fastmath.stats :as stats]))
 
 (def ^:private reference
@@ -142,14 +143,18 @@
 
 (deftest kernel-density-properties-test
   (let [data [0.0 0.5 0.6 3.0 3.1 9.0]]
-    (testing "the density is a probability density: the integral over [mn, mx] is 1 up to the cut-off mass"
+    (testing "the density is a probability density: the integral over [mn, mx] is 1 up to the mass of the kernels cut off
+              at the extent (about 3e-4 for cauchy); Gauss-Kronrod between the kinks of the kernels"
       (doseq [kernel kernels
               :let [{:keys [kde mn mx]} (d/kernel-density+ kernel data {:bandwidth 0.7})
-                    n 400000
-                    dx (/ (- mx mn) n)
-                    integral (* dx (+ (* 0.5 (+ (kde mn) (kde mx)))
-                                      (reduce + (map #(kde (+ mn (* % dx))) (range 1 n)))))]]
-        (is (<= (- 1.0 (if (= kernel :cauchy) 4.0e-4 1.0e-4)) integral (+ 1.0 1.0e-4)) (str kernel " " integral))))
+                    breaks (->> (mapcat (fn [x] [(- x 0.7) x (+ x 0.7)]) data)
+                                (concat [mn mx])
+                                (filter #(<= mn % mx))
+                                sort
+                                dedupe)
+                    integral (reduce + (map (fn [[a b]] (quad/gk-quadrature kde a b)) (partition 2 1 breaks)))]]
+        (let [tol (case kernel :cauchy 4.0e-4 :wigner 1.0e-7 1.0e-9)] ; wigner: Gauss-Kronrod at the square root edges, 3.6e-9 measured
+          (is (<= (- 1.0 tol) integral (+ 1.0 tol)) (str kernel " " integral)))))
     (testing "mn and mx: the data extended by 1.01 * h * extent"
       (doseq [kernel kernels
               :let [{:keys [mn mx factor h]} (d/kernel-density+ kernel data {:bandwidth 0.7})

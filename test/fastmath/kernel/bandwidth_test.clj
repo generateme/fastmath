@@ -271,17 +271,34 @@
       (is (< (rel-error (d/bandwidth (fn [t] (d/gaussian t)) x :lscv) (d/bandwidth :gaussian x :lscv)) 1.0e-6)))))
 
 (deftest cv-degenerate-test
-  (testing "lcv of a compact kernel when a point is isolated: the criterion is -Inf for every bandwidth, reported"
-    (let [x (concat (repeatedly 99 #(* 0.01 (rand))) [100.0])
-          info (d/bandwidth :epanechnikov x :lcv {:info? true :bounds [0.01 0.05]})]
+  (testing "lcv of a compact kernel when a point is isolated: the criterion is -Inf for every bandwidth.
+            The map of :info? reports it, the other calls throw instead of returning the lower bound"
+    (let [x (concat (map #(* 0.01 (/ % 99.0)) (range 100)) [100.0])
+          info (d/bandwidth :epanechnikov x :lcv {:info? true})]
       (is (= :degenerate (:status info)))
       (is (true? (:at-bound? info)))
-      (is (pos? (:h info)))))
+      (is (pos? (:h info)))
+      (is (invalid-input? :bandwidth #(d/bandwidth :epanechnikov x :lcv)))
+      (is (invalid-input? :bandwidth #(d/kernel-density :epanechnikov x {:bandwidth :lcv})))))
   (testing "heavy ties: lscv drives the bandwidth to the lower end of the search interval (KB-09)"
     (let [{:keys [data lscv]} (first (filter #(= :ties-integers-n100 (:name %)) (:cv-gaussian-battery @bandwidth-reference)))
           info (d/bandwidth :gaussian data :lscv {:info? true})]
       (is (true? (:at-bound? info)))
       (is (true? (:at-bound lscv))))))
+
+(deftest sj-bins-test
+  (let [x (:data (first (filter #(= "lognorm100" (:name %)) (:cases @bandwidth-reference))))]
+    (testing "nil bins = missing bins = 1000"
+      (is (= (d/bandwidth :gaussian x :sj) (d/bandwidth :gaussian x :sj {:bins nil}) (d/bandwidth :gaussian x :sj {:bins 1000})))
+      (is (= (d/bandwidth :gaussian x :sj-dpi) (d/bandwidth :gaussian x :sj-dpi {:bins nil}))))
+    (testing "bins is an integer in [2, 10000]: the bounds are accepted, the neighbours throw"
+      (doseq [bins [2 3 500 10000 100.0]]
+        (is (pos? (d/bandwidth :gaussian x :sj {:bins bins})) (str bins)))
+      (doseq [bins [1 0 -5 10001 10.7 ##NaN ##Inf "a" :x [10]]]
+        (is (invalid-input? :bins #(d/bandwidth :gaussian x :sj {:bins bins})) (pr-str bins))
+        (is (invalid-input? :bins #(d/bandwidth :gaussian x :sj-dpi {:bins bins})) (pr-str bins))))
+    (testing "bins is not used by the other selectors"
+      (is (= (d/bandwidth :gaussian x :nrd) (d/bandwidth :gaussian x :nrd {:bins "a"}))))))
 
 (deftest ns-publics-test
   (testing "the targets of the old optimizer are not public any more (D4)"

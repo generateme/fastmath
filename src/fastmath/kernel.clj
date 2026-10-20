@@ -569,10 +569,14 @@
 (defn- window-result!
   "Returns the coefficients `res` of a custom window function or throws `ex-info` when their number is not `expected`."
   [res expected]
-  (let [res (if (nil? res) () res)]
-    (when-not (and (sequential? res) (m/== (count res) (long expected)))
+  (let [res (if (nil? res) () res)
+        len (long (cond
+                    (sequential? res) (count res)
+                    (.isArray ^Class (class res)) (java.lang.reflect.Array/getLength res)
+                    :else -1))]
+    (when-not (m/== len (long expected))
       (throw (ex-info (str "window, custom function: expected a sequence of " expected " coefficients, got "
-                           (if (sequential? res) (str (count res) " coefficients") (pr-str res)))
+                           (if (m/neg? len) (pr-str res) (str len " coefficients")))
                       {:type :invalid-input :function :window :property :window-name
                        :value res :expected (str "a sequence of " expected " numbers")})))
     res))

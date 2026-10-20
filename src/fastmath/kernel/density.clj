@@ -509,6 +509,20 @@
 
 (def ^{:private true :const true :tag 'double} SJ-DELMAX 1000.0)
 
+(def ^{:private true :const true :tag 'long} SJ-MAX-BINS 10000)
+
+(defn- check-bins!
+  "Returns the number of bins of `:sj` and `:sj-dpi` as a long: `nil` is the default `1000`, otherwise an integer valued number in `[2, 10000]` (the cost of the pair counts is quadratic in the number of bins)."
+  ^long [bins]
+  (cond
+    (nil? bins) 1000
+    (and (number? bins)
+         (let [d (double bins)]
+           (and (m/valid-double? d) (m/== d (m/floor d)) (m/<= 2.0 d (double SJ-MAX-BINS)))))
+    (long (double bins))
+    :else (invalid-input! :bandwidth :bins (str "must be an integer in [2, " SJ-MAX-BINS "]") bins
+                          (str "integer in [2, " SJ-MAX-BINS "]"))))
+
 (defn- sj-pair-counts
   "Binned pair counts of the sorted `data`: returns `[d counts]` with the bin width `d` and the `bins` counts of pairs
   by the distance in bins (the `bw_pair_cnts` of R: exact pairs for `n <= bins / 2`, pairs of bin counts otherwise)."
@@ -597,8 +611,11 @@
             fc1 (if swap? fb fc)
             tol-act (m/+ (m/* 2.0 2.220446049250313e-16 (m/abs b1)) (m/* 0.5 tol))
             new-step (m/* 0.5 (m/- c1 b1))]
-        (if (or (m/<= (m/abs new-step) tol-act) (m/zero? fb1) (m/> iter 1000))
-          b1
+        (cond
+          (or (m/<= (m/abs new-step) tol-act) (m/zero? fb1)) b1
+          (m/> iter 1000) (invalid-input! :bandwidth :data "the root finding of the Sheather-Jones equation did not converge" iter
+                                          "a converging root finding")
+          :else
           (let [interpolate? (and (m/>= (m/abs prev-step) tol-act) (m/> (m/abs fa1) (m/abs fb1)))
                 cb (m/- c1 b1)
                 linear? (m/== a1 c1)
@@ -830,14 +847,18 @@
                    :nrd (direct (nrd kdata 1.06))
                    :nrd0 (direct (nrd kdata 0.9))
                    :nrd-adjust (direct (m/* (nrd kdata 1.06) (kernel-scale kdata :nrd-adjust)))
-                   :sj (direct (m/* (sj kdata :ste (long (get opts :bins 1000))) (kernel-scale kdata :sj)))
-                   :sj-dpi (direct (m/* (sj kdata :dpi (long (get opts :bins 1000))) (kernel-scale kdata :sj-dpi)))
+                   :sj (direct (m/* (sj kdata :ste (check-bins! (:bins opts))) (kernel-scale kdata :sj)))
+                   :sj-dpi (direct (m/* (sj kdata :dpi (check-bins! (:bins opts))) (kernel-scale kdata :sj-dpi)))
                    :rlcv (cv kdata :rlcv opts)
                    :lcv (cv kdata :lcv opts)
                    :lscv (cv kdata :lscv opts)
                    (invalid-input! function :bandwidth (str "unknown bandwidth selector, expected a number or one of " bandwidth-keywords)
                                    h "a number or a selector keyword"))]
         (check-bandwidth! function (:h info))
+        (when (and (= :degenerate (:status info)) (not (:info? opts)))
+          (invalid-input! function :bandwidth
+                          "the criterion is not finite for any bandwidth of the search interval, use :info? to get the bound, or another selector or :bounds"
+                          h "a selector with a finite criterion"))
         info)
       :else (invalid-input! function :bandwidth (str "must be a number or one of " bandwidth-keywords) h
                             "a number or a selector keyword"))))
@@ -858,17 +879,17 @@
       - `:sj` - the Sheather-Jones solve-the-equation plug-in selector, the gaussian kernel result of `bw.SJ(method = 'ste')` in R (binned pair counts, the root found by `uniroot` with the same tolerance) multiplied by the canonical bandwidth factor of the kernel. It is the recommended selector for multimodal or non gaussian data. Throws when the sample is constant or has a zero interquartile range with too sparse data, as R.
       - `:sj-dpi` - the direct plug-in variant, `bw.SJ(method = 'dpi')`.
       - `:lscv` - least squares cross validation: minimises the integral of `f^2` minus twice the mean of the leave-one-out density.
-      - `:lcv` - likelihood cross validation: maximises the mean log of the leave-one-out density (a data point with a non positive leave-one-out density makes the criterion `-Inf`; it is `-Inf` for every bandwidth of a compact kernel when a data point is isolated, then the result is the lower bound with status `:degenerate`).
+      - `:lcv` - likelihood cross validation: maximises the mean log of the leave-one-out density (a data point with a non positive leave-one-out density makes the criterion `-Inf`; it is `-Inf` for every bandwidth of a compact kernel when a data point is isolated, then the selector throws `ex-info`, or with `:info?` returns the lower bound of the search interval with status `:degenerate`).
       - `:rlcv` - robust likelihood cross validation of Wu (*Journal of Business and Economic Statistics* 37(4), 2019): the likelihood criterion with the logarithm replaced by a linear function below `a_n = sqrt(ln n) / (sqrt(2) n)` and the bias term `b*(h)` the integral of `f` for `f >= a_n` and of `f^2 / (2 a_n)` below it.
   - `opts` (optional map):
       - `:info?` - when `true`, return the map described below instead of the number. Default: `false`.
       - `:bounds` - the cross validation search interval, a pair `[lo hi]` of factors of the rule of thumb `s`. Default: `[0.01 5.0]`.
       - `:grid` - the number of log spaced points of the first search stage, at least 3. Default: `60`, `30` for more than 5000 points.
-      - `:bins` - the number of bins of `:sj` and `:sj-dpi`. Default: `1000`.
+      - `:bins` - the number of bins of `:sj` and `:sj-dpi`, an integer in `[2, 10000]`. Default: `1000`.
       - `:rlcv-form` - the bias term of `:rlcv`: `:printed` (the formula as printed in Wu 2019) or `:continuous`. The printed `b*` jumps by `a_n / 2` at `f = a_n`, the continuous form uses `f - a_n / 2` there, which is the one that follows from the definition of the paper. Default: `:printed`.
       - `:radius`, `:extent` - for a custom kernel function: the distance beyond which the kernel is ignored in the sum (default `##Inf`: every point) and beyond which the density is treated as zero (default `5.0`).
 
-  The cross validation selectors standardise the data, so the result is equivariant to a shift and a scale of the data, search the criterion on a deterministic grid, refine the best grid point with Brent's method and cost `O(n^2)` evaluations of the kernel for each bandwidth tried (the `:binned?` option is ignored); the integral terms use a grid with a step of at most `h / 40`. When the best point is a bound of the search interval the bandwidth may be outside of it: see `:at-bound?`.
+  The cross validation selectors standardise the data, so the result is equivariant to a shift and a scale of the data, search the criterion on a deterministic grid, refine the best grid point with Brent's method and cost `O(n^2)` evaluations of the kernel for each bandwidth tried (the `:binned?` option is ignored). Measured for the gaussian kernel and `n` points (default search, one core, including the JIT warm-up): `n = 1000` takes 0.5 s (`:lscv`), 0.6 s (`:lcv`, `:rlcv`); `n = 5000` takes 3.6 s, 8.3 s and 4.7 s; `n = 10000` takes 8 s, 25 s and 16 s. A kernel which sums every point (`:cauchy`, a custom kernel without `:radius`) is slower: `n = 1000` takes 10 s for `:lscv` against 0.14 s for `:epanechnikov`. The integral terms use a grid with a step of at most `h / 40` over the range of the data extended by `min(extent, 100) h`, so for `:cauchy` the tail beyond `100 h` is left out. `:sj` and `:sj-dpi` need `O(bins^2)` operations (below 0.1 s). When the best point is a bound of the search interval the bandwidth may be outside of it: see `:at-bound?`.
 
   Returns the bandwidth as a double. With `:info?` returns a map with `:h`, `:value` (the value of the criterion at `h` in standardised units, `##NaN` for the closed form selectors), `:at-bound?` (`true` when `h` is within `1.0e-6` relative of an end of the search interval) and `:status` (`:closed-form`, `:ok` or `:degenerate`).
 

@@ -356,4 +356,9 @@
     (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [_ _] [1.0 2.0 3.0]) 4)))
     (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [_ _] [1.0 2.0 3.0]) 4 {:symmetric? false})))
     (is (= (range 1 5) (k/window (fn [n _] (range 1 (inc n))) 4 {:symmetric? false})))
-    (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [_ _] 5) 4)))))
+    (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [_ _] 5) 4))))
+  (testing "a custom window function may return an array"
+    (let [f (fn [n _] (double-array (range 1 (inc n))))]
+      (is (= 4 (alength ^doubles (k/window f 4))))
+      (is (= [1.0 2.0 3.0] (vec (k/window f 3 {:symmetric? false}))))
+      (is (thrown? clojure.lang.ExceptionInfo (k/window (fn [_ _] (double-array 3)) 4))))))

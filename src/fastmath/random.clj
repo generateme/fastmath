@@ -2834,9 +2834,9 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
   - `data` (sequence of doubles): sample used to estimate the density. Default: `[-1 0 1]`.
   - `kde` (keyword or function): kernel used for the density estimation, either a keyword naming a kernel (eg. `:epanechnikov`, `:gaussian`) or a custom kernel function; see [[fastmath.kernel.density/kernel-density]]. Default: `:epanechnikov`.
-  - `bandwidth` (double or keyword): bandwidth used by the kernel density estimator; either a fixed positive number or one of `:nrd`, `:nrd0`, `:nrd-adjust`, `:rlcv`, `:lcv`, `:lscv` to infer it from `data`. Default: inferred automatically.
+  - `bandwidth` (double or keyword): bandwidth used by the kernel density estimator; either a fixed positive number or one of `:nrd`, `:nrd0`, `:nrd-adjust`, `:sj`, `:sj-dpi`, `:rlcv`, `:lcv`, `:lscv` to infer it from `data` (see [[fastmath.kernel.density/bandwidth]]; the cross validation selectors are slow for a large `data`). Default: `:nrd`.
   - `steps` (long): number of subintervals used when numerically integrating the density into a `cdf`/`icdf` pair, see [[integrate-pdf]]. Default: `5000`.
-  - `interpolator` (keyword or function): interpolation method used between the integrated `cdf`/`icdf` points; one of `:linear`, `:cubic`, `:monotone`, or a custom function. Default: `:linear`.
+  - `interpolator` (keyword or function): interpolation method used between the integrated `cdf`/`icdf` points; one of `:linear`, `:cubic`, `:monotone`, or a custom function. Default: `:monotone`.
   - `rng`: random number generator used for sampling.
 
   Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
