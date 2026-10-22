@@ -1646,9 +1646,9 @@
     10.0 0.0  0.000000000000 1.250000000000
     5.0 -3.0 -3.568248232306 3.934271219315
     20.0 4.0  4.158243910847 1.597896466793)
-  (t/testing "mean is NaN for df<=1 and variance is NaN for df<=2 (moments genuinely do not exist)"
+  (t/testing "mean is NaN for df<=1, variance is +Inf for 1<df<=2 (divergent) and NaN for df<=1 (undefined)"
     (t/is (Double/isNaN (sut/mean (sut/distribution :t-noncentral {:df 1.0 :ncp 1.5}))))
-    (t/is (Double/isNaN (sut/variance (sut/distribution :t-noncentral {:df 2.0 :ncp 1.5}))))
+    (t/is (= Double/POSITIVE_INFINITY (sut/variance (sut/distribution :t-noncentral {:df 2.0 :ncp 1.5}))))
     (t/is (m/delta-eq 2.658680776358 (sut/mean (sut/distribution :t-noncentral {:df 2.0 :ncp 1.5})) 1.0e-6))))
 
 ;; reference values from R's base `stats` package: dbeta/pbeta/qbeta(x, shape1, shape2, ncp).
@@ -2088,10 +2088,12 @@
     1.0 1.0     0.3  1 0.175000000000 1  0.825000000000
     1.0 1.0     0.3  3 0.043750000000 3  0.956250000000
     1.0 1.0     0.3  8 0.001367187500 8  0.998632812500
-    2.0 0.000009 0.5 0 0.567667641618 0  0.567667641618
-    2.0 0.000009 0.5 1 0.135335283237 1  0.703002924855
-    2.0 0.000009 0.5 3 0.090223522158 3  0.928561730249
-    2.0 0.000009 0.5 8 0.000429635820 8  0.999881276336
+    ;; sigma = 9e-6 rows: the exact negative binomial pmf (mpmath, 40 digits); R's gamlss uses the Poisson limit
+    ;; there (sigma < 1e-4), which differs by 1.2e-6 (intended change of nbi/nbii: the Poisson fallback only for sigma * mu < 1e-8)
+    2.0 0.000009 0.5 0 0.567668859632 0  0.567668859632
+    2.0 0.000009 0.5 1 0.135335283229 1  0.703004142862
+    2.0 0.000009 0.5 3 0.090222710156 3  0.928560918251
+    2.0 0.000009 0.5 8 0.000429689955 8  0.999881253134
     3.0 0.5     0.1  0 0.244000000000 0  0.244000000000
     3.0 0.5     0.1  2 0.155520000000 2  0.572320000000
     3.0 0.5     0.1  5 0.067184640000 5  0.857232640000
@@ -2181,9 +2183,10 @@
     1.0 1.0     0.3  3 0.087500000000 3  0.912500000000
     1.0 1.0     0.3  8 0.002734375000 8  0.997265625000
     2.0 0.000009 0.5 0 0.500000000000 0  0.500000000000
-    2.0 0.000009 0.5 1 0.156517642750 1  0.656517642750
-    2.0 0.000009 0.5 3 0.104345095166 3  0.917380380666
-    2.0 0.000009 0.5 8 0.000496881406 8  0.999862693988
+    ;; sigma = 9e-6 rows: the exact negative binomial pmf (mpmath, 40 digits), see zinbi
+    2.0 0.000009 0.5 1 0.156518083701 1  0.656518083701
+    2.0 0.000009 0.5 3 0.104344450042 3  0.917379208807
+    2.0 0.000009 0.5 8 0.000496945414 8  0.999862666768
     3.0 0.5     0.1  0 0.100000000000 0  0.100000000000
     3.0 0.5     0.1  2 0.185142857143 2  0.490857142857
     3.0 0.5     0.1  5 0.079981714286 5  0.830038857143
@@ -2248,7 +2251,7 @@
         (and (m/delta-eq mean-v (sut/mean dist))
              (m/delta-eq var-v (sut/variance dist) 1.0e-4)))
     1.0 1.0     0.3  1.400000000000 2.240000000000
-    2.0 0.000009 0.5 1.156517642750 2.132019870258
+    2.0 0.000009 0.5 1.156520901030 2.132042925940
     3.0 0.5     0.1  3.214285714286 7.346938775510
     5.0 2.0     0.4  4.294987437107 50.272881908802
     0.5 0.8     0.05 1.383464584375 0.714608454092))
@@ -4323,11 +4326,13 @@
       (t/is (= 4 (count (distinct (map rng-state (sut/child-rngs (sut/rng :jdk 3) 4))))))
       (t/is (= 4 (count (set (map #(System/identityHashCode %) a)))))
       (t/is (not-any? #(identical? % (first b)) a))))
-  (t/testing "the class of a plain generator is kept, a synced one gives JDK children"
+  (t/testing "the class of a plain generator is kept, a synced one gives synced children of the same algorithm"
     (doseq [k sut/rngs-list
             :let [parent (sut/rng k 1)]]
       (t/is (every? #(= (class parent) (class %)) (sut/child-rngs parent 2)) (str k)))
-    (t/is (every? #(instance? org.apache.commons.math3.random.JDKRandomGenerator %)
+    (t/is (every? #(and (instance? fastmath.java.SyncedRandomGenerator %)
+                        (instance? org.apache.commons.math3.random.MersenneTwister
+                                   (.getDelegate ^fastmath.java.SyncedRandomGenerator %)))
                   (sut/child-rngs (sut/synced-rng :mersenne 1) 2))))
   (t/testing "lazy arity draws one seed per realized element only"
     (let [parent (sut/rng :isaac 11)
@@ -4392,10 +4397,14 @@
                       [0.5 0.5 0.25 -0.5])
         c (* jitter m/SQRTPI d0 f)
         g (#'sut/random-generators :default dimensions rng)
-        j (map-indexed (fn [i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))) g)]
+        j (map-indexed (fn [i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))) g)
+        ;; the jittered :ball is wrapped periodically into [-1,1) instead of folded with frac
+        wrap (if (= :ball seq-generator)
+               (fn [x] (- (clojure.core/mod (+ (double x) 1.0) 2.0) 1.0))
+               m/frac)]
     (map (if (= 1 dimensions)
-           (fn [v vj] (m/frac (+ v vj)))
-           (fn [v vj] (v/fmap (v/add v vj) m/frac)))
+           (fn [v vj] (wrap (+ v vj)))
+           (fn [v vj] (v/fmap (v/add v vj) wrap)))
          s j)))
 
 (t/deftest jittered-sequence-generator-oracle
@@ -4412,12 +4421,13 @@
     (t/is (= old-points new-points) label)
     (t/is (= (map type old-points) (map type new-points)) (str label ": the same types"))
     (t/is (= (sut/drandom rng-old) (sut/drandom rng-new)) (str label ": the same draws were made")))
-  (t/testing "points of 5 and more dimensions are plain vectors of doubles in [0,1)"
+  (t/testing "points of 5 and more dimensions are plain vectors of doubles in [0,1) ([-1,1) for :ball)"
     (doseq [g [:r2 :sobol :halton :default :ball]
-            :let [points (take 20 (sut/jittered-sequence-generator g 6 1.0 (sut/rng :jdk 4)))]]
+            :let [points (take 20 (sut/jittered-sequence-generator g 6 1.0 (sut/rng :jdk 4)))
+                  lo (if (= g :ball) -1.0 0.0)]]
       (t/is (every? vector? points) (str g))
       (t/is (every? #(= 6 (count %)) points) (str g))
-      (t/is (every? (fn [p] (every? #(and (double? %) (<= 0.0 % 1.0)) p)) points) (str g))))
+      (t/is (every? (fn [p] (every? #(and (double? %) (<= lo % 1.0)) p)) points) (str g))))
   (t/testing "one point is drawn at a time: 6 numbers for the base and 6 for the jitter"
     (let [rng-a (sut/rng :jdk 7)
           rng-b (sut/rng :jdk 7)]

@@ -455,8 +455,9 @@
     (t/is (m/nan? (sut/robust-stddev (mtcars :mpg) 0.5)) "p = 0.5 is 0/0")
     (t/is (= 0.0 (sut/robust-stddev (mtcars :mpg) 0.0)) "range / infinity")
     (t/is (= 0.0 (sut/robust-stddev (mtcars :mpg) 1.0)))
-    (t/is (thrown? org.apache.commons.math3.exception.OutOfRangeException (sut/robust-stddev (mtcars :mpg) 1.5)))
-    (t/is (thrown? org.apache.commons.math3.exception.OutOfRangeException (sut/robust-stddev (mtcars :mpg) -0.1))))
+    ;; fastmath.random/icdf rejects p outside [0,1] with ex-info (Random Audit WP 5.3), it was a Commons OutOfRangeException
+    (t/is (thrown? clojure.lang.ExceptionInfo (sut/robust-stddev (mtcars :mpg) 1.5)))
+    (t/is (thrown? clojure.lang.ExceptionInfo (sut/robust-stddev (mtcars :mpg) -0.1))))
   (t/testing "unknown method"
     (t/is (thrown? IllegalArgumentException (sut/robust-stddev (mtcars :mpg) :foo)))
     (t/is (thrown? IllegalArgumentException (sut/robust-stddev (mtcars :mpg) nil)))
@@ -799,6 +800,31 @@
     (t/is (m/delta= manual-stat (:stat res)))
     (t/is (= 4 (:df res)))
     (t/is (m/delta= 200.0 (:n res)))))
+
+;; the bootstrap confidence interval of power-divergence-test resamples counts from a multinomial distribution
+;; with n trials (Random Audit 8.1: the option was passed as `:trials`, which the constructor ignores, so every
+;; resample had the default 10 trials and the interval did not shrink like 1/sqrt(n)).
+;; For p = 0.5 the width of the interval of a proportion is about 2 * 1.96 * sqrt(0.25 / n): 0.196 for n = 100,
+;; 0.062 for n = 1000, ratio sqrt(10) = 3.16. Before the fix the measured ratio was 10.0 (widths 0.06 and 0.006:
+;; the 10 trial counts divided by n). power-divergence-test has no rng option, so the multinomial gets a seeded rng.
+
+(defn- pdt-ci-widths
+  "Widths of the bootstrap confidence intervals (2000 resamples, seeded) of the categories for `counts` and p = 0.5."
+  [counts]
+  (let [distribution r/distribution]
+    (with-redefs [r/distribution (fn [k opts] (distribution k (assoc opts :rng (r/rng :mersenne 2024))))]
+      (->> (sut/power-divergence-test counts {:p [0.5 0.5] :bootstrap-samples 2000})
+           :confidence-interval
+           (mapv (fn [[^double lo ^double hi]] (- hi lo)))))))
+
+(t/deftest power-divergence-bootstrap-ci-scales-with-n-test
+  (let [small (pdt-ci-widths [60 40])
+        large (pdt-ci-widths [600 400])]
+    (t/is (= small (pdt-ci-widths [60 40])) "seeded: reproducible")
+    (doseq [[s l] (map vector small large)]
+      (t/is (<= 2.4 (/ s l) 4.0) "width ratio of n = 100 and n = 1000 is about sqrt(10)"))
+    (t/is (every? #(m/delta= 0.196 % 0.03) small) "n = 100: 2 * 1.96 * sqrt(0.25 / 100)")
+    (t/is (every? #(m/delta= 0.062 % 0.01) large) "n = 1000: 2 * 1.96 * sqrt(0.25 / 1000)")))
 
 ;; pairwise-regression correlation-based effect sizes
 ;; reference values from R: lm(g1 ~ g2); manual SSreg/SStot/MSE formulas for omega2/epsilon2;

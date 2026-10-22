@@ -13,7 +13,6 @@ public final class NoiseConfig {
     public final static int NOISE_VALUE = 0;
     public final static int NOISE_GRADIENT = 1;
     public final static int NOISE_SIMPLEX = 2;
-    public final static int NOISE_CELLULAR = 3;
     
     public final static double[] GRAD1dX = {2.0, -2.0};
     
@@ -42,34 +41,39 @@ public final class NoiseConfig {
     public boolean normalize;
 
     public double fractalBounding;
-    public double rev_octaves;
+    /** Normaliser of ridged multifractal noise: 1 / sum of spectral weights. */
+    public double ridgedBounding;
+    /** Largest absolute coordinate accepted by the fractal generators: 2^30 / max(1, lacunarity)^(octaves-1). */
+    public double maxCoord;
 
     public int[] perm, perm12;
     public double[] valueLUT;
-    public double[] cell2dX, cell2dY;
     public double[] spectralWeights;
 
-    public NoiseConfig(int seed, int noise_type, int interpolate_type, int octaves, double lacunarity, double gain, boolean normalize) {
+    public NoiseConfig(int seed, int noise_type, int interpolate_type, int octaves_, double lacunarity, double gain, boolean normalize) {
         this.seed = seed;
         this.noise_type = noise_type;
         this.interpolate_type = interpolate_type;
-        this.octaves = Math.max(octaves,1);
+        this.octaves = Math.max(octaves_, 1);
         this.lacunarity = lacunarity;
         this.gain = gain;
         this.normalize = normalize;
         
         calcFractalBounding();
-        rev_octaves = 1.0 / octaves;
 
         perm = new int[512];
         perm12 = new int[512];
 
-        spectralWeights = new double[octaves];
+        spectralWeights = new double[this.octaves];
         double frequency = 1.0;
-        for(int i=0;i<octaves;i++) {
+        double weightsSum = 0.0;
+        for(int i=0;i<this.octaves;i++) {
             spectralWeights[i] = 1.0/frequency;
+            weightsSum += spectralWeights[i];
             frequency *= lacunarity;
         }
+        ridgedBounding = 1.0/weightsSum;
+        maxCoord = 1073741824.0 / Math.pow(Math.max(1.0, lacunarity), this.octaves - 1);
         
         Random rng = new Random(seed);
 
@@ -87,8 +91,6 @@ public final class NoiseConfig {
         }
 
         valueLUT = makeLUT(rng, 0.5);
-        cell2dX = makeLUT(rng, 1.0);
-        cell2dY = makeLUT(rng, 1.0);
     }
 
     private double[] makeLUT(Random rng, double power) {

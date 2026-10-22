@@ -165,7 +165,7 @@
           *   Other keywords are passed to `fastmath.random/->seq` for sampling
               from a distribution (only relevant if a `:model` is used or built).
       *   `:rng` (random number generator, optional): An instance of a random number
-          generator (see `fastmath.random/rng`). A default JVM RNG is used if not provided.
+          generator (see `fastmath.random/rng`). A new `:jdk` RNG is used if not provided.
       *   `:smoothing` (keyword, optional): Applies smoothing to the bootstrap process.
           *   `:kde`: Uses Kernel Density Estimation to smooth the empirical distribution
               before sampling. Requires specifying `:kernel` (default `:gaussian`)
@@ -226,7 +226,7 @@
                      :or {samples 500}
                      :as params}]
    (let [{:keys [data model] :as input} (if (map? input) input {:data input})
-         params (assoc params :rng (or rng (r/rng :jvm)))
+         params (assoc params :rng (or rng (r/rng :jdk)))
          multi? (or multi? (= :multi dimensions))] ;; ensure we have rng before model creation
      (if-not (or model (#{:jackknife :jackknife+} method))
        (bootstrap (assoc input :model (if multi?
@@ -236,6 +236,7 @@
                     :jackknife (jackknife data)
                     :jackknife+ (jackknife+ data)
                     (let [data0 data
+                          rng (r/ensure-rng rng) ;; a model given without `:rng` has no rng yet
                           data (if multi? data [data])
                           models (if multi? model [model])
                           sizes (if size (repeat (count data) size) (map count data))
@@ -243,7 +244,7 @@
                                 (if (r/distribution? model)
                                   (if antithetic?
                                     (bootstrap-antithetic rng model method samples size)
-                                    (repeatedly samples #(r/->seq model size method)))
+                                    (repeatedly samples #(r/->seq model size method rng)))
                                   (repeatedly samples #(repeatedly size model))))]
                       (as-> (map gen models sizes) xsss                        
                         (if multi?

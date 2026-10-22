@@ -6677,7 +6677,7 @@
 (defn- pdt-bootstrap-ci
   [{:keys [estimate ^long n ^double alpha ci-sides]} samples]
   (let [alpha (if (#{:both :two-sided} ci-sides) alpha (m/* alpha 2.0))
-        d (r/distribution :multinomial {:trials n :ps (if (map? estimate) (vals estimate) estimate)})
+        d (r/distribution :multinomial {:n n :ps (if (map? estimate) (vals estimate) estimate)})
         rands (apply map (comp m/seq->double-array vector) (r/->seq d samples))
         vs (sides-case ci-sides
                        (let [qs [(m// alpha 2.0) (m/- 1.0 (m// alpha 2.0))]]

@@ -7,6 +7,7 @@ public final class RidgedMulti {
     }
     
     public static double noise(NoiseConfig cfg, double x) {
+        if (!(Math.abs(x) <= cfg.maxCoord)) return Double.NaN;
         double sum = 0.0;
         double weight = 1.0;
 
@@ -21,10 +22,11 @@ public final class RidgedMulti {
             xx *= cfg.lacunarity;
         }
 
-        return cfg.normalize ? sum * cfg.fractalBounding : (sum * cfg.fractalBounding * 2.0 - 1.0);
+        return cfg.normalize ? sum * cfg.ridgedBounding : (sum * cfg.ridgedBounding * 2.0 - 1.0);
     }
 
     public static double noise(NoiseConfig cfg, double x, double y) {
+        if (!(Math.abs(x) <= cfg.maxCoord && Math.abs(y) <= cfg.maxCoord)) return Double.NaN;
         double sum = 0.0;
         double weight = 1.0;
         
@@ -41,10 +43,11 @@ public final class RidgedMulti {
             yy *= cfg.lacunarity;
         }
 
-        return cfg.normalize ? sum * cfg.fractalBounding : (sum * cfg.fractalBounding * 2.0 - 1.0);
+        return cfg.normalize ? sum * cfg.ridgedBounding : (sum * cfg.ridgedBounding * 2.0 - 1.0);
     }
 
     public static double noise(NoiseConfig cfg, double x, double y, double z) {
+        if (!(Math.abs(x) <= cfg.maxCoord && Math.abs(y) <= cfg.maxCoord && Math.abs(z) <= cfg.maxCoord)) return Double.NaN;
         double sum = 0.0;
         double weight = 1.0;
         
@@ -63,7 +66,7 @@ public final class RidgedMulti {
             zz *= cfg.lacunarity;
         }
 
-        return cfg.normalize ? sum * cfg.fractalBounding : (sum * cfg.fractalBounding * 2.0 - 1.0);
+        return cfg.normalize ? sum * cfg.ridgedBounding : (sum * cfg.ridgedBounding * 2.0 - 1.0);
     }
  
 }

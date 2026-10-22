@@ -11,6 +11,7 @@ public final class Noise {
     }
 
     public static double noise(NoiseConfig cfg, double x) {
+        if (!(Math.abs(x) <= cfg.maxCoord)) return Double.NaN;
         return cfg.normalize ? (value(cfg, 0, x) + 1.0) * 0.5 : value(cfg, 0, x);
     }
     
@@ -24,6 +25,7 @@ public final class Noise {
     }
 
     public static double noise(NoiseConfig cfg, double x, double y) {
+        if (!(Math.abs(x) <= cfg.maxCoord && Math.abs(y) <= cfg.maxCoord)) return Double.NaN;
         return cfg.normalize ? (value(cfg, 0, x, y) + 1.0) * 0.5 : value(cfg, 0, x, y);
     }
 
@@ -37,6 +39,7 @@ public final class Noise {
     }
 
     public static double noise(NoiseConfig cfg, double x, double y, double z) {
+        if (!(Math.abs(x) <= cfg.maxCoord && Math.abs(y) <= cfg.maxCoord && Math.abs(z) <= cfg.maxCoord)) return Double.NaN;
         return cfg.normalize ? (value(cfg, 0, x, y, z) + 1.0) * 0.5 : value(cfg, 0, x, y, z);
     }
 }

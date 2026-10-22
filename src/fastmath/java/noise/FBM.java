@@ -2,6 +2,7 @@ package fastmath.java.noise;
 
 public final class FBM {
     public final static double noise(NoiseConfig cfg, double x) {
+        if (!(Math.abs(x) <= cfg.maxCoord)) return Double.NaN;
         double sum = Noise.value(cfg, cfg.perm[0], x);
         double amp = 1.0;
 
@@ -19,6 +20,7 @@ public final class FBM {
     }
 
     public final static double noise(NoiseConfig cfg, double x, double y) {
+        if (!(Math.abs(x) <= cfg.maxCoord && Math.abs(y) <= cfg.maxCoord)) return Double.NaN;
         double sum = Noise.value(cfg, cfg.perm[0], x, y);
         double amp = 1.0;
 
@@ -38,6 +40,7 @@ public final class FBM {
     }
 
     public final static double noise(NoiseConfig cfg, double x, double y, double z) {
+        if (!(Math.abs(x) <= cfg.maxCoord && Math.abs(y) <= cfg.maxCoord && Math.abs(z) <= cfg.maxCoord)) return Double.NaN;
         double sum = Noise.value(cfg, cfg.perm[0], x, y, z);
         double amp = 1.0;
 

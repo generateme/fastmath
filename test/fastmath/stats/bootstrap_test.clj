@@ -33,14 +33,14 @@
 
 (t/deftest bootstrap-nonparametric-test
   (t/testing "default: :samples 500, size == input count, every value drawn from original data"
-    (let [{:keys [samples data model]} (sut/bootstrap aircondit nil {:samples 50 :rng (r/rng :jvm 42)})]
+    (let [{:keys [samples data model]} (sut/bootstrap aircondit nil {:samples 50 :rng (r/rng :jdk 42)})]
       (t/is (= 50 (count samples)))
       (t/is (every? #(= 12 (count %)) samples))
       (t/is (every? (fn [s] (every? aircondit-set s)) samples))
       (t/is (= aircondit data))
       (t/is (r/distribution? model))))
   (t/testing ":size forces a different sample size"
-    (let [{:keys [samples]} (sut/bootstrap aircondit nil {:samples 10 :size 5 :rng (r/rng :jvm 42)})]
+    (let [{:keys [samples]} (sut/bootstrap aircondit nil {:samples 10 :size 5 :rng (r/rng :jdk 42)})]
       (t/is (every? #(= 5 (count %)) samples)))))
 
 (t/deftest bootstrap-jackknife-method-test
@@ -55,31 +55,31 @@
 
 (t/deftest bootstrap-smoothing-test
   (t/testing ":gaussian smoothing adds noise -- resampled values need not be in the original data"
-    (let [{:keys [samples]} (sut/bootstrap aircondit nil {:samples 20 :smoothing :gaussian :rng (r/rng :jvm 1)})]
+    (let [{:keys [samples]} (sut/bootstrap aircondit nil {:samples 20 :smoothing :gaussian :rng (r/rng :jdk 1)})]
       (t/is (every? #(= 12 (count %)) samples))
       (t/is (not (every? (fn [s] (every? aircondit-set s)) samples)))))
   (t/testing ":kde smoothing builds a continuous model -- resampled values need not be in the original data"
-    (let [{:keys [samples]} (sut/bootstrap aircondit nil {:samples 20 :smoothing :kde :rng (r/rng :jvm 1)})]
+    (let [{:keys [samples]} (sut/bootstrap aircondit nil {:samples 20 :smoothing :kde :rng (r/rng :jdk 1)})]
       (t/is (every? #(= 12 (count %)) samples))
       (t/is (not (every? (fn [s] (every? aircondit-set s)) samples))))))
 
 (t/deftest bootstrap-distribution-test
   (t/testing ":integer-discrete-distribution for integer data"
     (let [idata [1 2 3 4 5 6 7 8]
-          {:keys [samples]} (sut/bootstrap idata nil {:samples 10 :distribution :integer-discrete-distribution :rng (r/rng :jvm 1)})]
+          {:keys [samples]} (sut/bootstrap idata nil {:samples 10 :distribution :integer-discrete-distribution :rng (r/rng :jdk 1)})]
       (t/is (every? #(= 8 (count %)) samples))
       (t/is (every? (fn [s] (every? (set idata) s)) samples))))
   (t/testing ":categorical-distribution for non-numeric data, also the auto-selected default"
     (let [cdata [:a :b :c :a :b]
-          explicit (sut/bootstrap cdata nil {:samples 10 :distribution :categorical-distribution :rng (r/rng :jvm 1)})
-          auto (sut/bootstrap cdata nil {:samples 10 :rng (r/rng :jvm 1)})]
+          explicit (sut/bootstrap cdata nil {:samples 10 :distribution :categorical-distribution :rng (r/rng :jdk 1)})
+          auto (sut/bootstrap cdata nil {:samples 10 :rng (r/rng :jdk 1)})]
       (t/is (= (:samples explicit) (:samples auto)) "same seed, same result -> confirms auto-dispatch to categorical")
       (t/is (every? (fn [s] (every? (set cdata) s)) (:samples explicit))))))
 
 (t/deftest bootstrap-parametric-test
   (t/testing "explicit :model, any fastmath.random distribution"
     (let [model (r/distribution :exponential {:mean (stats/mean aircondit)})
-          {:keys [samples data model]} (sut/bootstrap {:data aircondit :model model} nil {:samples 10 :rng (r/rng :jvm 3)})]
+          {:keys [samples data model]} (sut/bootstrap {:data aircondit :model model} nil {:samples 10 :rng (r/rng :jdk 3)})]
       (t/is (= 10 (count samples)))
       (t/is (every? #(= 12 (count %)) samples))
       (t/is (= aircondit data))
@@ -91,7 +91,7 @@
           g1 [26 30.4 15.8 19.7 15 21.4]
           g0-set (set (map double g0))
           g1-set (set (map double g1))
-          {:keys [samples]} (sut/bootstrap [g0 g1] nil {:dimensions :multi :samples 8 :rng (r/rng :jvm 1)})]
+          {:keys [samples]} (sut/bootstrap [g0 g1] nil {:dimensions :multi :samples 8 :rng (r/rng :jdk 1)})]
       (t/is (= 8 (count samples)))
       (t/is (every? (fn [s] (= [5 6] (map count s))) samples))
       (t/is (every? (fn [s] (every? g0-set (first s))) samples))
@@ -101,20 +101,68 @@
   (t/testing ":antithetic? true still yields the requested number/size of samples (parametric only)"
     (let [model (r/distribution :exponential {:mean (stats/mean aircondit)})
           {:keys [samples]} (sut/bootstrap {:data aircondit :model model} nil
-                                            {:samples 7 :antithetic? true :rng (r/rng :jvm 5)})]
+                                            {:samples 7 :antithetic? true :rng (r/rng :jdk 5)})]
       (t/is (= 7 (count samples)))
       (t/is (every? #(= 12 (count %)) samples)))))
 
+;; Random Audit 8.2: the sampling methods of `->seq` drew from the shared default-rng (or an unseeded generator) when the
+;; source was a distribution, so a seeded `:rng` did not make `bootstrap` reproducible; a model without `:rng` plus
+;; `:antithetic? true` crashed on a `nil` rng.
+
+(def ^:private sampling-methods [:uniform :stratified :systematic :antithetic :r2 :sobol :halton])
+
+(defn- boot-samples
+  "Samples of a seeded bootstrap as vectors, `input` is the data or a map with `:data` and `:model`."
+  [input seed params]
+  (mapv vec (:samples (sut/bootstrap input nil (assoc params :samples 6 :size 8 :rng (r/rng :mersenne seed))))))
+
+(t/deftest bootstrap-sampling-methods-reproducible-test
+  (let [model (r/distribution :exponential {:mean 50.0})]
+    (doseq [method (cons nil sampling-methods)]
+      (t/testing (str "method " method)
+        (t/testing "model built from the data"
+          (let [a (boot-samples aircondit 11 {:method method})]
+            (t/is (= a (boot-samples aircondit 11 {:method method})) "equal seeded rngs")
+            ;; the jitter of :r2 :sobol :halton is too small to change the values of a 12-point discrete model
+            (when-not (#{:r2 :sobol :halton} method)
+              (t/is (not= a (boot-samples aircondit 12 {:method method})) "different seeds differ"))
+            (t/is (every? #(= 8 (count %)) a))))
+        ;; without a method the model samples with its own rng, which :rng does not seed
+        (when method
+          (t/testing "explicit model without its own rng"
+            (let [input {:data aircondit :model model}
+                  a (boot-samples input 11 {:method method})]
+              (t/is (= a (boot-samples input 11 {:method method})) "equal seeded rngs")
+              (t/is (every? #(= 8 (count %)) a)))))
+        (t/testing "a model with its own rng does not break the reproducibility through :rng"
+          (let [input #(hash-map :data aircondit :model (r/distribution :exponential {:mean 50.0 :rng (r/rng :mersenne 1)}))]
+            (t/is (= (boot-samples (input) 11 {:method method}) (boot-samples (input) 11 {:method method})))))))))
+
+(t/deftest bootstrap-antithetic-without-rng-test
+  (let [model (r/distribution :exponential {:mean (stats/mean aircondit)})]
+    (doseq [method (cons nil sampling-methods)]
+      (t/testing (str "method " method)
+        (let [{:keys [samples]} (sut/bootstrap {:data aircondit :model model} nil
+                                               {:samples 6 :antithetic? true :method method})]
+          (t/is (= 6 (count samples)))
+          (t/is (every? #(= 12 (count %)) samples)))))
+    (t/testing "antithetic pairs: the uniforms of a pair add to 1, so the icdf values are the model's icdf of (u, 1 - u)"
+      (let [rng (r/rng :mersenne 3)
+            {:keys [samples]} (sut/bootstrap {:data aircondit :model model} nil
+                                             {:samples 2 :size 5 :antithetic? true :method :uniform :rng rng})
+            [a b] (map vec samples)]
+        (t/is (every? true? (map (fn [x y] (m/delta-eq (r/cdf model x) (- 1.0 (r/cdf model y)) 1.0e-8)) a b)))))))
+
 (t/deftest bootstrap-include-test
   (t/testing ":include? true adds the original dataset as one of the returned samples"
-    (let [{:keys [samples]} (sut/bootstrap aircondit nil {:samples 3 :include? true :rng (r/rng :jvm 1)})]
+    (let [{:keys [samples]} (sut/bootstrap aircondit nil {:samples 3 :include? true :rng (r/rng :jdk 1)})]
       (t/is (= 4 (count samples)))
       (t/is (some #(= aircondit (vec %)) samples)))))
 
 (t/deftest bootstrap-statistic-test
   (t/testing "when a statistic is given, bootstrap delegates to bootstrap-stats"
     (let [{:keys [t0 ts mean median variance stddev bias sem]}
-          (sut/bootstrap aircondit stats/mean {:samples 200 :rng (r/rng :jvm 7)})
+          (sut/bootstrap aircondit stats/mean {:samples 200 :rng (r/rng :jdk 7)})
           ats (double-array ts)]
       (t/is (m/delta-eq t0 (stats/mean aircondit)))
       (t/is (= 200 (count ts)))
@@ -147,7 +195,7 @@
 ;; Normal: (34.2, 182.0); Basic: (25.6, 170.1); Percentile: (46.1, 190.6)
 
 (def ^:private aircondit-boot20k
-  (delay (sut/bootstrap aircondit stats/mean {:samples 20000 :rng (r/rng :jvm 123)})))
+  (delay (sut/bootstrap aircondit stats/mean {:samples 20000 :rng (r/rng :jdk 123)})))
 
 (t/deftest ci-normal-test
   (let [[lo hi t0] (sut/ci-normal @aircondit-boot20k)]
@@ -217,7 +265,7 @@
 ;;   BCa (acc=-0.003847763633842666, fastmath's own skewness(ts,:skew)/-6): (48.54447, 198.25057)
 
 (def ^:private aircondit-boot500
-  (delay (sut/bootstrap aircondit stats/mean {:samples 500 :rng (r/rng :jvm 321)})))
+  (delay (sut/bootstrap aircondit stats/mean {:samples 500 :rng (r/rng :jdk 321)})))
 
 (t/deftest ci-bc-test
   (let [[lo hi t0] (sut/ci-bc @aircondit-boot500)]
@@ -248,7 +296,7 @@
     (let [g0 [21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8]
           g1 [26 30.4 15.8 19.7 15 21.4 15.5 30.4 21.5 32.4 27.3]
           rom (fn [[a b]] (- (stats/mean b) (stats/mean a)))
-          bs (sut/bootstrap [g0 g1] rom {:dimensions :multi :rng (r/rng :jvm 1)})]
+          bs (sut/bootstrap [g0 g1] rom {:dimensions :multi :rng (r/rng :jdk 1)})]
       (t/is (contains? bs :data) "sanity: :data is present, this is the path that used to crash")
       (t/is (= (sut/ci-bca bs) (sut/ci-bca (dissoc bs :data)))))))
 
