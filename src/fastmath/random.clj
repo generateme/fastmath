@@ -1535,7 +1535,7 @@ An unknown key (also `nil` or a string) throws `IllegalArgumentException` (`No m
 
 Not every key supports every protocol function; see the individual functions ([[cdf]], [[ccdf]], [[icdf]], [[mean]], [[variance]], [[lower-bound]], [[means]] ...) for the details. In short: the multivariate keys (`:multi-normal`, `:dirichlet`, `:multinomial`) have no `icdf`, no `mean`, `variance` and bounds (they throw) and no `cdf` and `ccdf`, except for `:multinomial`, whose `cdf` is the joint cumulative probability `P(X_1 <= x_1, ..., X_k <= x_k)` (`ccdf` is `1 - cdf`), but they have `means` and `covariance`; the univariate keys have no `means` and `covariance`; `:categorical` has no bounds and gives `NaN` as `mean` and `variance`; `:anderson-darling`, `:anderson-darling-quick`, `:kolmogorov-smirnov`, `:kolmogorov-smirnov+`, `:kolmogorov-smirnov-quick` and `:watson-g` have no `mean` and `variance`; `set-seed` is not supported by any distribution (use [[set-seed!]]).
 
-Discrete distributions on the integers and a non-integer argument: the Apache Commons Math keys (`:poisson`, `:binomial`, `:bernoulli`, `:geometric`, `:pascal`, `:hypergeometric`, `:zipf`, `:uniform-int`) take the integer part of the argument (`pdf` at `2.5` is `pdf` at `2`); the keys implemented in this library (`:negative-binomial`, `:nbi`, `:nbii`, `:logarithmic`, `:beta-binomial`, `:bb`, `:zero-inflated-*`, `:zero-adjusted-*`, `:integer-discrete`, the noncentral hypergeometric ones) return `0.0` for `pdf` at a non-integer; `cdf` floors the argument for both kinds (`cdf` at `1.999` is `cdf` at `1`), `NaN` gives `NaN`. [[uniform-int]] with the default `upper` has a negative `pdf` (see there).
+Discrete distributions on the integers and a non-integer argument: `pdf` and `probability` are `0.0` and `lpdf` is `-Inf` (also for the Apache Commons Math keys `:poisson`, `:binomial`, `:bernoulli`, `:geometric`, `:pascal`, `:hypergeometric`, `:zipf`, `:uniform-int`), `cdf` floors the argument (`cdf` at `1.999` is `cdf` at `1`), `NaN` gives `NaN`. [[uniform-int]] with the default `upper` has a negative `pdf` (see there).
 
 Below is the full list of supported `:key`s, grouped by kind. For each: its accepted configuration-map parameters (`rng` included; every entry also has its own dedicated function of the same name, e.g. [[beta]], with a complete docstring covering formulas, defaults and cross-references) and a one-line description of what it models.
 
@@ -3733,7 +3733,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
   Throws `ex-info` (`:type :invalid-input`, `:property :data` or `:probabilities`) for empty `data` (also `nil`), `data` which are not integers within the long range, `probabilities` of a different count than `data`, with a negative, `NaN`, infinite or non-number entry and with a zero sum.
 
-  `pdf` accepts any number (`0.0` at a non-integer), `cdf` is a step function on the reals and `icdf` is the smallest value of `data` with `cdf >= p` (a long). The support is a long, the Apache Commons object [[enumerated-int]] is limited to the `int` range; for the differences of the finite support families see [[enumerated-real]].
+  `pdf` accepts any number (`0.0` at a non-integer), `cdf` is a step function on the reals and `icdf` is the smallest value of `data` with `cdf >= p` (a long). The support is a long, the Apache Commons object [[enumerated-int]] is limited to the `int` range. The arguments of `pdf`, `cdf` and `icdf` are doubles, so the values of `data` with an absolute value above `2^53` are held as the nearest double: `pdf` at such a value is `0.0` and `icdf` returns the rounded value, keep the data within `[-2^53, 2^53]` for exact results; for the differences of the finite support families see [[enumerated-real]].
 
   Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
 
@@ -4625,7 +4625,9 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
   [[set-seed!]] of the truncated distribution reseeds `distr`, which is shared with the original object: sampling from the truncated distribution advances the generator of `distr`.
 
-  Throws `ex-info` (`:type :invalid-input`) when `distr` is not a univariate distribution or is a discrete distribution without integer support, when `left` or `right` is not a number or `nil` or is `NaN`, when `left > right`, when the interval is empty or does not intersect the support (a continuous base needs `left < right`, a discrete one an integer inside), or when its probability is zero (for example the standard normal truncated to `[40, 41]`). The sampler throws `ex-info` with `:type :sampling-failure` when the rejection limit of a discrete base is reached.
+  Throws `ex-info` (`:type :invalid-input`) when `distr` is not a univariate distribution or is a discrete distribution without integer support, when `left` or `right` is not a number or `nil` or is `NaN`, when `left > right`, when the interval is empty or does not intersect the support (a continuous base needs `left < right`, a discrete one an integer inside), or when its probability is zero (for example the standard normal truncated to `[40, 41]`).
+
+  Limit: the probability of the interval is computed in double precision (there is no log-space cdf or survival function in the library), so it must not underflow: it has to be above about `5e-324`, which is a standard normal beyond about `38.5` standard deviations from the mean and an exponential distribution with the mean `1` beyond about `745`. An interval further in the tail throws `ex-info`, although its truncated distribution is well defined mathematically. The sampler throws `ex-info` with `:type :sampling-failure` when the rejection limit of a discrete base is reached.
 
   Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
 
@@ -4757,7 +4759,7 @@ It is one shared mutable object created with an unseeded generator: sampling fro
 
   `NaN` gives `NaN`, `##Inf` and `##-Inf` give `0.0` for a numeric `v`. A non-numeric `v` is passed to the distribution untouched.
 
-  Returns a double. It is `0.0` outside of the support for the keys which check it, but some backends return `NaN` or a negative number there. A non-integer `v` given to an integer-valued discrete distribution depends on the backend: the Apache Commons Math keys ([[poisson]], [[binomial]], [[geometric]] ...) use its integer part (`pdf` at `2.5` is `pdf` at `2`), the keys implemented in this library ([[negative-binomial]], [[logarithmic]], [[nbi]], [[integer-discrete]] ...) return `0.0`; [[real-discrete]], [[enumerated-real]] and [[categorical]] need an exact value of the data. Pass integers.
+  Returns a double. It is `0.0` outside of the support for the keys which check it, but some backends return `NaN` or a negative number there. A non-integer `v` given to an integer-valued discrete distribution gives `0.0` for every key ([[poisson]], [[binomial]], [[negative-binomial]], [[integer-discrete]] ...), [[cdf]] floors it; [[real-discrete]], [[enumerated-real]] and [[categorical]] need an exact value of the data.
 
   Throws `ex-info` (`:type :invalid-input`) for a point of a multivariate distribution which has a wrong length or lies outside of the allowed set, a `ClassCastException` or `NullPointerException` for a vector or `nil` given to a univariate distribution.
 
@@ -5251,7 +5253,9 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
   (if (or (nil? signal) (sequential? signal) (array? signal))
     signal
     (throw (invalid-input function :signal signal "a sequence of numbers"
-                          (str "The signal must be a sequence of numbers, got " (pr-str signal))))))
+                          (str "The signal must be a sequence of numbers, got " (pr-str signal)
+                               (when (number? signal)
+                                 ". A number is not a signal: the options map is accepted only after the signal, ie. `(fi d dlimit signal opts)` and `(arfima phi d dlimit theta signal opts)`"))))))
 
 (defn- default-signal
   "Standard normal white noise (or with `:sigma`) drawn from the generator `:rng` of the options (a new generator when missing)."

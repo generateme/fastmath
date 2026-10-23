@@ -263,6 +263,14 @@
     (is (invalid-input? :burn-in #(r/fi 0.3 0 @sig {:burn-in 5})))
     (is (= (vec (r/fi 0.3 @sig)) (vec (r/fi 0.3 @sig {:burn-in nil}))))))
 
+(deftest number-given-as-signal
+  (testing "the options map is accepted only after the signal: the message tells it"
+    (doseq [f [#(r/fi 0.3 5 {:rng (r/rng :mersenne 1)})
+               #(r/arfima 0.5 0.3 5 0.2 {:rng (r/rng :mersenne 1)})]]
+      (is (invalid-input? :signal #(doall (take 1 (f)))))
+      (is (re-find #"options map is accepted only after the signal"
+                   (try (doall (take 1 (f))) (catch Exception e (ex-message e))))))))
+
 (deftest fi-integer-vs-numpy
   (is (= #{1 2 3 -1 -2} (set (keys (:fi-int @reference)))))
   (doseq [[d expected] (:fi-int @reference)

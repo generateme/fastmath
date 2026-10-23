@@ -357,6 +357,26 @@
     (is (nan? (r/probability (r/binomial) ##NaN)))
     (is (nan? (r/lpdf (r/geometric) ##NaN)))))
 
+(deftest non-integer-argument-of-integer-valued-keys
+  (testing "pdf, probability and lpdf at a non-integer are 0.0 and -Inf for the Commons and the native keys, cdf floors"
+    (doseq [[k params] [[:poisson {:p 3.0}] [:binomial {:trials 10 :p 0.3}] [:geometric {:p 0.3}]
+                        [:pascal {:r 3 :p 0.4}] [:zipf {:number-of-elements 10 :exponent 1.0}]
+                        [:hypergeometric {:population-size 20 :number-of-successes 7 :sample-size 5}]
+                        [:uniform-int {:lower 0 :upper 9}] [:negative-binomial {:r 3 :p 0.4}]
+                        [:integer-discrete {:data [1 2 3]}]]
+            :let [d (r/distribution k params)]]
+      (testing k
+        (is (= 0.0 (r/pdf d 2.5)))
+        (is (= 0.0 (r/probability d 2.5)))
+        (is (= ##-Inf (r/lpdf d 2.5)))
+        (is (= 0.0 (r/pdf d 1.0e10)))
+        (is (= (r/cdf d 2.0) (r/cdf d 2.5)))
+        (is (pos? (r/pdf d 2.0)))
+        (is (nan? (r/pdf d ##NaN))))))
+  (testing "values at integers are those of Commons Math"
+    (is (= (.probability (org.apache.commons.math3.distribution.PoissonDistribution. 3.0) 2)
+           (r/pdf (r/poisson {:p 3.0}) 2.0)))))
+
 (defn- sample-point
   "A valid argument for the multivariate distribution."
   [d]

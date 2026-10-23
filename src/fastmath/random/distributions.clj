@@ -80,15 +80,30 @@
             ([^RealDistribution d n] (repeatedly n #(.sample d))))
    :set-seed! (fn [^RealDistribution d ^long seed] (.reseedRandomGenerator d seed) d)})
 
+(defn- integer-argument?
+  "True when `x` is an integer within the `int` range (the argument of the Commons Math integer distributions)."
+  [^double x]
+  (and (m/== x (m/floor x))
+       (m/<= (m/- 2147483648.0) x 2147483647.0)))
+
 (extend IntegerDistribution
   prot/DistributionProto
   {:cdf (fn
           (^double [^IntegerDistribution d ^double v] (.cumulativeProbability d (m/floor v)))
           (^double [^IntegerDistribution d ^double v1 ^double v2] (.cumulativeProbability d (m/floor v1) (m/floor v2))))
    :icdf (fn ^long [^IntegerDistribution d ^double p] (.inverseCumulativeProbability d p))
-   :pdf (fn ^double [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
-   :lpdf (fn ^double [^AbstractIntegerDistribution d ^double p] (.logProbability d (m/floor p)))
-   :probability (fn ^double [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
+   :pdf (fn ^double [^IntegerDistribution d ^double p]
+          (cond (m/nan? p) ##NaN
+                (integer-argument? p) (.probability d (unchecked-int p))
+                :else 0.0))
+   :lpdf (fn ^double [^AbstractIntegerDistribution d ^double p]
+           (cond (m/nan? p) ##NaN
+                 (integer-argument? p) (.logProbability d (unchecked-int p))
+                 :else ##-Inf))
+   :probability (fn ^double [^IntegerDistribution d ^double p]
+                  (cond (m/nan? p) ##NaN
+                        (integer-argument? p) (.probability d (unchecked-int p))
+                        :else 0.0))
    :sample (fn ^long [^IntegerDistribution d] (.sample d))
    :dimensions (constantly 1)
    :source-object identity
@@ -999,7 +1014,7 @@
                      :name :continuous-distribution
                      :parameters [:data :steps :kde :bandwidth :interpolator :rng]
                      :mean m
-                     :variance (delay (StatUtils/variance (m/seq->double-array data) (double @m)))
+                     :variance v
                      :lower-bound (m/- mn step)
                      :upper-bound (m/+ mx step)})))
 
@@ -1253,7 +1268,7 @@
   - `probabilities`: sequence of non-negative finite weights of the same count, normalised internally; `nil`: equal weights
   - `rng`: random generator (`nil`: a fresh one)
 
-  `icdf` is the smallest value with `cdf >= p`, `cdf` and the pmf accept any number (a non-integer `pdf` argument gives `0.0`), samples are `Long`s. Bounds are the smallest and the largest value. Throws `ex-info` for invalid `data` or `probabilities` (empty data, a different count, negative, `NaN` or infinite weights, a zero sum). Returns a univariate discrete distribution."
+  `icdf` is the smallest value with `cdf >= p`, `cdf` and the pmf accept any number (a non-integer `pdf` argument gives `0.0`), samples are `Long`s. Values of `data` with an absolute value above `2^53` are held as the nearest double (`pdf` there is `0.0`, `icdf` returns the rounded value). Bounds are the smallest and the largest value. Throws `ex-info` for invalid `data` or `probabilities` (empty data, a different count, negative, `NaN` or infinite weights, a zero sum). Returns a univariate discrete distribution."
   [data probabilities rng]
   (let [[data probabilities] (discrete-input! 'integer-discrete-distribution data probabilities :integer)
         sum (v/sum probabilities)
