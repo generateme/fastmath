@@ -753,7 +753,7 @@
       (if (m/not-neg? x) bessel-j-val (m/* sgn bessel-j-val))
       (if (m/not-neg? x)
         (m/* sgn bessel-j-val)
-        (let [bessel-y-val (double (bessel-y-positive-args abs-v abs-x))
+        (let [bessel-y-val (bessel-y-positive-args abs-v abs-x)
               piao (m/* m/PI abs-v)
               so (m/round (m/sin piao))
               co (m/round (m/cos piao))]
@@ -772,7 +772,7 @@
     :else (let [ao (m/abs order)
                 ax (m/abs x)
                 j (bessel-j-positive-args ao ax)
-                y (double (bessel-y-positive-args ao ax))
+                y (bessel-y-positive-args ao ax)
                 piao (m/* m/PI ao)
                 so (m/sin piao)
                 co (m/cos piao)]
@@ -2744,7 +2744,7 @@
         s
         (let [num (double (loop [i (long 0) v x]
                             (if (m/== i lp) v (recur (m/inc i) (m/* v (m/+ (Array/aget ps i) k))))))
-              den (double (loop [i (long 0) v (double (m/inc k))]
+              den (double (loop [i (long 0) v (double (m/long-inc k))]
                             (if (m/== i lq) v (recur (m/inc i) (m/* v (m/+ (Array/aget qs i) k))))))
               term (m/* term (m// num den))]
           (recur (m/inc k) term (m/+ s term)))))))
@@ -2961,7 +2961,7 @@
         s
         (let [num (loop [i (long 0) v z]
                     (if (m/== i lp) v (recur (m/inc i) (cplx/mult v (cplx/adds (ps i) k)))))
-              den (loop [i (long 0) v (cplx/complex (double (m/inc k)) 0.0)]
+              den (loop [i (long 0) v (cplx/complex (double (m/long-inc k)) 0.0)]
                     (if (m/== i lq) v (recur (m/inc i) (cplx/mult v (cplx/adds (qs i) k)))))
               term (cplx/mult term (cplx/div num den))]
           (recur (m/inc k) term (cplx/add s term)))))))
