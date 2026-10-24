@@ -35,7 +35,8 @@
     (dotimes [i (m/dec k)]
       (let [a (Array/aget d i)
             b (Array/aget d (m/inc i))]
-        (Array/aset ms (m/inc i) (if (opposite-or-zero? a b) 0.0 (m/* 0.5 (m/+ a b))))))
+        (when-not (opposite-or-zero? a b)
+          (Array/aset ms (m/inc i) (m/* 0.5 (m/+ a b))))))
     (dotimes [i k]
       (let [di (Array/aget d i)]
         (if (m/zero? di)
