@@ -18,11 +18,22 @@
   * Minkowski
   * Harmonic H
   * Owen's T
-  * Complex: (log)Gamma, Hypergeometric pFq, Tricomis U, (scaled) Bessel K of half-odd order."
+  * Complex: (log)Gamma, Hypergeometric pFq, Tricomis U, (scaled) Bessel K of half-odd order.
+
+  Conventions at the edges of the domain (the docstring of each function lists its own special values):
+
+  * a function returns the limit when it exists and is the same from both sides: `(gamma ##Inf)`, `(log-gamma 0.0)`, `(lambert-W ##Inf)`, `(bessel-I0 ##-Inf)`, `(elliptic-Rc 1.0 0.0)` are `##Inf`;
+  * at a pole where the one-sided limits differ the result is `##NaN` (`(gamma 0.0)`, `(digamma -1.0)`, `(polygamma 2 -1.0)`), except the signed zeros (`(digamma 0.0)` is `##-Inf`, `(digamma -0.0)` is `##Inf`) and the even-order poles with the same sign (`(trigamma -1.0)` is `##Inf`);
+  * arguments outside the real domain (a complex result) give `##NaN`, for example `(bessel-Y 0.5 -1.0)` or `(elliptic-E 2.0)`;
+  * a result that does not fit in a double is `##Inf` or `##-Inf`, and that is too small is `0.0`;
+  * functions do not throw for arguments inside their documented domain; a caller error (an even order of `bessel-K-half-odd`) throws `IllegalArgumentException`.
+
+  The accuracy given in a docstring is the relative error measured against `mpmath` on a grid; the relative error close to a zero of an oscillating function is larger (the absolute error stays small)."
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.special.poly :as spoly]
             [fastmath.special.airy :as airy]
+            [fastmath.special.gamma :as gam]
             [fastmath.special.hypergeometric :as hg]
             [fastmath.special.ellip :as ellip]
             [fastmath.polynomials :as poly]
@@ -38,9 +49,18 @@
 ;; Erf
 
 (defn erf
-  "Error function.
+  "Error function $\\operatorname{erf}(x)=\\frac{2}{\\sqrt\\pi}\\int_0^x e^{-t^2}dt$.
 
-  For two arguments returns a difference between `(erf x2)` and `(erf x1)`."
+  Parameters:
+
+  - `x` (double): the argument; or
+  - `x1`, `x2` (double): two arguments, the result is `erf(x2) - erf(x1)`.
+
+  Returns a value in $[-1,1]$; `erf(±Inf)=±1`, `NaN` for `NaN`. The two-argument form is accurate for `x1` and `x2` close to each other.
+
+  Accuracy: relative error about 1e-15 (Apache Commons Math).
+
+  See also [[erfc]], [[inv-erf]]."
   {:inline (fn ([x] `(. Erf (erf (double ~x))))
              ([x1 x2] `(. Erf (erf (double ~x1) (double ~x2)))))
    :inline-arities #{1 2}}
@@ -48,74 +68,166 @@
   (^double [^double x1 ^double x2] (. Erf (erf x1 x2))))
 
 (defn erfc
-  "Complementary error function."
+  "Complementary error function $\\operatorname{erfc}(x)=1-\\operatorname{erf}(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns a value in $[0,2]$; `erfc(Inf)=0`, `erfc(-Inf)=2`. The result is computed without cancellation for large `x` and underflows to `0.0` above `x ≈ 27.2`.
+
+  Accuracy: relative error below 1e-13 up to `x = 26` (Apache Commons Math).
+
+  See also [[erf]], [[inv-erfc]]."
   {:inline (fn [x] `(. Erf (erfc (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Erf (erfc x)))
 
 (defn inv-erf
-  "Inverse of [[erf]] function."
+  "Inverse error function.
+
+  Parameters:
+
+  - `x` (double): the argument in $[-1,1]$.
+
+  Returns `y` such that `erf(y)=x`; `inv-erf(±1)=±Inf`, `NaN` outside $[-1,1]$.
+
+  Accuracy: relative error about 1e-16 (Apache Commons Math).
+
+  See also [[erf]], [[inv-erfc]]."
   {:inline (fn [x] `(. Erf (erfInv (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Erf (erfInv x)))
 
+(defn- ln-erfc
+  "`log(erfc(t))` for `t > 0`, by the asymptotic series where `erfc` is tiny."
+  ^double [^double t]
+  (if (m/< t 8.0)
+    (m/log (. Erf (erfc t)))
+    (let [u (m// -0.5 (m/* t t))
+          series (loop [k (long 1) term 1.0 sum 1.0]
+                   (if (m/> k 10)
+                     sum
+                     (let [term (m/* term u (m/dec (m/* 2.0 k)))]
+                       (recur (m/inc k) term (m/+ sum term)))))]
+      (m/- (m/log series) (m/* t t) (m/log (m/* t m/SQRTPI))))))
+
+(defn- inv-erfc-tail
+  "Newton iteration on `log(erfc(t)) = log(x)` for small `x`, where `1-x` in [[inv-erf]] has lost the information."
+  ^double [^double x]
+  (let [lx (m/log x)
+        l (m/- lx)
+        t0 (m/sqrt (m/- l (m/* 0.5 (m/log (m/* m/PI l)))))]
+    (loop [i (long 0) t t0]
+      (let [f (m/- (ln-erfc t) lx)
+            df (m/- (m/* m/M_2_SQRTPI (m/exp (m/- (m/- (m/* t t)) (ln-erfc t)))))
+            nt (m/- t (m// f df))]
+        (if (or (m/>= i 30) (m/<= (m/abs (m/- nt t)) (m/* 4.0e-16 nt)))
+          nt
+          (recur (m/inc i) nt))))))
+
 (defn inv-erfc
-  "Inverse of [[erfc]] function."
-  {:inline (fn [x] `(. Erf (erfcInv (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Erf (erfcInv x)))
+  "Inverse complementary error function.
+
+  Parameters:
+
+  - `x` (double): the argument in $[0,2]$.
+
+  Returns `y` such that `erfc(y)=x`; `inv-erfc(0)=Inf`, `inv-erfc(2)=-Inf`, `NaN` outside $[0,2]$. Accurate also for tiny `x` (`inv-erfc(1e-300)=26.53`), where `inv-erf(1-x)` cannot be used.
+
+  Accuracy: relative error about 1e-15.
+
+  See also [[erfc]], [[inv-erf]]."
+  ^double [^double x]
+  (cond
+    (m/nan? x) ##NaN
+    (or (m/neg? x) (m/> x 2.0)) ##NaN
+    (m/zero? x) ##Inf
+    (m/== x 2.0) ##-Inf
+    (m/> x 1.0) (m/- (inv-erfc (m/- 2.0 x)))
+    (m/< x 1.0e-3) (inv-erfc-tail x)
+    :else (. Erf (erfcInv x))))
 
 ;; Gamma
 
 (defn gamma
-  "Gamma function $\\Gamma(x)$. Extension of the factorial."
-  {:inline (fn [x] `(. Gamma (gamma (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (gamma x)))
+  "Gamma function $\\Gamma(x)$, the extension of the factorial: $\\Gamma(n)=(n-1)!$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `##NaN` at the poles (zero and the negative integers, where the two one-sided limits differ) and at `-Inf`; `##Inf` at `##Inf` and when the result overflows (`x` above 171.62); a (sub)normal value down to `x = -184` for negative non-integers, which then underflows to a signed zero.
+
+  Accuracy: relative error about 1e-14 over the whole range (Apache Commons Math Lanczos approximation, with the power split in two halves above `x = 140`, where Commons Math itself overflows).
+
+  See also [[log-gamma]], [[digamma]], [[beta]]."
+  ^double [^double x] (gam/gamma x))
 
 (defn log-gamma
-  "Log of Gamma function $\\log\\Gamma(x)$."
-  {:inline (fn [x] `(. Gamma (logGamma (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (logGamma x)))
+  "Logarithm of the absolute value of the Gamma function, $\\log|\\Gamma(x)|$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `##Inf` at zero, at the negative integers and at `##Inf`; `##NaN` at `-Inf` (no limit). For negative non-integer `x` the result is the logarithm of the absolute value (the reflection formula is used).
+
+  Accuracy: absolute error about 1e-15 times the magnitude of the result.
+
+  See also [[gamma]], [[log-gamma-1p]], [[log-beta]]."
+  ^double [^double x] (gam/log-gamma x))
 
 (defn log-gamma-1p
-  "$\\ln\\Gamma(1+x)$ for $-0.5≤x≤1.5$."
-  {:inline (fn [x] `(. Gamma (logGamma1p (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (logGamma1p x)))
+  "$\\ln\\Gamma(1+x)$, accurate for `x` near zero.
+
+  Parameters:
+
+  - `x` (double): the argument. For $-0.5≤x≤1.5$ a dedicated algorithm is used (Apache Commons Math), outside this range the result is `(log-gamma (+ 1.0 x))`.
+
+  See also [[log-gamma]], [[inv-gamma-1pm1]]."
+  ^double [^double x]
+  (if (m/between? -0.5 1.5 x)
+    (. Gamma (logGamma1p x))
+    (log-gamma (m/inc x))))
 
 (defn inv-gamma-1pm1
-  "$\\frac{1}{\\Gamma(1+x)}-1$ for $-0.5≤x≤1.5$."
-  {:inline (fn [x] `(. Gamma (invGamma1pm1 (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (invGamma1pm1 x)))
+  "$\\frac{1}{\\Gamma(1+x)}-1$, accurate for `x` near zero.
+
+  Parameters:
+
+  - `x` (double): the argument. For $-0.5≤x≤1.5$ a dedicated algorithm is used (Apache Commons Math), outside this range the result is computed from [[gamma]].
+
+  See also [[gamma]], [[log-gamma-1p]]."
+  ^double [^double x]
+  (if (m/between? -0.5 1.5 x)
+    (. Gamma (invGamma1pm1 x))
+    (m/dec (m// (gamma (m/inc x))))))
 
 (defn digamma
-  "First derivative of log of Gamma function."
-  ^double [^double x]
-  (let [^Vec2 psix (if (m/not-pos? x)
-                     (Vec2. (m/* m/-PI (m/cot (m/* m/PI x))) (m/- 1.0 x))
-                     (Vec2. 0.0 x))
-        x (.y psix)
-        ^Vec2 psix (if (m/< x 8.0)
-                     (let [n (unchecked-long (m/- 8.0 (m/floor x)))]
-                       (loop [v (long 1)
-                              psi (.x psix)]
-                         (if (m/== v n)
-                           (Vec2. (m/- psi (m// x)) (m/+ x n))
-                           (recur (m/inc v) (m/- psi (m// (m/+ x v)))))))
-                     psix)
-        t (m// (.y psix))
-        psi (m/+ (.x psix) (m/- (m/log (.y psix)) (m/* 0.5 t)))
-        t (m/* t t)]
-    (m/- psi (m/* t (poly/mevalpoly t 0.08333333333333333,-0.008333333333333333,0.003968253968253968,-0.004166666666666667,0.007575757575757576,-0.021092796092796094,0.08333333333333333,-0.4432598039215686)))))
+  "First derivative of log of Gamma function.
+
+  Returns `##NaN` at the negative integers, `##-Inf` at `0.0` and `##Inf` at `-0.0` (the one-sided limits)."
+  ^double [^double x] (gam/digamma x))
 
 (defn trigamma
-  "Second derivative of log of Gamma function."
+  "Second derivative of log of Gamma function, $\\psi_1(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `##Inf` at zero and at the negative integers (a double pole, both one-sided limits are `+Inf`). Negative non-integer `x` is handled by the reflection formula.
+
+  Accuracy: relative error about 1e-15.
+
+  See also [[digamma]], [[polygamma]]."
   ^double [^double x]
   (if (m/not-pos? x)
-    (m/- (m/sq (m// m/PI (m/sin (m/* m/PI x)))) (trigamma (m/- 1.0 x)))
+    (cond
+      (m/neg-inf? x) ##NaN
+      (m/== x (m/rint x)) ##Inf
+      :else (m/- (m/sq (m// m/PI (gam/sin-pi x))) (trigamma (m/- 1.0 x))))
     (let [^Vec2 psix (if (m/< x 10.0)
                        (let [n (unchecked-long (m/- 10.0 (m/floor x)))]
                          (loop [v (long 1)
@@ -133,6 +245,8 @@
 
 (defn- nonpos-int?
   [^double x] (and (m/not-pos? x) (m/integer? x)))
+
+(declare log-beta)
 
 (defn beta
   "Computes the Beta function of `p` and `q`.
@@ -155,8 +269,13 @@
   ^double [^double p ^double q]
   (let [s (m/+ p q)]
     (cond
-      (and (m/pos? p) (m/pos? q)) (m/exp (. Beta (logBeta p q)))
+      (and (m/pos? p) (m/pos? q)) (m/exp (log-beta p q))
       (and (nonpos-int? s) (not (nonpos-int? p)) (not (nonpos-int? q))) 0.0
+      ;; pole of Gamma(q) cancels the pole of Gamma(p+q): (-1)^p (p-1)! k! / n!, q=-n, p+q=-k
+      (and (nonpos-int? s) (nonpos-int? q) (m/pos? p) (m/integer? p))
+      (m/* (if (m/even? (long p)) 1.0 -1.0)
+           (m/exp (m/- (m/+ (log-gamma p) (log-gamma (m/- 1.0 s))) (log-gamma (m/- 1.0 q)))))
+      (and (nonpos-int? s) (nonpos-int? p) (m/pos? q) (m/integer? q)) (beta q p)
       :else (m// (m/* (gamma p) (gamma q)) (gamma s)))))
 
 (defn log-beta
@@ -167,19 +286,40 @@
 
   - `p`, `q` (double): real arguments, same domain as [[beta]].
 
-  Returns a double. Equal to the logarithm of [[beta]] wherever [[beta]] is
-  positive (always the case for `p,q>0`). Elsewhere, since [[beta]] can be
-  negative, zero, or undefined there, the result is `##NaN` where [[beta]]
-  is negative or at its poles, and `##-Inf` at its removable zero.
+  Returns a double, $\\log|B(p,q)|$. Equal to the logarithm of [[beta]]
+  wherever [[beta]] is positive (always the case for `p,q>0`) and defined
+  through the absolute value where [[beta]] is negative. `##NaN` at the
+  poles of [[beta]], `##-Inf` at its removable zero.
 
   See also [[beta]]."
   ^double [^double p ^double q]
   (if (and (m/pos? p) (m/pos? q))
-    (. Beta (logBeta p q))
-    (m/log (beta p q))))
+    (let [lb (. Beta (logBeta p q))]
+      ;; Commons Math overflows for tiny arguments
+      (if (m/valid-double? lb)
+        lb
+        (m/- (m/+ (log-gamma p) (log-gamma q)) (log-gamma (m/+ p q)))))
+    (let [b (beta p q)]
+      (cond
+        (m/nan? b) ##NaN
+        (m/zero? b) ##-Inf
+        (m/valid-double? b) (m/log (m/abs b))
+        ;; overflow or underflow of the value itself: through the log of the absolute values
+        :else (m/- (m/+ (log-gamma p) (log-gamma q)) (log-gamma (m/+ p q)))))))
 
 (defn regularized-beta
-  "Regularized Beta I_x(a,b)"
+  "Regularized incomplete beta function $I_x(a,b)=B(x;a,b)/B(a,b)$.
+
+  Parameters:
+
+  - `x` (double): the argument in $[0,1]$.
+  - `a`, `b` (double): the shape parameters; `a,b>0` uses Apache Commons Math (continued fraction), other values are defined by the analytic continuation through [[hypergeometric-2F1]].
+
+  Returns `0` at `x=0`, `1` at `x=1` (for `a,b>0`) and `##NaN` outside $[0,1]$ and for `a=0` or `b=0`.
+
+  Accuracy: relative error about 5e-14 for `a,b>0`.
+
+  See also [[incomplete-beta]], [[beta]]."
   ^double [^double x ^double a ^double b]
   (if (and (m/pos? a) (m/pos? b))
     (. Beta (regularizedBeta x a b))
@@ -188,7 +328,18 @@
          (m// (m/* (gamma a) (gamma b)) (gamma (m/+ a b))))))
 
 (defn incomplete-beta
-  "Incomplete Beta B(x,a,b)"
+  "Incomplete beta function $B(x;a,b)=\\\\int_0^xt^{a-1}(1-t)^{b-1}dt$.
+
+  Parameters:
+
+  - `x` (double): the upper limit in $[0,1]$.
+  - `a`, `b` (double): the shape parameters; `a,b>0` uses the regularized function and [[beta]], other values are defined by the analytic continuation through [[hypergeometric-2F1]].
+
+  Returns `0` at `x=0`, `B(a,b)` at `x=1` and `##NaN` outside $[0,1]$.
+
+  Accuracy: relative error about 4e-14 for `a,b>0`.
+
+  See also [[regularized-beta]], [[beta]]."
   ^double [^double x ^double a ^double b]
   (if (and (m/pos? a) (m/pos? b))
     (m/exp (m/+ (m/log (. Beta (regularizedBeta x a b)))
@@ -367,6 +518,12 @@
      ;; (analytic continuation of z^-s for negative real z and non-integer
      ;; exponent leaves the reals), so no real value exists
      (and (m/<= s -2.0) (m/neg? z) (not (m/integer? s))) ##NaN
+     ;; s = -n, z a positive integer: zeta(-n, z) = zeta(-n) - sum_{k<z} k^n, exact
+     (and (m/<= s -2.0) (m/> z 1.0) (m/<= z 1000.0) (m/== z (m/rint z)) (m/== s (m/rint s)))
+     (m/- (zeta s) (double (loop [k (long 1) acc 0.0]
+                             (if (m/< k (long z))
+                               (recur (m/inc k) (m/+ acc (m/pow (double k) (m/- s))))
+                               acc))))
      (m/<= s -2.0) (let [shift (zeta-shift-z s z)]
                      (m/+ shift (zeta-neg-s s z)))
      :else (let [m (m/dec s)
@@ -379,7 +536,17 @@
              (m/+ zt (m/* w t (horner t m 0.08333333333333333,-0.008333333333333333,0.003968253968253968,-0.004166666666666667,0.007575757575757576,-0.021092796092796094,0.08333333333333333,-0.4432598039215686,3.0539543302701198)))))))
 
 (defn eta
-  "Dirichlet Eta function"
+  "Dirichlet eta function $\\\\eta(s)=\\\\sum_{k\\\\ge1}(-1)^{k-1}k^{-s}=(1-2^{1-s})\\\\zeta(s)$ (the alternating zeta function).
+
+  Parameters:
+
+  - `x` (double): the argument $s$.
+
+  Returns `eta(0)=1/2`, `eta(1)=ln 2`, `eta(Inf)=1`. The removable singularity at 1 is handled. Entire function.
+
+  Accuracy: relative error about 1e-13.
+
+  See also [[zeta]], [[dirichlet-beta]]."
   ^double [^double x]
   (if (m/zero? x)
     0.5
@@ -394,7 +561,17 @@
         (m/* (m/- (zeta x)) (m/expm1 (m/* 0.6931471805599453094 dx)))))))
 
 (defn dirichlet-beta
-  "Dirichlet Beta function"
+  "Dirichlet beta function $\\\\beta(s)=\\\\sum_{k\\\\ge0}(-1)^k(2k+1)^{-s}$ (the Dirichlet L-function of the non-principal character modulo 4).
+
+  Parameters:
+
+  - `x` (double): the argument $s$.
+
+  Returns `beta(0)=1/2`, `beta(1)=π/4`, `beta(Inf)=1`. Entire function; zero at the negative odd integers (returned as a value of order 1e-15).
+
+  Accuracy: relative error about 4e-14.
+
+  See also [[zeta]], [[eta]]."
   ^double [^double x]
   (cond
     ;; removable singularity: both zeta(x,0.25) and zeta(x,0.75) individually
@@ -415,7 +592,15 @@
                (m/- (zeta x 0.25) (zeta x 0.75)))))
 
 (defn xi
-  "Riemann (Landau's) Xi function"
+  "Riemann (Landau's) xi function $\\\\xi(s)=\\\\tfrac12 s(s-1)\\\\pi^{-s/2}\\\\Gamma(s/2)\\\\zeta(s)$, entire and symmetric: $\\\\xi(s)=\\\\xi(1-s)$.
+
+  Parameters:
+
+  - `s` (double): the argument.
+
+  Returns `xi(0)=xi(1)=1/2`.
+
+  See also [[zeta]], [[gamma]]."
   ^double [^double s]
   (cond
     (m/neg? s) (xi (m/- 1.0 s))
@@ -476,10 +661,10 @@
   ^double [^long m ^double z]
   (cond
     (m/neg? m) ##NaN
-    (m/zero? m) (m/* m/PI (m/cot (m/* m/PI z)))
+    (m/zero? m) (m/* m/PI (m// (gam/cos-pi z) (gam/sin-pi z)))
     (m/< m 100) (let [^doubles q (Array/arrayget2d cotderiv-q m)
                       lq (alength q)
-                      x (m/cot (m/* m/PI z))
+                      x (m// (gam/cos-pi z) (gam/sin-pi z))
                       y (m/* x x)]
                   (loop [i (long 2)
                          s (m/+ (Array/aget q 0)
@@ -508,23 +693,27 @@
 
   Parameters:
 
-  - `m` (long): the order, must be nonnegative.
+  - `m` (double): the order, a nonnegative integer (any other value gives `##NaN`).
   - `x` (double): real argument.
 
-  Returns a double. `##NaN` for negative `m`. Has poles at `x` equal to `0`
-  or any negative integer: at `x=0` this is `##Inf` or `##-Inf` (sign
-  depending on the parity of `m`), while at negative-integer poles a very
-  large finite value approximating the pole is returned instead. For
-  `x>0`, results are positive for odd `m` and negative for even `m`, and
-  decay towards `0` as `x` grows.
+  Returns a double. Poles are at `x` equal to `0` or any negative integer:
+  for odd `m` the result there is `##Inf` (both one-sided limits agree), for
+  even `m` it is `##NaN` at the negative integers (the one-sided limits
+  differ) and `##-Inf` at `0.0` (`##Inf` at `-0.0`), the limits from the
+  side of the zero's sign. For `x>0`, results are positive for odd `m` and
+  negative for even `m`, and decay towards `0` as `x` grows.
 
-  Accuracy degrades for large even `m` combined with nonpositive `x`,
-  particularly near half-integer `x`.
+  Accuracy: relative error about 1e-13 for `x>0`; for `x<=0` it degrades
+  with the order and with the closeness of `x` to a pole.
 
   See also [[digamma]], [[trigamma]], [[zeta]]."
-  ^double [^long m ^double x]
-  (if (m/neg? m)
-    ##NaN
+  ^double [^double m ^double x]
+  (cond
+    (or (m/nan? m) (m/neg? m) (m/not== m (m/rint m)) (m/> m 2.147483647E9)) ##NaN
+    (m/neg-inf? x) ##NaN
+    (and (m/neg? x) (m/== x (m/rint x)) (m/>= m 2.0)) (if (m/odd? (long m)) ##Inf ##NaN)
+    :else
+    (let [m (long m)]
     (case (int m)
       0 (digamma x)
       1 (trigamma x)
@@ -543,14 +732,24 @@
           (let [zs (zeta s x)]
             (if (m/zero? zs)
               0.0
-              (m/* (if (m/even? m) -1.0 1.0) (m/exp (m/+ (m/log zs) lgs))))))))))
+              (m/* (if (m/even? m) -1.0 1.0) (m/exp (m/+ (m/log zs) lgs)))))))))))
 
 ;; https://github.com/JuliaMath/Bessels.jl/blob/master/src/BesselFunctions/besselk.jl
 
 ;; Bessel J
 
 (defn bessel-J0
-  "Bessel function of the first kind of order 0, J_0(x)"
+  "Bessel function of the first kind of order 0, $J_0(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `1.0` at 0 and `0.0` at `±Inf`. Even function.
+
+  Accuracy: absolute error about 1e-16; relative error up to 3e-13 close to the zeros at large `|x|`. For large `|x|` the error relative to the amplitude grows like `|x|` times the machine epsilon (the phase `x - pi/4` is rounded): 1e-11 at 1e5, 1e-10 at 1e6.
+
+  See also [[bessel-J1]], [[bessel-J]], [[bessel-Y0]]."
   ^double [^double x]
   (let [x (m/abs x)]
     (cond
@@ -580,7 +779,17 @@
               (m/* a b)))))
 
 (defn bessel-J1
-  "Bessel function of the first kind of order 1, J_1(x)"
+  "Bessel function of the first kind of order 1, $J_1(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `0.0` at 0 and `±Inf`. Odd function.
+
+  Accuracy: relative error about 1e-14. For large `|x|` the error relative to the amplitude grows like `|x|` times the machine epsilon (the phase `x - pi/4` is rounded): 1e-11 at 1e5, 1e-10 at 1e6.
+
+  See also [[bessel-J0]], [[bessel-J]], [[bessel-Y1]]."
   ^double [^double x]
   (let [s (m/sgn x)
         x (m/abs x)]
@@ -614,7 +823,17 @@
 ;; jinc-c2 (/ (* PI PI) -8.0)
 
 (defn jinc
-  "Besselj1 devided by `x`"
+  "Normalised jinc function $2J_1(\\pi x)/(\\pi x)$, the radial analogue of `sinc`.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `1.0` at `x=0` and `0.0` at `±Inf`. Even function; the first zero is at `x≈1.2197`.
+
+  Accuracy: relative error about 1e-14 (a polynomial for `|x|<0.002`).
+
+  See also [[bessel-J1]]."
   ^double [^double x]
   (if (m/< (m/abs x) 0.002)
     (let [x2 (m/* x x)]
@@ -753,14 +972,25 @@
       (if (m/not-neg? x) bessel-j-val (m/* sgn bessel-j-val))
       (if (m/not-neg? x)
         (m/* sgn bessel-j-val)
-        (let [bessel-y-val (bessel-y-positive-args abs-v abs-x)
+        (let [bessel-y-val (double (bessel-y-positive-args abs-v abs-x))
               piao (m/* m/PI abs-v)
               so (m/round (m/sin piao))
               co (m/round (m/cos piao))]
           (m/* sgn (m/- (m/* bessel-j-val co) (m/* bessel-y-val so))))))))
 
 (defn bessel-J
-  "Bessel function of the first kind of order v, J_v(x)"
+  "Bessel function of the first kind of real order $\\\\nu$, $J_\\\\nu(x)$.
+
+  Parameters:
+
+  - `order` (double): the order $\\\\nu$; any real. Orders 0 and 1 are delegated to [[bessel-J0]] and [[bessel-J1]].
+  - `x` (double): the argument; for `x<0` only integer orders are defined, $J_n(-x)=(-1)^nJ_n(x)$, other orders give `##NaN`.
+
+  Returns `0.0` for `order>0` at `x=0`, `±Inf` for `order<0` (non-integer) at `x=0`, and `0.0` at `Inf`. Underflows to `0.0` and overflows to `±Inf` where the true value does. Negative non-integer orders use the reflection $J_{-\\\\nu}=\\\\cos(\\\\nu\\\\pi)J_\\\\nu-\\\\sin(\\\\nu\\\\pi)Y_\\\\nu$ with the trigonometric factors evaluated exactly.
+
+  Accuracy: relative error below 3e-12 for orders up to 100 and `x` up to 700 (absolute error about 1e-16 close to the zeros).
+
+  See also [[bessel-Y]], [[bessel-I]], [[bessel-K]]."
   ^double [^double order ^double x]
   (cond
     (m/zero? order) (bessel-J0 x)
@@ -772,16 +1002,25 @@
     :else (let [ao (m/abs order)
                 ax (m/abs x)
                 j (bessel-j-positive-args ao ax)
-                y (bessel-y-positive-args ao ax)
-                piao (m/* m/PI ao)
-                so (m/sin piao)
-                co (m/cos piao)]
+                y (double (bessel-y-positive-args ao ax))
+                so (gam/sin-pi ao)
+                co (gam/cos-pi ao)]
             (m/- (m/* j co) (m/* y so)))))
 
 ;; Bessel Y
 
 (defn bessel-Y0
-  "Bessel function of the second kind of order 0, Y_0(x)"
+  "Bessel function of the second kind of order 0, $Y_0(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument, `x>=0`.
+
+  Returns `##-Inf` at 0, `0.0` at `Inf` and `##NaN` for `x<0` (the value is complex).
+
+  Accuracy: relative error about 1e-14. For large `|x|` the error relative to the amplitude grows like `|x|` times the machine epsilon (the phase `x - pi/4` is rounded): 1e-11 at 1e5, 1e-10 at 1e6.
+
+  See also [[bessel-Y1]], [[bessel-Y]], [[bessel-J0]]."
   ^double [^double x]
   (cond
     (m/zero? x) ##-Inf
@@ -833,7 +1072,17 @@
                  (m/sin (m/+ x m/-QUARTER_PI (m/* xinv (.y pq))))))))
 
 (defn bessel-Y1
-  "Bessel function of the second kind of order 1, Y_1(x)"
+  "Bessel function of the second kind of order 1, $Y_1(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument, `x>=0`.
+
+  Returns `##-Inf` at 0, `0.0` at `Inf` and `##NaN` for `x<0` (the value is complex).
+
+  Accuracy: relative error about 2e-12 at large `x` (close to the zeros). For large `|x|` the error relative to the amplitude grows like `|x|` times the machine epsilon (the phase `x - pi/4` is rounded): 1e-11 at 1e5, 1e-10 at 1e6.
+
+  See also [[bessel-Y0]], [[bessel-Y]], [[bessel-J1]]."
   ^double [^double x]
   (cond
     (m/zero? x) ##-Inf
@@ -939,8 +1188,10 @@
   ^double [^double v ^double x]
   (cond
     (and (m/integer? v)
-         (m/< v 250)) (.x ^Vec2 (bessel-j-up-recurrence x (Vec2. (bessel-Y1 x) (bessel-Y0 x))
-                                                        (Vec2. 1.0 v)))
+         (m/< v 250)) (let [y (.x ^Vec2 (bessel-j-up-recurrence x (Vec2. (bessel-Y1 x) (bessel-Y0 x))
+                                                                (Vec2. 1.0 v)))]
+                        ;; the upward recurrence overflows to -Inf - (-Inf) = NaN where Y_v(x) overflows
+                        (if (m/nan? y) ##-Inf y))
     (m/> v (jy-debye-fit x)) (.y ^Vec2 (bessel-jy-debye v x))
     (m/> x (m/max 20.0 (m/* 1.65 v))) (.y ^Vec2 (bessel-jy-large-argument v x))
     (m/< v (hankel-debye-fit x)) (cplx/im (hankel-dabye v x))
@@ -955,7 +1206,18 @@
     (if (and (m/neg? order) (m/odd? ao)) (m/- y) y)))
 
 (defn bessel-Y
-  "Bessel function of the second kind of order v, Y_v(x)"
+  "Bessel function of the second kind of real order $\\\\nu$, $Y_\\\\nu(x)$.
+
+  Parameters:
+
+  - `order` (double): the order $\\\\nu$; any real. Orders 0 and 1 are delegated to [[bessel-Y0]] and [[bessel-Y1]].
+  - `x` (double): the argument, `x>=0`.
+
+  Returns `##-Inf` at `x=0`, `##NaN` for `x<0` (the value is complex) and `0.0` at `Inf`. Overflows to `##-Inf` where the true value does (large order, small `x`). Negative non-integer orders use the reflection $Y_{-\\\\nu}=\\\\cos(\\\\nu\\\\pi)Y_\\\\nu+\\\\sin(\\\\nu\\\\pi)J_\\\\nu$ with the trigonometric factors evaluated exactly (the naive factors lose all digits at half-integer orders).
+
+  Accuracy: relative error below 3e-12 for orders up to 100 and `x` up to 700.
+
+  See also [[bessel-J]], [[bessel-I]], [[bessel-K]]."
   ^double [^double order ^double x]
   (cond
     (m/zero? order) (bessel-Y0 x)
@@ -964,11 +1226,10 @@
     (m/integer? order) (bessel-y-integer-order (long order) x)
     (m/not-neg? order) (bessel-y-positive-args (m/abs order) x)
     :else (let [ao (m/abs order)
-                aopi (m/* ao m/PI)
-                y (bessel-y-positive-args (m/abs order) x)
-                j (bessel-j-positive-args (m/abs order) x)]
-            (m/+ (m/* y (m/cos aopi))
-                 (m/* j (m/sin aopi))))))
+                y (bessel-y-positive-args ao x)
+                j (bessel-j-positive-args ao x)]
+            (m/+ (m/* y (gam/cos-pi ao))
+                 (m/* j (gam/sin-pi ao))))))
 
 ;; Bessel K
 
@@ -976,11 +1237,19 @@
 ;; (formulas 1.6 and 1.9)
 ;; https://www.researchgate.net/publication/242441899_On_the_numerical_evaluation_of_the_modified_bessel_function_of_the_third_kind
 
+(defn- half-odd-order
+  "The positive odd numerator of the order `n/2` of `bessel-K-half-odd*` (K is even in the order); throws for even `n`."
+  ^long [^long n]
+  (if (m/odd? n)
+    (m/long-abs n)
+    (throw (IllegalArgumentException. (str "The order numerator must be an odd integer, got " n)))))
+
 (defn bessel-K-half-odd
   "Bessel K_a function for a = order/2
 
-  Function accepts only odd integers for order"
-  ^double [^long odd-numerator ^double x]
+  Function accepts only odd integers for order, `K` is even in the order so a negative `order` gives the value for `-order`; an even `order` throws `IllegalArgumentException`."
+  ^double [^long order ^double x]
+  (let [odd-numerator (half-odd-order order)]
   (case (int odd-numerator)
     1 (m/* (m/sqrt (m// m/HALF_PI x)) (m/exp (m/- x)))
     3 (m/* (m/sqrt (m// m/HALF_PI x)) (m/exp (m/- x)) (m/inc (m// x)))
@@ -991,13 +1260,14 @@
       (if (m/> i odd-numerator)
         (.y pair)
         (recur (m/+ i 2) (Vec2. (.y pair) (m/+ (m/* (.y pair) (m// (m/- i 2.0) x))
-                                               (.x pair))))))))
+                                               (.x pair)))))))))
 
 (defn bessel-K-half-odd-scaled
   "Bessel K_a function scaled by e^x for a = order/2
 
-  Function accepts only odd integers for order"
-  ^double [^long odd-numerator ^double x]
+  Function accepts only odd integers for order, `K` is even in the order so a negative `order` gives the value for `-order`; an even `order` throws `IllegalArgumentException`."
+  ^double [^long order ^double x]
+  (let [odd-numerator (half-odd-order order)]
   (case (int odd-numerator)
     1 (m/* (m/sqrt (m// m/HALF_PI x)))
     3 (m/* (m/sqrt (m// m/HALF_PI x)) (m/inc (m// x)))
@@ -1009,10 +1279,20 @@
         (.y pair)
         (recur (m/+ i 2) (Vec2. (.y pair) (m/+ (m/* (.y pair) (m// (m/- i 2.0) x))
                                                (.x pair))))))))
-
+)
 
 (defn bessel-K0
-  "Modified Bessel function of the second kind of order 0, K_0(x)"
+  "Modified Bessel function of the second kind of order 0, $K_0(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument, `x>=0`.
+
+  Returns `##Inf` at 0, `0.0` at `Inf` (and on underflow, `x` above about 745) and `##NaN` for `x<0`.
+
+  Accuracy: relative error about 1e-15.
+
+  See also [[bessel-K1]], [[bessel-K]], [[bessel-I0]]."
   ^double [^double x]
   (cond
     (m/zero? x) ##Inf
@@ -1050,7 +1330,17 @@
             (m/* (m// a (m/sqrt x)) (m/exp (m/- x))))))
 
 (defn bessel-K1
-  "Modified Bessel function of the second kind of order 1, K_1(x)"
+  "Modified Bessel function of the second kind of order 1, $K_1(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument, `x>=0`.
+
+  Returns `##Inf` at 0, `0.0` at `Inf` and `##NaN` for `x<0`.
+
+  Accuracy: relative error about 1e-15.
+
+  See also [[bessel-K0]], [[bessel-K]], [[bessel-I1]]."
   ^double [^double x]
   (cond
     (m/zero? x) ##Inf
@@ -1242,7 +1532,18 @@
           (recur (m/inc k) ns1 ns2 nt1 nt2))))))
 
 (defn bessel-K
-  "Modified Bessel function of the second kind and real order v, K_v(x)"
+  "Modified Bessel function of the second kind of real order $\\\\nu$, $K_\\\\nu(x)$.
+
+  Parameters:
+
+  - `order` (double): the order $\\\\nu$; any real, $K_{-\\\\nu}=K_\\\\nu$.
+  - `x` (double): the argument, `x>=0`.
+
+  Returns `##Inf` at `x=0` and on overflow, `0.0` at `Inf` and on underflow, `##NaN` for `x<0`.
+
+  Accuracy: relative error below 1e-13 for orders up to 100 and `x` up to 700.
+
+  See also [[bessel-I]], [[bessel-J]], [[bessel-K-half-odd]]."
   ^double [^double order ^double x]
   (let [v (m/abs order)]
     (cond
@@ -1273,10 +1574,21 @@
 ;; Bessel I
 
 (defn bessel-I0
-  "Modified Bessel function of the first kind of order 0, I_0(x)"
+  "Modified Bessel function of the first kind of order 0, $I_0(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `1.0` at 0 and `##Inf` at `±Inf` (and on overflow, `|x|` above about 713). Even function.
+
+  Accuracy: relative error about 1e-15.
+
+  See also [[bessel-I1]], [[bessel-I]], [[bessel-K0]]."
   ^double [^double x]
   (cond
-    (m/invalid-double? x) ##NaN
+    (m/nan? x) ##NaN
+    (m/inf? x) ##Inf
     (m/zero? x) 1.0
     :else (let [x (m/abs x)]
             (if (m/< x 7.75)
@@ -1299,10 +1611,21 @@
                           (m/sqrt x))))))))
 
 (defn bessel-I1
-  "Modified Bessel function of the first kind of order 1, I_0(x)"
+  "Modified Bessel function of the first kind of order 1, $I_1(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `0.0` at 0 and `±Inf` at `±Inf` (and on overflow). Odd function.
+
+  Accuracy: relative error about 1e-15.
+
+  See also [[bessel-I0]], [[bessel-I]], [[bessel-K1]]."
   ^double [^double x]
   (cond
-    (m/invalid-double? x) ##NaN
+    (m/nan? x) ##NaN
+    (m/inf? x) x
     (m/zero? x) 0.0
     :else (let [z (m/abs x)
                 z (double
@@ -1394,7 +1717,18 @@
         (m/- bessel-i-val)))))
 
 (defn bessel-I
-  "Modified Bessel function of the first kind of order v, I_v(x)"
+  "Modified Bessel function of the first kind of real order $\\\\nu$, $I_\\\\nu(x)$.
+
+  Parameters:
+
+  - `order` (double): the order $\\\\nu$; any real.
+  - `x` (double): the argument; for `x<0` only integer orders are defined, $I_n(-x)=(-1)^nI_n(x)$, other orders give `##NaN`.
+
+  Returns `0.0` for `order>0` at `x=0`, `##Inf` at `Inf`; overflows to `##Inf` and underflows to `0.0` where the true value does.
+
+  Accuracy: relative error below 1e-13 for orders up to 100 and `x` up to 700.
+
+  See also [[bessel-K]], [[bessel-J]]."
   ^double [^double order ^double x]
   (cond
     (m/zero? order) (bessel-I0 x)
@@ -1410,159 +1744,376 @@
 
 ;; spherical
 
+(defn- spherical-series
+  "Power series of the spherical Bessel function of order `n` at small `x`:
+  $\\frac{x^n}{(2n+1)!!}\\sum_k \\frac{(s x^2/2)^k}{k!\\,(2n+3)(2n+5)\\cdots(2n+2k+1)}$
+  with `s = -1` for $j_n$ and `s = 1` for the modified $i_n$."
+  ^double [^long n ^double x ^double s]
+  (let [z (m/* s 0.5 x x)
+        df (double (loop [k (long 1) f 1.0]
+                     (if (m/> k (m/inc n)) f (recur (m/inc k) (m/* f (m/dec (m/* 2.0 k)))))))]
+    (m/* (m// (m/pow x (double n)) df)
+         (double (loop [k (long 1) term 1.0 sum 1.0]
+                   (let [term (m// (m/* term z) (m/* k (m/+ (m/* 2.0 n) (m/inc (m/* 2.0 k)))))
+                         sum (m/+ sum term)]
+                     (if (or (m/< (m/abs term) (m/* 1.0e-17 (m/abs sum))) (m/> k 60))
+                       sum
+                       (recur (m/inc k) term sum))))))))
+
 (defn spherical-bessel-j0
-  "Spherical Bessel function of the first kind and order 0."
+  "Spherical Bessel function of the first kind and order 0, $j_0(x)=\\sin(x)/x$.
+
+  `j0(0)=1`, `j0(±Inf)=0`. Even function."
   ^double [^double x]
-  (if (m/zero? x) 1.0
-      (m// (m/sin x) x)))
+  (cond
+    (m/zero? x) 1.0
+    (m/inf? x) 0.0
+    :else (m// (m/sin x) x)))
 
 (defn spherical-bessel-j1
-  "Spherical Bessel function of the first kind and order 1."
+  "Spherical Bessel function of the first kind and order 1, $j_1(x)=\\sin(x)/x^2-\\cos(x)/x$.
+
+  `j1(0)=0`, `j1(±Inf)=0`. Odd function. A power series is used for small `|x|` (the closed form cancels)."
   ^double [^double x]
-  (if (m/zero? x) 0.0
-      (m/- (m// (m/sin x) (m/* x x))
-           (m// (m/cos x) x))))
+  (cond
+    (m/zero? x) 0.0
+    (m/inf? x) 0.0
+    (m/< (m/abs x) 0.5) (spherical-series 1 x -1.0)
+    :else (m/- (m// (m/sin x) (m/* x x))
+               (m// (m/cos x) x))))
 
 (defn spherical-bessel-j2
-  "Spherical Bessel function of the first kind and order 2."
+  "Spherical Bessel function of the first kind and order 2.
+
+  `j2(0)=0`, `j2(±Inf)=0`. Even function. A power series is used for small `|x|` (the closed form cancels)."
   ^double [^double x]
-  (if (m/zero? x) 0.0
-      (let [x32 (m// 3.0 (m/* x x))]
-        (m/- (m/* (m/- (m// x32 x) (m// x)) (m/sin x))
-             (m/* x32 (m/cos x))))))
+  (cond
+    (m/zero? x) 0.0
+    (m/inf? x) 0.0
+    (m/< (m/abs x) 1.0) (spherical-series 2 x -1.0)
+    :else (let [x32 (m// 3.0 (m/* x x))]
+            (m/- (m/* (m/- (m// x32 x) (m// x)) (m/sin x))
+                 (m/* x32 (m/cos x))))))
 
 (defn spherical-bessel-j
-  "Spherical Bessel function of the first kind."
+  "Spherical Bessel function of the first kind, $j_n(x)=\\sqrt{\\pi/(2x)}J_{n+1/2}(x)$.
+
+  Parameters:
+
+  - `order` (double): the order `n`, any real for `x>0`; for `x<0` only integer orders are defined, $j_n(-x)=(-1)^n j_n(x)$ (non-integer orders give `##NaN`).
+  - `x` (double): the argument.
+
+  Returns `j_n(0)=1` for `n=0` and `0` for `n>0`; `0` at `±Inf`. Orders 0, 1, 2 use closed forms (power series for small `x`).
+
+  Accuracy: relative error about 1e-13.
+
+  See also [[spherical-bessel-y]], [[bessel-J]]."
   ^double [^double order ^double x]
   (condp m/== order
     0.0 (spherical-bessel-j0 x)
     1.0 (spherical-bessel-j1 x)
     2.0 (spherical-bessel-j2 x)
-    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-J (m/+ order 0.5) x))))
+    (cond
+      (m/inf? x) 0.0
+      (m/neg? x) (if (m/integer? order)
+                   (m/* (if (m/even? (long order)) 1.0 -1.0) (spherical-bessel-j order (m/- x)))
+                   ##NaN)
+      (m/zero? x) (if (m/zero? order) 1.0 0.0)
+      :else (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-J (m/+ order 0.5) x)))))
 
 (defn spherical-bessel-y0
-  "Spherical Bessel function of the second kind and order 0."
+  "Spherical Bessel function of the second kind and order 0, $y_0(x)=-\\cos(x)/x$.
+
+  `y0(0)=-Inf`, `y0(±Inf)=0`. Odd function."
   ^double [^double x]
-  (if (m/zero? x) ##-Inf
-      (m/- (m// (m/cos x) x))))
+  (cond
+    (m/zero? x) ##-Inf
+    (m/inf? x) 0.0
+    :else (m/- (m// (m/cos x) x))))
 
 (defn spherical-bessel-y1
-  "Spherical Bessel function of the second kind and order 1."
+  "Spherical Bessel function of the second kind and order 1.
+
+  `y1(0)=-Inf`, `y1(±Inf)=0`. Even function."
   ^double [^double x]
-  (if (m/zero? x) ##-Inf
-      (m/- (m/- (m// (m/cos x) (m/* x x)))
-           (m// (m/sin x) x))))
+  (cond
+    (m/zero? x) ##-Inf
+    (m/inf? x) 0.0
+    :else (m/- (m/- (m// (m/cos x) (m/* x x)))
+               (m// (m/sin x) x))))
 
 (defn spherical-bessel-y2
-  "Spherical Bessel function of the second kind and order 2."
+  "Spherical Bessel function of the second kind and order 2.
+
+  `y2(0)=-Inf`, `y2(±Inf)=0`. Odd function."
   ^double [^double x]
-  (if (m/zero? x) ##-Inf
-      (let [x32 (m// 3.0 (m/* x x))]
-        (m/- (m/* (m/- (m// x) (m// x32 x)) (m/cos x))
-             (m/* x32 (m/sin x))))))
+  (cond
+    (m/zero? x) ##-Inf
+    (m/inf? x) 0.0
+    :else (let [x32 (m// 3.0 (m/* x x))]
+            (m/- (m/* (m/- (m// x) (m// x32 x)) (m/cos x))
+                 (m/* x32 (m/sin x))))))
 
 (defn spherical-bessel-y
-  "Spherical Bessel function of the second kind."
+  "Spherical Bessel function of the second kind, $y_n(x)=\\sqrt{\\pi/(2x)}Y_{n+1/2}(x)$.
+
+  Parameters:
+
+  - `order` (double): the order `n`, any real for `x>0`; for `x<0` only integer orders are defined, $y_n(-x)=(-1)^{n+1} y_n(x)$ (non-integer orders give `##NaN`).
+  - `x` (double): the argument.
+
+  Returns `-Inf` at `0` and `0` at `±Inf`. Orders 0, 1, 2 use closed forms.
+
+  Accuracy: relative error about 1e-13.
+
+  See also [[spherical-bessel-j]], [[bessel-Y]]."
   ^double [^double order ^double x]
   (condp m/== order
     0.0 (spherical-bessel-y0 x)
     1.0 (spherical-bessel-y1 x)
     2.0 (spherical-bessel-y2 x)
-    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-Y (m/+ order 0.5) x))))
+    (cond
+      (m/inf? x) 0.0
+      (m/neg? x) (if (m/integer? order)
+                   (m/* (if (m/even? (long order)) -1.0 1.0) (spherical-bessel-y order (m/- x)))
+                   ##NaN)
+      (m/zero? x) ##-Inf
+      :else (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-Y (m/+ order 0.5) x)))))
 
 (defn spherical-bessel-1-i0
-  "First modified spherical Bessel function of the first kind and order 0."
+  "First modified spherical Bessel function of the first kind and order 0, $i^{(1)}_0(x)=\\sinh(x)/x$.
+
+  `i0(0)=1`, `i0(±Inf)=Inf`. Even function."
   ^double [^double x]
-  (if (m/zero? x) 1.0
-      (m// (m/sinh x) x)))
+  (cond
+    (m/zero? x) 1.0
+    (m/inf? x) ##Inf
+    :else (m// (m/sinh x) x)))
 
 (defn spherical-bessel-1-i1
-  "First modified spherical Bessel function of the first kind and order 1."
+  "First modified spherical Bessel function of the first kind and order 1.
+
+  `i1(0)=0`, `i1(±Inf)=±Inf`. Odd function. A power series is used for small `|x|`."
   ^double [^double x]
-  (if (m/zero? x) 0.0
-      (m/- (m// (m/cosh x) x) (m// (m/sinh x) (m/* x x)))))
+  (cond
+    (m/zero? x) 0.0
+    (m/inf? x) x
+    (m/< (m/abs x) 0.5) (spherical-series 1 x 1.0)
+    :else (m/- (m// (m/cosh x) x) (m// (m/sinh x) (m/* x x)))))
 
 (defn spherical-bessel-1-i2
-  "First modified spherical Bessel function of the first kind and order 2."
+  "First modified spherical Bessel function of the first kind and order 2.
+
+  `i2(0)=0`, `i2(±Inf)=Inf`. Even function. A power series is used for small `|x|`."
   ^double [^double x]
-  (if (m/zero? x) 0.0
-      (let [x32 (m// 3.0 (m/* x x))]
-        (m/- (m/* (m/+ (m// x) (m// x32 x)) (m/sinh x))
-             (m/* x32 (m/cosh x))))))
+  (cond
+    (m/zero? x) 0.0
+    (m/inf? x) ##Inf
+    (m/< (m/abs x) 1.0) (spherical-series 2 x 1.0)
+    :else (let [x32 (m// 3.0 (m/* x x))]
+            (m/- (m/* (m/+ (m// x) (m// x32 x)) (m/sinh x))
+                 (m/* x32 (m/cosh x))))))
 
 (defn spherical-bessel-1-i
-  "First modified spherical Bessel function of the first kind."
+  "First modified spherical Bessel function of the first kind, $i^{(1)}_n(x)=\\sqrt{\\pi/(2x)}I_{n+1/2}(x)$.
+
+  Parameters:
+
+  - `order` (double): the order `n`, any real for `x>0`; for `x<0` only integer orders are defined, $i_n(-x)=(-1)^n i_n(x)$ (non-integer orders give `##NaN`).
+  - `x` (double): the argument.
+
+  Returns `1` at `0` for `n=0` and `0` for `n>0`; `Inf` at `Inf`. Orders 0, 1, 2 use closed forms (power series for small `x`).
+
+  Accuracy: relative error about 1e-13.
+
+  See also [[spherical-bessel-2-i]], [[bessel-I]]."
   ^double [^double order ^double x]
   (condp m/== order
     0.0 (spherical-bessel-1-i0 x)
     1.0 (spherical-bessel-1-i1 x)
     2.0 (spherical-bessel-1-i2 x)
-    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-I (m/+ order 0.5) x))))
+    (cond
+      (m/neg? x) (if (m/integer? order)
+                   (m/* (if (m/even? (long order)) 1.0 -1.0) (spherical-bessel-1-i order (m/- x)))
+                   ##NaN)
+      (m/pos-inf? x) ##Inf
+      (m/zero? x) (if (m/zero? order) 1.0 0.0)
+      :else (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-I (m/+ order 0.5) x)))))
 
 (defn spherical-bessel-2-i0
-  "Second modified spherical Bessel function of the first kind and order 0."
-  ^double [^double x] (m// (m/cosh x) x))
+  "Second modified spherical Bessel function of the first kind and order 0, $\\cosh(x)/x$.
+
+  `i0(0)=Inf`, `i0(±Inf)=±Inf`. Odd function."
+  ^double [^double x]
+  (cond
+    (m/zero? x) ##Inf
+    (m/inf? x) x
+    :else (m// (m/cosh x) x)))
 
 (defn spherical-bessel-2-i1
-  "Second modified spherical Bessel function of the first kind and order 1."
-  ^double [^double x] (m/- (m// (m/sinh x) x) (m// (m/cosh x) (m/* x x))))
+  "Second modified spherical Bessel function of the first kind and order 1.
+
+  `i1(0)=-Inf`, `i1(±Inf)=Inf`. Even function."
+  ^double [^double x]
+  (cond
+    (m/zero? x) ##-Inf
+    (m/inf? x) ##Inf
+    :else (m/- (m// (m/sinh x) x) (m// (m/cosh x) (m/* x x)))))
 
 (defn spherical-bessel-2-i2
-  "Second modified spherical Bessel function of the first kind and order 2."
-  ^double [^double x] (let [x32 (m// 3.0 (m/* x x))]
-                        (m/- (m/* (m/+ (m// x) (m// x32 x)) (m/cosh x))
-                             (m/* x32 (m/sinh x)))))
+  "Second modified spherical Bessel function of the first kind and order 2.
+
+  `i2(0)=Inf`, `i2(±Inf)=±Inf`. Odd function."
+  ^double [^double x]
+  (cond
+    (m/zero? x) ##Inf
+    (m/inf? x) x
+    :else (let [x32 (m// 3.0 (m/* x x))]
+            (m/- (m/* (m/+ (m// x) (m// x32 x)) (m/cosh x))
+                 (m/* x32 (m/sinh x))))))
 
 (defn spherical-bessel-2-i
-  "Second modified spherical Bessel function of the first kind."
+  "Second modified spherical Bessel function of the first kind, $i^{(2)}_n(x)=\\sqrt{\\pi/(2x)}I_{-n-1/2}(x)$.
+
+  Parameters:
+
+  - `order` (double): the order `n`, any real for `x>0`; for `x<0` only integer orders are defined, $i^{(2)}_n(-x)=(-1)^{n+1} i^{(2)}_n(x)$ (non-integer orders give `##NaN`).
+  - `x` (double): the argument.
+
+  Returns `Inf` at `0` for even `n` and `-Inf` for odd `n` (the closed forms of orders 0, 1, 2 are `Inf`, `-Inf`, `Inf`); `Inf` at `Inf`.
+
+  Accuracy: relative error about 1e-13.
+
+  See also [[spherical-bessel-1-i]], [[bessel-I]]."
   ^double [^double order ^double x]
   (condp m/== order
     0.0 (spherical-bessel-2-i0 x)
     1.0 (spherical-bessel-2-i1 x)
     2.0 (spherical-bessel-2-i2 x)
-    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-I (m/- (m/+ order 0.5)) x))))
+    (cond
+      (m/neg? x) (if (m/integer? order)
+                   (m/* (if (m/even? (long order)) -1.0 1.0) (spherical-bessel-2-i order (m/- x)))
+                   ##NaN)
+      (m/pos-inf? x) ##Inf
+      (m/zero? x) (if (m/even? (long order)) ##Inf ##-Inf)
+      :else (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-I (m/- (m/+ order 0.5)) x)))))
 
 (defn spherical-bessel-k0
-  "Modified spherical Bessel function of the second kind and order 0."
-  ^double [^double x] (m/* m/HALF_PI (m// (m/exp (m/- x)) x)))
+  "Modified spherical Bessel function of the second kind and order 0, $\\frac{\\pi}{2}e^{-x}/x$.
+
+  `k0(0)=Inf`, `k0(Inf)=0`; `##NaN` for `x<0`."
+  ^double [^double x]
+  (cond
+    (m/neg? x) ##NaN
+    (m/pos-inf? x) 0.0
+    :else (m/* m/HALF_PI (m// (m/exp (m/- x)) x))))
 
 (defn spherical-bessel-k1
-  "Modified spherical Bessel function of the second kind and order 1."
-  ^double [^double x] (m/* m/HALF_PI (m/exp (m/- x)) (m/+ (m// x) (m// (m/* x x)))))
+  "Modified spherical Bessel function of the second kind and order 1.
+
+  `k1(0)=Inf`, `k1(Inf)=0`; `##NaN` for `x<0`."
+  ^double [^double x]
+  (cond
+    (m/neg? x) ##NaN
+    (m/pos-inf? x) 0.0
+    :else (m/* m/HALF_PI (m/exp (m/- x)) (m/+ (m// x) (m// (m/* x x))))))
 
 (defn spherical-bessel-k2
-  "Modified spherical Bessel function of the second kind and order 2."
-  ^double [^double x] (let [x32 (m// 3.0 (m/* x x))]
-                        (m/* m/HALF_PI (m/exp (m/- x)) (m/+ (m// x) x32 (m// x32 x)))))
+  "Modified spherical Bessel function of the second kind and order 2.
+
+  `k2(0)=Inf`, `k2(Inf)=0`; `##NaN` for `x<0`."
+  ^double [^double x]
+  (cond
+    (m/neg? x) ##NaN
+    (m/pos-inf? x) 0.0
+    :else (let [x32 (m// 3.0 (m/* x x))]
+            (m/* m/HALF_PI (m/exp (m/- x)) (m/+ (m// x) x32 (m// x32 x))))))
 
 (defn spherical-bessel-k
-  "Modified spherical Bessel function of the second kind."
+  "Modified spherical Bessel function of the second kind, $k_n(x)=\\sqrt{\\pi/(2x)}K_{n+1/2}(x)$.
+
+  Parameters:
+
+  - `order` (double): the order `n`, any real.
+  - `x` (double): the argument, `x>=0`.
+
+  Returns `##NaN` for `x<0`, `Inf` at `0` and `0` at `Inf`. Orders 0, 1, 2 use closed forms.
+
+  Accuracy: relative error about 1e-13.
+
+  See also [[bessel-K]], [[spherical-bessel-1-i]]."
   ^double [^double order ^double x]
   (condp m/== order
     0.0 (spherical-bessel-k0 x)
     1.0 (spherical-bessel-k1 x)
     2.0 (spherical-bessel-k2 x)
-    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-K (m/+ order 0.5) x))))
+    (cond
+      (m/neg? x) ##NaN
+      (m/pos-inf? x) 0.0
+      (m/zero? x) ##Inf
+      :else (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-K (m/+ order 0.5) x)))))
 
 ;;
 
 (defn hankel-1
-  "Hankel function of the first kind, returns complex number."
+  "Hankel function of the first kind, $H^{(1)}_\\nu(x)=J_\\nu(x)+iY_\\nu(x)$, as a complex number [[Vec2]].
+
+  Parameters:
+
+  - `order` (double): the order $\\nu$.
+  - `x` (double): the argument. For `x<0` the principal branch is used (the cut lies on the negative real axis, `arg x = π`):
+    $H^{(1)}_\\nu(-x) = (\\sin(\\nu\\pi)Y_\\nu(x)-\\cos(\\nu\\pi)J_\\nu(x)) + i(\\sin(\\nu\\pi)J_\\nu(x)+\\cos(\\nu\\pi)Y_\\nu(x))$.
+
+  Returns `[Inf -Inf]`-like values at `x=0` where `Y` diverges.
+
+  See also [[hankel-2]], [[bessel-J]], [[bessel-Y]]."
   ^Vec2 [^double order ^double x]
-  (Vec2. (bessel-J order x) (bessel-Y order x)))
+  (if (m/neg? x)
+    (let [ax (m/- x)
+          j (bessel-J order ax)
+          y (bessel-Y order ax)
+          sn (gam/sin-pi order)
+          cs (gam/cos-pi order)]
+      (Vec2. (m/- (m/* sn y) (m/* cs j))
+             (m/+ (m/* sn j) (m/* cs y))))
+    (Vec2. (bessel-J order x) (bessel-Y order x))))
 
 (defn hankel-2
-  "Hankel function of the second kind, returns complex number."
+  "Hankel function of the second kind, $H^{(2)}_\\nu(x)=J_\\nu(x)-iY_\\nu(x)$, as a complex number [[Vec2]].
+
+  Parameters:
+
+  - `order` (double): the order $\\nu$.
+  - `x` (double): the argument. For `x<0` the principal branch is used (`arg x = π`):
+    $H^{(2)}_\\nu(-x) = (3\\cos(\\nu\\pi)J_\\nu(x)-\\sin(\\nu\\pi)Y_\\nu(x)) + i(\\sin(\\nu\\pi)J_\\nu(x)-\\cos(\\nu\\pi)Y_\\nu(x))$.
+
+  See also [[hankel-1]], [[bessel-J]], [[bessel-Y]]."
   ^Vec2 [^double order ^double x]
-  (Vec2. (bessel-J order x) (m/- (bessel-Y order x))))
+  (if (m/neg? x)
+    (let [ax (m/- x)
+          j (bessel-J order ax)
+          y (bessel-Y order ax)
+          sn (gam/sin-pi order)
+          cs (gam/cos-pi order)]
+      (Vec2. (m/- (m/* 3.0 cs j) (m/* sn y))
+             (m/- (m/* sn j) (m/* cs y))))
+    (Vec2. (bessel-J order x) (m/- (bessel-Y order x)))))
 
 (defn spherical-hankel-1
-  "Spherical Hankel function of the first kind, returns complex number."
+  "Spherical Hankel function of the first kind, $h^{(1)}_n(x)=j_n(x)+iy_n(x)$, as a complex number [[Vec2]].
+
+  Parameters: `order` (double), `x` (double), see [[spherical-bessel-j]] and [[spherical-bessel-y]] for the domain.
+
+  See also [[spherical-hankel-2]]."
   ^Vec2 [^double order ^double x]
   (Vec2. (spherical-bessel-j order x) (spherical-bessel-y order x)))
 
 (defn spherical-hankel-2
-  "Spherical Hankel function of the second kind, returns complex number."
+  "Spherical Hankel function of the second kind, $h^{(2)}_n(x)=j_n(x)-iy_n(x)$, as a complex number [[Vec2]].
+
+  Parameters: `order` (double), `x` (double), see [[spherical-bessel-j]] and [[spherical-bessel-y]] for the domain.
+
+  See also [[spherical-hankel-1]]."
   ^Vec2 [^double order ^double x]
   (Vec2. (spherical-bessel-j order x) (m/- (spherical-bessel-y order x))))
 
@@ -1570,17 +2121,35 @@
 ;;
 
 (defn minkowski
-  "Minkowski's question mark function ?(x)"
+  "Minkowski's question mark function $?(x)$, the increasing homeomorphism of $[0,1]$ that maps the rationals to the dyadic rationals (continued fraction $[a_0;a_1,a_2,\\ldots]\\mapsto a_0+2\\sum_k(-1)^{k+1}2^{-(a_1+\\cdots+a_k)}$).
+
+  Parameters:
+
+  - `x` (double): any real. The function is extended to all reals by $?(x+1)=?(x)+1$, so $?(x)=\\lfloor x\\rfloor+?(x-\\lfloor x\\rfloor)$.
+
+  Returns `?(0)=0`, `?(1)=1`, `?(1/2)=1/2`, `?(1/3)=1/4`; `##NaN` for `##NaN`; `##Inf` and `##-Inf` for the infinities.
+
+  The value is computed by the Stern-Brocot descent until the added dyadic is below the unit in the last place of the result, so the absolute error is about 1e-16 times the magnitude.
+
+  See also [[fastmath.core/floor]]."
   (^double [^double x]
-   (loop [it (long 0) p 0.0 q 1.0 r 1.0 s 1.0 d 1.0 y 0.0]
-     (if (m/< d (m/ulp y))
-       (m/+ y d)
-       (let [d (m/* d 0.5)
-             m (m/+ p r)
-             n (m/+ q s)]
-         (if (m/< x (m// m n))
-           (recur (m/inc it) p q m n d y)
-           (recur (m/inc it) m n r s d (m/+ y d))))))))
+   (cond
+     (m/nan? x) ##NaN
+     (m/inf? x) x
+     :else
+     (let [fl (m/floor x)
+           x (m/- x fl)]
+       (m/+ fl
+            (double
+             (loop [it (long 0) p 0.0 q 1.0 r 1.0 s 1.0 d 1.0 y 0.0]
+              (if (m/< d (m/ulp y))
+                (m/+ y d)
+                (let [d (m/* d 0.5)
+                      m (m/+ p r)
+                      n (m/+ q s)]
+                  (if (m/< x (m// m n))
+                    (recur (m/inc it) p q m n d y)
+                    (recur (m/inc it) m n r s d (m/+ y d))))))))))))
 
 ;; sinint / cosint
 
@@ -1600,6 +2169,8 @@
   Returns `Si(x)` as a double. `Si(0.0)` is `0.0` and the function saturates
   to the exact limits `+-HALF_PI` for very large `|x|`. Returns `##NaN` for a
   `##NaN` input.
+
+  Accuracy: relative error below 1e-15.
 
   See also [[si]] (the same function shifted by `-pi/2`), [[Ci]], [[Cin]]
   (the related cosine integrals)."
@@ -1681,6 +2252,8 @@
   as `x` grows without bound and to `-pi` as `x` decreases without bound.
   Returns `##NaN` for a `##NaN` input.
 
+  Accuracy: absolute error about 2e-16 (the relative error grows with `x` because the value tends to zero: `-cos(x)/x`).
+
   See also [[Si]]."
   ^double [^double x] (m/- (Si x) m/HALF_PI))
 
@@ -1713,6 +2286,8 @@
   Returns `Ci(x)` as a double. Throws an assertion error if `x` is negative.
   Returns `##-Inf` at `x = 0.0`, `0.0` at `x = ##Inf`, and `##NaN` for a
   `##NaN` input.
+
+  Accuracy: absolute error about 1e-16; relative error up to 1.3e-13 close to the zeros.
 
   See also [[Cin]] (the closely related entire cosine integral, defined for
   all real `x`), [[Si]], [[si]] (the sine integral)."
@@ -1806,11 +2381,25 @@
   `##Inf` as `x` approaches either `##Inf` or `##-Inf`. Returns `##NaN` for a
   `##NaN` input.
 
+  Accuracy: relative error below 1e-15 (a Taylor series is used for `|x| < 2`, where `gamma + ln|x| - Ci(|x|)` loses all digits: the relative error was 1e-2 at `x = 1e-6` before).
+
   See also [[Ci]], [[Si]], [[si]]."
   ^double [^double x]
   (cond
     (m/nan? x) ##NaN
     (m/zero? x) 0.0
+    ;; Taylor series (alternating, no cancellation for |x| < 2); gamma + ln|x| - Ci(|x|) loses all digits near 0
+    (m/< (m/abs x) 2.0) (let [x2 (m/* x x)]
+                          (double
+                           ;; p = x^(2k) / (2k)!, term k = (-1)^(k+1) p / (2k)
+                           (loop [k (long 1) p (m/* 0.5 x2) sum (m/* 0.25 x2)]
+                             (let [k+ (m/long-inc k)
+                                   p (m// (m/* p x2) (m/* (m/dec (m/* 2.0 k+)) (m/* 2.0 k+)))
+                                   term (m// p (m/* 2.0 k+))
+                                   sum (if (m/odd? k+) (m/+ sum term) (m/- sum term))]
+                               (if (or (m/< term (m/* 1.0e-17 (m/abs sum))) (m/> k 40))
+                                 sum
+                                 (recur k+ p sum))))))
     :else (let [ax (m/abs x)]
             (m/- (m/+ m/GAMMA (m/log ax)) (Ci ax)))))
 
@@ -1871,6 +2460,8 @@
   Returns `E0(x)` as a double. `E0(0.0)` is `##Inf`, `E0(##-Inf)` is `##-Inf`,
   `E0(##Inf)` is `0.0`. Returns `##NaN` for a `##NaN` input.
 
+  Accuracy: relative error below 5e-16.
+
   See also [[E1]], [[En]] (generalizations to other orders), [[Ei]]."
   ^double [^double x]
   (cond
@@ -1902,6 +2493,8 @@
 
   Returns `E1(x)` as a double. `E1(0.0)` is `##Inf`, `E1(##Inf)` is `0.0`.
   Returns `##NaN` for a `##NaN` input or a negative `x`.
+
+  Accuracy: relative error below 6e-15.
 
   See also [[Ein]] (the closely related entire exponential integral),
   [[E0]], [[En]] (generalizations to other orders), [[Ei]]."
@@ -1948,6 +2541,8 @@
 
   Returns `Ein(x)` as a double. `Ein(0.0)` is `0.0`. Returns `##NaN` for a
   `##NaN` input or for `x < -2.15`.
+
+  Accuracy: relative error below 2e-14.
 
   See also [[E1]], [[Cin]] (the analogous entire form of the cosine
   integral), [[Ei]]."
@@ -2181,6 +2776,8 @@
   Returns `Ei(x)` as a double. `Ei(0.0)` is `##-Inf`, `Ei(##Inf)` is `##Inf`,
   `Ei(##-Inf)` is `-0.0`. Returns `##NaN` for a `##NaN` input.
 
+  Accuracy: relative error below 2e-14 (2e-14 close to its zero at 0.3725).
+
   See also [[E1]], [[E0]], [[En]], [[li]] (related by `li(x) = Ei(ln x)`)."
   ^double [^double x]
   (cond
@@ -2235,6 +2832,8 @@
   Returns `##NaN` for a `##NaN` input or a negative `x` (`ln(x)` is not
   real there).
 
+  Accuracy: relative error below 1e-14.
+
   See also [[Ei]], [[Li]] (the offset variant used in number theory)."
   ^double [^double x]
   (Ei (m/ln x)))
@@ -2255,6 +2854,8 @@
   Returns `Li(x)` as a double. `Li(2.0)` is `0.0`, `Li(1.0)` is `##-Inf`.
   Returns `##NaN` for a `##NaN` input or a negative `x`.
 
+  Accuracy: relative error below 2e-13 (close to its zero at `x = 2`).
+
   See also [[li]], [[Ei]]."
   ^double [^double x]
   (m/- (Ei (m/ln x)) 1.04516378011749278484))
@@ -2262,34 +2863,130 @@
 ;;
 
 (defn upper-incomplete-gamma
-  "Upper incomplete gamma function"
+  "Upper incomplete gamma function $\\Gamma(s,x)=\\int_x^\\infty t^{s-1}e^{-t}dt$.
+
+  Parameters:
+
+  - `s` (double): the shape; any real, for `s <= 0` the function is defined by the analytic continuation.
+  - `x` (double): the lower limit, `x >= 0`.
+
+  Returns `##NaN` for `x < 0`; $\\Gamma(s,0)=\\Gamma(s)$ for `s > 0`; $\\Gamma(s,\\infty)=0$.
+
+  Accuracy: relative error about 1e-13.
+
+  See also [[lower-incomplete-gamma]], [[regularized-gamma-q]], [[En]]."
   ^double [^double s ^double x]
-  (if (pos? s)
-    (m/exp (m/+ (m/log (. Gamma (regularizedGammaQ s x))) (. Gamma (logGamma s))))
-    (m/* (m/pow x s) (En (m/- 1.0 s) x))))
+  (cond
+    (m/neg? x) ##NaN
+    (m/pos-inf? x) 0.0
+    (m/pos? s) (m/exp (m/+ (m/log (. Gamma (regularizedGammaQ s x))) (. Gamma (logGamma s))))
+    :else (m/* (m/pow x s) (En (m/- 1.0 s) x))))
+
+(defn- lower-incomplete-gamma-series
+  "$x^s \\sum_k (-x)^k / (k! (s+k))$ for `s` not a non-positive integer."
+  ^double [^double s ^double x]
+  (loop [k (long 0) term 1.0 sum (m// s)]
+    (let [k+ (m/inc k)
+          term (m// (m/* term (m/- x)) k+)
+          d (m// term (m/+ s k+))
+          sum (m/+ sum d)]
+      (if (or (m/< (m/abs d) (m/* 1.0e-17 (m/abs sum))) (m/> k+ 500))
+        (m/* (m/pow x s) sum)
+        (recur k+ term sum)))))
+
+(defn- lower-incomplete-gamma-positive-series
+  "$x^s e^{-x} \\sum_k x^k / (s)_{k+1}$ for `s > 0`, `0 < x <= s+1`."
+  ^double [^double s ^double x]
+  (loop [k (long 1) term (m// s) sum (m// s)]
+    (let [term (m// (m/* term x) (m/+ s k))
+          sum (m/+ sum term)]
+      (if (or (m/< term (m/* 1.0e-17 sum)) (m/> k 5000))
+        (m/exp (m/+ (m/- (m/* s (m/log x)) x) (m/log sum)))
+        (recur (m/inc k) term sum)))))
 
 (defn lower-incomplete-gamma
-  "Lower incomplete gamma function"
-  ^double [^double s ^double x] (m/- (gamma s) (upper-incomplete-gamma s x)))
+  "Lower incomplete gamma function $\\gamma(s,x)=\\int_0^x t^{s-1}e^{-t}dt$.
+
+  Parameters:
+
+  - `s` (double): the shape; any real except non-positive integers, for `s <= 0` the function is defined by the analytic continuation $\\Gamma(s)-\\Gamma(s,x)$.
+  - `x` (double): the upper limit, `x >= 0`.
+
+  Returns `##NaN` for `x < 0` and for `s` a non-positive integer; `0.0` at `x = 0` for `s > 0`; $\\Gamma(s)$ at `x = Inf` for `s > 0`.
+
+  The result is computed without cancellation for small `x` (a series for `s > 0` and `x <= s+1`, the product of the regularized function and $\\Gamma(s)$ in log space otherwise; a power series for `s <= 0` and `x <= 1`).
+
+  Accuracy: relative error about 1e-13.
+
+  See also [[upper-incomplete-gamma]], [[regularized-gamma-p]]."
+  ^double [^double s ^double x]
+  (cond
+    (or (m/nan? s) (m/nan? x) (m/neg? x)) ##NaN
+    (m/pos-inf? x) (if (m/pos? s) (gamma s) ##NaN)
+    (m/pos? s) (cond
+                 (m/zero? x) 0.0
+                 ;; all terms are positive: no cancellation, and no underflow of P(s,x) * Gamma(s)
+                 (m/<= x (m/inc s)) (lower-incomplete-gamma-positive-series s x)
+                 :else (m/exp (m/+ (m/log (. Gamma (regularizedGammaP s x))) (. Gamma (logGamma s)))))
+    (m/== s (m/rint s)) ##NaN
+    (m/zero? x) ##NaN
+    (m/<= x 1.0) (lower-incomplete-gamma-series s x)
+    :else (m/- (gamma s) (upper-incomplete-gamma s x))))
 
 (defn regularized-gamma-p
-  "Regularized gamma P(a,x)"
+  "Regularized lower incomplete gamma function $P(a,x)=\\gamma(a,x)/\\Gamma(a)$.
+
+  Parameters:
+
+  - `a` (double): the shape, any real. For `a <= 0` a non-positive integer gives `P = 1` (the limit), other values are defined by the analytic continuation.
+  - `x` (double): the argument, `x >= 0`.
+
+  Returns `##NaN` for `x < 0`; `P(a,0)=0` and `P(a,Inf)=1` for `a > 0`.
+
+  Accuracy: relative error about 1e-13 for `a > 0` (Apache Commons Math).
+
+  See also [[regularized-gamma-q]], [[lower-incomplete-gamma]]."
   ^double [^double a ^double x]
-  (if (m/pos? a)
-    (. Gamma (regularizedGammaP a x))
-    (m// (lower-incomplete-gamma a x) (gamma a))))
+  (cond
+    (or (m/nan? a) (m/nan? x) (m/neg? x)) ##NaN
+    (m/pos? a) (if (m/pos-inf? x) 1.0 (. Gamma (regularizedGammaP a x)))
+    (m/== a (m/rint a)) 1.0
+    :else (m// (lower-incomplete-gamma a x) (gamma a))))
 
 (defn regularized-gamma-q
-  "Regularized gamma Q(a,x)"
+  "Regularized upper incomplete gamma function $Q(a,x)=\\Gamma(a,x)/\\Gamma(a)=1-P(a,x)$.
+
+  Parameters:
+
+  - `a` (double): the shape, any real. For `a <= 0` a non-positive integer gives `Q = 0` (the limit), other values are defined by the analytic continuation.
+  - `x` (double): the argument, `x >= 0`.
+
+  Returns `##NaN` for `x < 0`; `Q(a,0)=1` and `Q(a,Inf)=0` for `a > 0`.
+
+  Accuracy: relative error about 1e-13 for `a > 0` (Apache Commons Math).
+
+  See also [[regularized-gamma-p]], [[upper-incomplete-gamma]]."
   ^double [^double a ^double x]
-  (if (m/pos? a)
-    (. Gamma (regularizedGammaQ a x))
-    (m// (upper-incomplete-gamma a x) (gamma a))))
+  (cond
+    (or (m/nan? a) (m/nan? x) (m/neg? x)) ##NaN
+    (m/pos? a) (if (m/pos-inf? x) 0.0 (. Gamma (regularizedGammaQ a x)))
+    (m/== a (m/rint a)) 0.0
+    :else (m// (upper-incomplete-gamma a x) (gamma a))))
 
 ;; Airy
 
 (defn airy-Ai
-  "Airy Ai function"
+  "Airy function of the first kind, $\\\\mathrm{Ai}(x)$, the solution of $y''=xy$ decaying for $x\\\\to+\\\\infty$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `Ai(0)=0.355028…`, `Ai(Inf)=0`, `##NaN` for `x<=-1e8` (the phase is lost) and for `-Inf`. Underflows to `0.0` above `x≈108`. Oscillates for negative `x`.
+
+  Accuracy: relative error about 1e-15 for `x>-10`; for negative `x` the absolute error is about the phase $\\\\tfrac23|x|^{3/2}$ times the machine epsilon times the amplitude (1.6e-12 relative at -1000, 4e-8 at -1e6).
+
+  See also [[airy-Ai']], [[airy-Bi]]."
   ^double [^double x]
   (cond
     (m/pos-inf? x) 0.0
@@ -2298,7 +2995,17 @@
     :else ##NaN))
 
 (defn airy-Ai'
-  "First derivative of the Airy Ai function"
+  "Derivative of the Airy function of the first kind, $\\\\mathrm{Ai}'(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `Ai'(0)=-0.258819…`, `Ai'(Inf)=0`, `##NaN` for `x<=-1e8` and for `-Inf`.
+
+  Accuracy: as [[airy-Ai]].
+
+  See also [[airy-Ai]], [[airy-Bi']]."
   ^double [^double x]
   (cond
     (m/pos-inf? x) 0.0
@@ -2307,7 +3014,17 @@
     :else ##NaN))
 
 (defn airy-Bi
-  "Airy Bi function"
+  "Airy function of the second kind, $\\\\mathrm{Bi}(x)$, the solution of $y''=xy$ growing for $x\\\\to+\\\\infty$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `Bi(0)=0.614926…`, `##Inf` at `Inf` and on overflow (`x` above about 104), `##NaN` for `x<=-1e8` and for `-Inf`.
+
+  Accuracy: as [[airy-Ai]].
+
+  See also [[airy-Bi']], [[airy-Ai]]."
   ^double [^double x]
   (cond
     (m/pos-inf? x) ##Inf
@@ -2316,7 +3033,17 @@
     :else ##NaN))
 
 (defn airy-Bi'
-  "First derivative of the Airy Bi function"
+  "Derivative of the Airy function of the second kind, $\\\\mathrm{Bi}'(x)$.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `Bi'(0)=0.448288…`, `##Inf` at `Inf` and on overflow, `##NaN` for `x<=-1e8` and for `-Inf`.
+
+  Accuracy: as [[airy-Ai]].
+
+  See also [[airy-Bi]], [[airy-Ai']]."
   ^double [^double x]
   (cond
     (m/pos-inf? x) ##Inf
@@ -2327,14 +3054,26 @@
 ;;
 
 (defn harmonic-number
-  "Harmonic number H_n or generalized harmonic number H_n,m"
+  "Harmonic number $H_n=\\psi(n+1)+\\gamma$, or the generalized harmonic number $H_{n,m}=\\zeta(m)-\\zeta(m,n+1)=\\sum_{k=1}^n k^{-m}$.
+
+  Parameters:
+
+  - `n` (double): the number of terms; any real is allowed by the analytic continuation.
+  - `m` (double, optional): the power; `m=1` (default) gives $H_n$, `m=0` gives `n`.
+
+  Returns `0.0` at `n=0`. `##NaN` at the negative integers `n` (poles of the digamma function).
+
+  Accuracy: relative error about 1e-14.
+
+  See also [[digamma]], [[zeta]]."
   (^double [^double n]
-   (if (m/zero? n)
-     0.0
-     (m/+ (digamma (m/inc n)) m/GAMMA)))
+   (cond
+     (m/zero? n) 0.0
+     (and (m/neg? n) (m/== n (m/rint n))) ##NaN
+     :else (m/+ (digamma (m/inc n)) m/GAMMA)))
   (^double [^double n ^double m]
    (cond
-     (m/zero? m) n 
+     (m/zero? m) n
      (m/one? m) (harmonic-number n)
      :else (m/- (zeta m) (zeta m (m/inc n))))))
 
@@ -2356,9 +3095,20 @@
         (recur (m/inc i) nw)))))
 
 (defn lambert-W
-  "Lambert W_0 function. W(xe^x)=x for x>=-1.0."
+  "Lambert W_0 function, the principal branch of the inverse of $f(w)=we^w$; $W(xe^x)=x$ for $x≥-1$.
+
+  Parameters:
+
+  - `x` (double): the argument, `x >= -1/e`.
+
+  Returns `##NaN` for `x < -1/e` (no real value), `-1.0` at `-1/e`, `0.0` at `0` and `##Inf` at `##Inf`.
+
+  Accuracy: relative error about 1e-15 away from `-1/e`; close to the branch point the problem is ill-conditioned (error about 1e-14 at 1e-5 from it).
+
+  See also [[lambert-W-1]]."
   ^double [^double x]
   (cond
+    (m/pos-inf? x) ##Inf
     (m/< x -INVE) ##NaN
     (m/== x -INVE) -1.0
     (m/zero? x) 0.0
@@ -2372,7 +3122,17 @@
             (lambert-W-recursive (m/- lx (m/log lx)) x))))
 
 (defn lambert-W-1
-  "Lambert W_1 function. W_1(xe^x)=x for x<=-1.0."
+  "Lambert W_{-1} function, the lower real branch of the inverse of $f(w)=we^w$; $W_{-1}(xe^x)=x$ for $x≤-1$.
+
+  Parameters:
+
+  - `x` (double): the argument, `-1/e <= x < 0`.
+
+  Returns `##NaN` for `x < -1/e` and for `x > 0` (no real value), `-1.0` at `-1/e`, and `##-Inf` at `0.0` and `-0.0` (the limit from the left).
+
+  Accuracy: relative error about 1e-14.
+
+  See also [[lambert-W]]."
   ^double [^double x]
   (cond
     (or (m/< x -INVE) (m/pos? x)) ##NaN
@@ -2386,7 +3146,11 @@
 ;;
 
 (defn kummers-M
-  "Kummer's (confluent hypergeometric, 1F1) function for real arguments."
+  "Kummer's confluent hypergeometric function $M(a,b,x)={}_1F_1(a;b;x)$.
+
+  Same function as [[hypergeometric-1F1]]; see there for the parameters and the conventions at the poles (`b` a non-positive integer) and for terminating series.
+
+  See also [[tricomis-U]], [[hypergeometric-1F1]]."
   ^double [^double a ^double b ^double x]
   (cond
     ;; x=0 and a=0 always win, even over an otherwise-genuine pole, matching
@@ -2579,6 +3343,62 @@
               (recur (m/inc n) nterm (m/+ sum nterm))))))
       (hg/weniger-2F0 a b x))))
 
+(defn- tricomis-U-log-integrand
+  "`log` of the integrand $e^{-xt}t^{a}(1+t)^{b-a-1}$ of [[tricomis-U-integral]] at `t = e^s` (the Jacobian `t` is included)."
+  ^double [^double a ^double c ^double x ^double s]
+  (let [es (m/exp s)]
+    (m/+ (m/- (m/* x es)) (m/* a s) (m/* c (m/log1p es)))))
+
+(defn- tricomis-U-integral
+  "Tricomi's U for `a > 0`, `x > 0`: $\\frac{1}{\\Gamma(a)}\\int_0^\\infty e^{-xt}t^{a-1}(1+t)^{b-a-1}dt$ with `t = e^s`.
+
+  The integrand is positive (no cancellation) and analytic in the strip |Im s| < pi/2, so the trapezoidal rule on the real line converges exponentially. Below `s = -40` the integrand is `e^{as}` to the working precision and the infinite left tail is summed as a geometric series. `h` is the step."
+  (^double [^double a ^double b ^double x]
+   (let [c (m/- b a 1.0)]
+     (tricomis-U-integral a b x (m/max 1.0e-3 (m/min 0.12 (m// 2.0 (m/+ 4.0 a (m/abs c))))))))
+  (^double [^double a ^double b ^double x ^double h]
+   (let [c (m/- b a 1.0)
+         s0 -40.0
+         s-hi (let [w (m/+ (m/abs a) (m/abs b))]
+                (m/log (m// (m/+ 60.0 (m/* 2.0 w) (m/* 12.0 (m/sqrt w))) x)))
+         n (long (m/ceil (m// (m/- s-hi s0) h)))
+         fmax (double (loop [j (long 0) mx ##-Inf]
+                        (if (m/> j n)
+                          mx
+                          (recur (m/inc j) (m/max mx (tricomis-U-log-integrand a c x (m/+ s0 (m/* j h))))))))
+         tail (m// (m/exp (m/- (m/* a s0) fmax)) (m/expm1 (m/* a h)))
+         sum (double (loop [j (long 0) acc tail]
+                       (if (m/> j n)
+                         acc
+                         (recur (m/inc j) (m/+ acc (m/exp (m/- (tricomis-U-log-integrand a c x (m/+ s0 (m/* j h))) fmax)))))))]
+     (m/exp (m/- (m/+ (m/log h) (m/log sum) fmax) (. Gamma (logGamma a)))))))
+
+(defn- tricomis-U-positive-a
+  "`U(a, b, x)` for `x > 0` and `a > 0`."
+  ^double [^double a ^double b ^double x]
+  (tricomis-U-integral a b x))
+
+(defn- tricomis-U-negative-a
+  "`U(a, b, x)` for `x > 0` and a non-integer `a < 0`: the Kummer transformation $U(a,b,x)=x^{1-b}U(a-b+1,2-b,x)$ when `a-b+1 > 0`,
+  otherwise the recurrence $U(a-1)=(2a+x-b)U(a)-a(a-b+1)U(a+1)$ downward from two positive first parameters (the stable direction)."
+  ^double [^double a ^double b ^double x]
+  (let [a' (m/- (m/inc a) b)]
+    (if (m/pos? a')
+      (m/* (m/pow x (m/- 1.0 b)) (tricomis-U-integral a' (m/- 2.0 b) x))
+      (let [n (long (m/ceil (m/- a)))
+            a1 (m/+ a n)           ;; in (0, 1)
+            u-hi (tricomis-U-integral (m/inc a1) b x)
+            u-lo (tricomis-U-integral a1 b x)]
+        ;; u-lo = U(a + n), u-hi = U(a + n + 1); step down to U(a)
+        (loop [k (long 0) um u-lo up u-hi]
+          (if (m/== k n)
+            um
+            (let [ak (m/- a1 k)]   ;; current first parameter of `um`
+              (recur (m/inc k)
+                     (m/- (m/* (m/- (m/+ (m/* 2.0 ak) x) b) um)
+                          (m/* ak (m/- (m/inc ak) b) up))
+                     um))))))))
+
 (defn tricomis-U
   "Confluent hypergeometric function U of the second kind, also known as Tricomi's function.
 
@@ -2590,6 +3410,10 @@
   - `x` (double): the argument. The validated domain is `x >= 0.0`; `x < 0.0` is not a domain this function is intended for (typically `##NaN`, though a handful of specific parameter coincidences may return an unvalidated real number instead).
 
   At `x = 0.0`: returns `Gamma(1-b)/Gamma(a-b+1)` for `b < 1.0`. For `b >= 1.0`, `U` genuinely diverges there, returning a signed `##Inf` following the sign of `Gamma(a)`, unless `a` is itself a non-positive integer, in which case the divergence is removable and the result is the finite value `(-1)^n (b)_n` (writing `a = -n`, and `(b)_n` the rising Pochhammer symbol). Elsewhere, real and finite.
+
+  Method: for `a > 0` the integral $U=\\frac{1}{\\Gamma(a)}\\int_0^\\infty e^{-xt}t^{a-1}(1+t)^{b-a-1}dt$ with a positive integrand (no cancellation, trapezoidal rule in $\\log t$); for a non-integer `a < 0` the Kummer transformation $U(a,b,x)=x^{1-b}U(a-b+1,2-b,x)$ when `a-b+1 > 0`, otherwise the three-term recurrence in `a` from two positive first parameters; the terminating polynomial for a non-positive integer `a`; the asymptotic series (`x > 50`, large against `a` and `a-b+1`).
+
+  Accuracy: relative error below 1e-13 for `a > 0` and for a non-positive integer `a` (checked on 1900 mpmath points, `x` from 0.01 to 1000, `a` and `b` up to 100); for a non-integer `a < 0` it degrades with `b`: about 1e-11 for `b <= 8.5`, 1e-7 for `b = 25`, 1e-3 for `b = 100` (`a = -6.5`), and a value that overflows a double is `##NaN` instead of `±Inf`.
 
   See also [[kummers-M]], [[whittaker-W]], [[hypergeometric-2F0]]."
   ^double [^double a ^double b ^double x]
@@ -2625,8 +3449,15 @@
                    ;; significant digits well before the overflow boundary
                    (m/* (m/pow x (m/- a)) (hypergeometric-2F0 a 1.0 (m/- (m// x))))
                    (m/* ex (upper-incomplete-gamma (m/- 1.0 a) x))))
-    (m/== a (m/dec b)) (m/pow x (m/- a))    
-    :else (m/* (m/pow x (m/- a)) (hypergeometric-2F0 a (m/inc (m/- a b)) (m/- (m// x))))))
+    (m/== a (m/dec b)) (m/pow x (m/- a))
+    ;; non-positive integer `a`: a polynomial, the asymptotic series terminates
+    (and (m/not-pos? a) (m/== a (m/rint a)))
+    (m/* (m/pow x (m/- a)) (hypergeometric-2F0 a (m/inc (m/- a b)) (m/- (m// x))))
+    ;; large `x`: the asymptotic series converges after a few terms
+    (and (m/> x 50.0) (m/> x (m/* 4.0 (m/max (m/abs a) (m/abs (m/inc (m/- a b)))))))
+    (m/* (m/pow x (m/- a)) (hypergeometric-2F0 a (m/inc (m/- a b)) (m/- (m// x))))
+    (m/pos? a) (tricomis-U-positive-a a b x)
+    :else (tricomis-U-negative-a a b x)))
 
 (defn whittaker-W
   "Whittaker's W function.
@@ -2829,7 +3660,7 @@
 (defn- local-abs [a] (if (pos? a) a (- a)))
 
 (def ^:private RMEPS (rationalize m/MACHINE-EPSILON10))
-(def ^:pribate RATIO-1 (rationalize 1))
+(def ^:private RATIO-1 (rationalize 1))
 
 (defn hypergeometric-pFq-ratio
   "Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.
@@ -2858,7 +3689,18 @@
 ;; https://github.com/JuliaStats/StatsFuns.jl/issues/99
 
 (defn owens-t
-  "Owens' T function"
+  "Owen's T function $T(h,a)=\\frac{1}{2\\pi}\\int_0^a \\frac{e^{-h^2(1+x^2)/2}}{1+x^2}dx$.
+
+  Parameters:
+
+  - `h` (double): the first argument; $T$ is even in `h`.
+  - `a` (double): the second argument; $T$ is odd in `a`.
+
+  Returns `T(h,0)=0`, `T(0,a)=atan(a)/(2π)`, `T(h,±Inf)=±erfc(|h|/√2)/4`, `T(±Inf,a)=0`. It is the probability that a bivariate normal vector lies in a wedge, with $\\Phi(h)=\\ldots$.
+
+  Accuracy: relative error about 1e-14 over the whole domain (computed with the upper tails of the normal distribution for `a>1`, so that it stays accurate in the far tail, e.g. `T(10,2)=3.8e-24`); underflows to `0.0` for `|h|` above about 38.
+
+  See also [[erfc]]."
   ^double [^double h ^double a]
   (cond
     (m/zero? a) 0.0
@@ -2868,11 +3710,12 @@
     (m/one? a) (let [h' (m/* h m/INV_SQRT_2)]
                  (m/* 0.125 (erfc (m/- h')) (erfc h')))
     (m/inf? a) (m/* 0.25 (erfc (m/* (m/abs h) m/INV_SQRT_2) ))
-    (m/> a 1.0) (let [h' (m/* -1.0 h m/INV_SQRT_2)
-                      e1 (erfc h')
-                      e2 (erfc (m/* a h'))]
-                  (m/- (m/* 0.25 (m/+ e1 e2))
-                       (m/* 0.25 e1 e2)
+    ;; T(h,a) + T(ah,1/a) = Q(h)/2 + Q(ah)/2 - Q(h)Q(ah) for h > 0 with the upper tails Q: no
+    ;; cancellation for large h (the form with the lower tails loses everything below 1e-16)
+    (m/> a 1.0) (let [q1 (m/* 0.5 (erfc (m/* h m/INV_SQRT_2)))
+                      q2 (m/* 0.5 (erfc (m/* a h m/INV_SQRT_2)))]
+                  (m/- (m/* 0.5 (m/+ q1 q2))
+                       (m/* q1 q2)
                        (owens-t (m/* a h) (m// a))))
     (m/< a 0.999999) (let [hh2 (m/* -0.5 h h)
                            t2 (map (fn [^double x]
@@ -3082,7 +3925,7 @@
                                 6.4102564102564102564102561e-03,-2.9550653594771241830065352e-02)))))
 
 (defn log-gamma-complex
-  "Logarithm of the complex gamma function (principal branch).
+  "Logarithm of the complex gamma function, the analytic branch with the cut along the negative real axis: `Im log Gamma(z)` is the continuous continuation (not wrapped to `(-pi, pi]`, so that `exp` of it is `Gamma(z)`), as `mpmath.loggamma` and `SpecialFunctions.loggamma`.
 
   Parameters:
 
@@ -3108,7 +3951,10 @@
       
       (m/< x 0.1) (cplx/sub
                    (cplx/sub (Vec2. m/LOG_PI (m/* (m/copy-sign m/TWO_PI y) (m/floor (m/+ 0.25 (m/* 0.5 x)))))
-                             (cplx/log (cplx/sin (cplx/scale z m/PI))))
+                             ;; sin(pi z) with the exact reduction: at a half-integer real part its imaginary part is
+                             ;; a signed zero that selects the branch of the logarithm
+                             (cplx/log (Vec2. (m/* (gam/sin-pi x) (m/cosh (m/* m/PI y)))
+                                              (m/* (gam/cos-pi x) (m/sinh (m/* m/PI y))))))
                    (log-gamma-complex (cplx/sub cplx/ONE z)))
 
       (m/< (m/+ (m/abs (m/dec x)) yabs) 0.1)
@@ -3268,6 +4114,8 @@
 
   For `z != 0.0+0.0i`: tries the asymptotic-series formula first, for ANY `z` (see [[tricomis-U-complex-asymptotic]] -- this mirrors mpmath's own `hyperu`, which does the same). This alone resolves every case checked so far except `Re(z) < 0.0` at moderate-to-large `|z|` with `b` also an integer, where it falls back to a Kummer-`M`-function reflection formula instead. That reflection formula remains accurate for small to moderate `|z|`, but its accuracy becomes unpredictable for larger `|z|` there -- confirmed to occasionally lose several or more digits, or return a non-finite value, for specific parameter combinations even at moderate `|z|` (around 5-10), with no clean magnitude threshold separating safe from unsafe cases; this is a known, uncorrected limitation, inherited from the same underlying resummation instability documented for [[hypergeometric-pFq-complex]], and confirmed present in mpmath's own `hyperu` at at least one such point too (it recovers there only by raising its working precision arbitrarily, an option not available at fixed double precision). The reflection formula also has its own removable singularity whenever `b` is an integer, resolved via a small Richardson-extrapolated numerical limit.
 
+  Accuracy: relative error below 1e-12 for most arguments (300 random points); up to 1e-6 for a complex `a` with `Re(a) < 0` and `Re(z) < 0`, and on the negative real axis (the cut).
+
   See also the real-valued [[tricomis-U]], [[hypergeometric-pFq-complex]]."
   [a b z]
   (let [a (cplx/ensure-complex a)
@@ -3284,41 +4132,43 @@
       (let [^PfQWenigerResultCplx res (tricomis-U-complex-asymptotic a b z)]
         (if (= (.reason res) :converged) (.value res) (tricomis-U-complex-raw-limit a b z))))))
 
-(def ^:private CPLX_HALF_PI (cplx/complex m/HALF_PI 0.0))
+(def ^:private CPLX_SQRT_HALF_PI (cplx/complex (m/sqrt m/HALF_PI) 0.0))
 
 (defn bessel-K-half-odd-complex
   "Bessel K_a function for a = order/2 for complex numbers
 
-  Function accepts only odd integers for order"
-  ^Vec2 [^long odd-numerator ^Vec2 x]
+  Function accepts only odd integers for order, `K` is even in the order so a negative `order` gives the value for `-order`; an even `order` throws `IllegalArgumentException`."
+  ^Vec2 [^long order ^Vec2 x]
+  (let [odd-numerator (half-odd-order order)]
   (case (int odd-numerator)
-    1 (cplx/mult (cplx/sqrt (cplx/div CPLX_HALF_PI x)) (cplx/exp (cplx/neg x)))
-    3 (cplx/mult (cplx/mult (cplx/sqrt (cplx/div CPLX_HALF_PI x)) (cplx/exp (cplx/neg x)))
+    1 (cplx/mult (cplx/div CPLX_SQRT_HALF_PI (cplx/sqrt x)) (cplx/exp (cplx/neg x)))
+    3 (cplx/mult (cplx/mult (cplx/div CPLX_SQRT_HALF_PI (cplx/sqrt x)) (cplx/exp (cplx/neg x)))
                  (cplx/add (cplx/reciprocal x) cplx/ONE))
     (loop [i (long 5)
-           [b1 b3] (let [b1 (cplx/mult (cplx/sqrt (cplx/div CPLX_HALF_PI x)) (cplx/exp (cplx/neg x)))
+           [b1 b3] (let [b1 (cplx/mult (cplx/div CPLX_SQRT_HALF_PI (cplx/sqrt x)) (cplx/exp (cplx/neg x)))
                          b3 (cplx/mult b1 (cplx/add (cplx/reciprocal x) cplx/ONE))]
                      [b1 b3])]
       (if (m/> i odd-numerator)
         b3
-        (recur (m/+ i 2) [b3 (cplx/add b1 (cplx/mult b3 (cplx/div (Vec2. (m/- i 2.0) 0.0) x)))])))))
+        (recur (m/+ i 2) [b3 (cplx/add b1 (cplx/mult b3 (cplx/div (Vec2. (m/- i 2.0) 0.0) x)))]))))))
 
 (defn bessel-K-half-odd-scaled-complex
   "Bessel K_a function scaled by e^x for a = order/2 for complex numbers
 
-  Function accepts only odd integers for order"
-  [^long odd-numerator x]
+  Function accepts only odd integers for order, `K` is even in the order so a negative `order` gives the value for `-order`; an even `order` throws `IllegalArgumentException`."
+  [^long order x]
+  (let [odd-numerator (half-odd-order order)]
   (case (int odd-numerator)
-    1 (cplx/sqrt (cplx/div CPLX_HALF_PI x))
-    3 (cplx/mult (cplx/sqrt (cplx/div CPLX_HALF_PI x))
+    1 (cplx/div CPLX_SQRT_HALF_PI (cplx/sqrt x))
+    3 (cplx/mult (cplx/div CPLX_SQRT_HALF_PI (cplx/sqrt x))
                  (cplx/add (cplx/reciprocal x) cplx/ONE))
     (loop [i (long 5)
-           [b1 b3] (let [b1 (cplx/sqrt (cplx/div CPLX_HALF_PI x))
+           [b1 b3] (let [b1 (cplx/div CPLX_SQRT_HALF_PI (cplx/sqrt x))
                          b3 (cplx/mult b1 (cplx/add (cplx/reciprocal x) cplx/ONE))]
                      [b1 b3])]
       (if (m/> i odd-numerator)
         b3
-        (recur (m/+ i 2) [b3 (cplx/add b1 (cplx/mult b3 (cplx/scale (cplx/reciprocal x) (m/- i 2.0))))])))))
+        (recur (m/+ i 2) [b3 (cplx/add b1 (cplx/mult b3 (cplx/scale (cplx/reciprocal x) (m/- i 2.0))))]))))))
 
 ;; elliptic
 
@@ -3328,88 +4178,505 @@
   (^double [^double phi ^double m] (ellip/K phi m)))
 
 (defn elliptic-F
-  "Elliptic F - incomplete elliptic integral of the first kind."
+  "Incomplete elliptic integral of the first kind, $F(\\phi|m)=\\int_0^\\phi\\frac{d\\theta}{\\sqrt{1-m\\sin^2\\theta}}$.
+
+  Parameters:
+
+  - `phi` (double): the amplitude; any real, quasi-periodic: $F(\\phi+k\\pi|m)=F(\\phi|m)+2kK(m)$.
+  - `m` (double): the parameter, `m<=1`.
+
+  Returns `Inf` for `phi=π/2` and `m=1`. The inverse in `phi` is [[jacobi-am]].
+
+  Accuracy: relative error about 1e-15.
+
+  See also [[elliptic-K]], [[elliptic-E]], [[jacobi-am]]."
   ^double [^double phi ^double m] (ellip/K phi m))
 
 (defn elliptic-E
-  "Elliptic E - complete and incomplete elliptic integral of the second kind"
+  "Complete and incomplete elliptic integral of the second kind, $E(\\phi|m)=\\int_0^\\phi\\sqrt{1-m\\sin^2\\theta}\\,d\\theta$.
+
+  Parameters:
+
+  - `phi` (double, optional): the amplitude; omitted for the complete integral $E(m)=E(\\pi/2|m)$. Any real: the incomplete integral is quasi-periodic, $E(\\phi+k\\pi|m)=E(\\phi|m)+2kE(m)$.
+  - `m` (double): the parameter, `m<=1` (`NaN` for `m>1`, where the value is complex).
+
+  Returns `E(1)=1`.
+
+  Accuracy: relative error about 2e-15.
+
+  See also [[elliptic-K]], [[elliptic-F]], [[elliptic-D]]."
   (^double [^double m] (ellip/E m))
   (^double [^double phi ^double m] (ellip/E phi m)))
 
 (defn elliptic-PI
-  "Elliptic PI - complete and incomplete elliptic integral of the third kind"
+  "Complete and incomplete elliptic integral of the third kind, $\\Pi(n;\\phi|m)=\\int_0^\\phi\\frac{d\\theta}{(1-n\\sin^2\\theta)\\sqrt{1-m\\sin^2\\theta}}$.
+
+  Parameters:
+
+  - `n` (double): the characteristic, `n<=1`.
+  - `phi` (double, optional): the amplitude; omitted for the complete integral $\\Pi(n|m)=\\Pi(n;\\pi/2|m)$. Any real, quasi-periodic: $\\Pi(n;\\phi+k\\pi|m)=\\Pi(n;\\phi|m)+2k\\Pi(n|m)$.
+  - `m` (double): the parameter, `m<=1`.
+
+  Returns `Inf` for the complete integral at `m=1`; `##NaN` for `n=1` (a pole, the one-sided limits differ), for `n>1` (a principal value, not supported) and for `m>1`.
+
+  Accuracy: relative error about 1e-15.
+
+  See also [[elliptic-K]], [[elliptic-E]]."
   (^double [^double n ^double m] (ellip/PI n m))
   (^double [^double n ^double phi ^double m] (ellip/PI n phi m)))
 
+(defn- elliptic-D-series
+  "Legendre's D(phi,m) as a power series in `m` (for small `|m|`), integrating term by term with the recurrence of the integrals of `sin^(2n)`."
+  ^double [^double phi ^double m]
+  (let [sp (m/sin phi)
+        cp (m/cos phi)]
+    ;; I_n = int_0^phi sin^(2n); I_0 = phi
+    (loop [n (long 1) i-prev phi c 1.0 sum 0.0 mk 1.0]
+      ;; term k = n-1: c_k m^k I_(k+1), c_k = (1/2)_k / k!
+      (let [i-n (m/- (m// (m/* (m/dec (m/* 2.0 n)) i-prev) (m/* 2.0 n))
+                     (m// (m/* (m/pow sp (m/dec (m/* 2.0 n))) cp) (m/* 2.0 n)))
+            term (m/* c mk i-n)
+            sum (m/+ sum term)]
+        (if (or (m/< (m/abs term) (m/* 1.0e-17 (m/abs sum))) (m/> n 80))
+          sum
+          (recur (m/inc n) i-n (m/* c (m// (m/- n 0.5) n)) sum (m/* mk m)))))))
+
 (defn elliptic-D
-  "Elliptic D - complete and incomplete elliptic integral of Legendre’s type"
-  (^double [^double x]
-   (m// (m/- (ellip/K x) (ellip/E x))
-        (m/* x x)))
-  (^double [^double phi ^double x]
-   (m// (m/- (ellip/K phi x) (ellip/E phi x))
-        (m/* x x))))
+  "Legendre's elliptic integral $D(\\phi,m)=\\int_0^\\phi \\frac{\\sin^2\\theta}{\\sqrt{1-m\\sin^2\\theta}}d\\theta=\\frac{F(\\phi,m)-E(\\phi,m)}{m}$.
+
+  Parameters:
+
+  - `phi` (double, optional): the amplitude; omitted for the complete integral (`phi=π/2`). Any real, quasi-periodic as [[elliptic-F]] and [[elliptic-E]].
+  - `m` (double): the parameter, `m<=1`.
+
+  Returns `π/4` at `m=0` for the complete integral (the removable singularity of the quotient); `Inf` at `m=1` for the complete integral; `NaN` for `m>1`. A power series in `m` is used for `|m|<0.5`, where the quotient cancels.
+
+  Accuracy: relative error about 1e-14.
+
+  See also [[elliptic-F]], [[elliptic-E]], [[elliptic-K]]."
+  (^double [^double m]
+   (cond
+     (m/> m 1.0) ##NaN
+     (m/< (m/abs m) 0.5) (elliptic-D-series m/HALF_PI m)
+     :else (m// (m/- (ellip/K m) (ellip/E m)) m)))
+  (^double [^double phi ^double m]
+   (cond
+     (m/> m 1.0) ##NaN
+     (m/> (m/abs phi) m/HALF_PI) (let [k (m/floor (m// (m/+ phi m/HALF_PI) m/PI))]
+                                    (m/+ (elliptic-D (m/- phi (m/* k m/PI)) m)
+                                         (m/* 2.0 k (elliptic-D m))))
+     (m/< (m/abs m) 0.5) (elliptic-D-series phi m)
+     :else (m// (m/- (ellip/K phi m) (ellip/E phi m)) m))))
 
 (defn elliptic-Rf
-  "Symmetric Rf elliptic intergral of the first kind."
+  "Carlson's symmetric elliptic integral of the first kind $R_F(x,y,z)=\\frac12\\int_0^\\infty\\frac{dt}{\\sqrt{(t+x)(t+y)(t+z)}}$.
+
+  Parameters:
+
+  - `x`, `y`, `z` (double): non-negative, at most one of them zero.
+
+  Returns `Inf` when two of the arguments are zero; `##NaN` for negative arguments. Symmetric in all arguments, $R_F(x,x,x)=1/\\sqrt x$.
+
+  Accuracy: relative error about 3e-16.
+
+  See also [[elliptic-K]], [[elliptic-F]], [[elliptic-Rd]]."
   ^double [^double x ^double y ^double z]
   (ellip/Rf x y z))
 
 (defn elliptic-Rd
-  "Symmetric Rd elliptic intergral, symmetry on two variables."
+  "Carlson's symmetric elliptic integral of the second kind $R_D(x,y,z)=\\frac32\\int_0^\\infty\\frac{dt}{\\sqrt{(t+x)(t+y)}(t+z)^{3/2}}$ (symmetric in `x` and `y`).
+
+  Parameters:
+
+  - `x`, `y`, `z` (double): non-negative, `x` and `y` not both zero, `z>0`.
+
+  Returns `Inf` for `z=0`; `##NaN` for negative arguments.
+
+  Accuracy: relative error about 2e-16.
+
+  See also [[elliptic-Rf]], [[elliptic-Rj]], [[elliptic-E]]."
   ^double [^double x ^double y ^double z]
   (ellip/Rd x y z))
 
 (defn elliptic-Rg
-  "Symmetric Rg elliptic intergral of the second kind"
+  "Carlson's symmetric elliptic integral of the second kind $R_G(x,y,z)=\\frac14\\int_0^\\infty\\frac{1}{\\sqrt{(t+x)(t+y)(t+z)}}\\left(\\frac{x}{t+x}+\\frac{y}{t+y}+\\frac{z}{t+z}\\right)t\\,dt$.
+
+  Parameters:
+
+  - `x`, `y`, `z` (double): non-negative.
+
+  Returns `0.0` for `x=y=z=0`. Symmetric in all arguments.
+
+  Accuracy: relative error about 6e-15.
+
+  See also [[elliptic-Rf]], [[elliptic-Rd]], [[elliptic-E]]."
   ^double [^double x ^double y ^double z]
   (ellip/Rg x y z))
 
 (defn elliptic-Rj
-  "Symmetric Rj elliptic intergral of the third kind"
+  "Carlson's symmetric elliptic integral of the third kind $R_J(x,y,z,p)=\\frac32\\int_0^\\infty\\frac{dt}{\\sqrt{(t+x)(t+y)(t+z)}(t+p)}$.
+
+  Parameters:
+
+  - `x`, `y`, `z` (double): non-negative, at most one of them zero.
+  - `p` (double): `p!=0`; for `p<0` the Cauchy principal value.
+
+  Returns `Inf` for `p=0`. Symmetric in `x`, `y`, `z`.
+
+  Accuracy: relative error about 4e-16.
+
+  See also [[elliptic-Rf]], [[elliptic-Rd]], [[elliptic-PI]]."
   ^double [^double x ^double y ^double z ^double p]
   (ellip/Rj x y z p))
 
 (defn elliptic-Rc
-  "Rc elliptic intergral"
+  "Carlson's degenerate symmetric elliptic integral $R_C(x,y)=\\frac12\\int_0^\\infty\\frac{dt}{(t+y)\\sqrt{t+x}}$.
+
+  Parameters:
+
+  - `x` (double): `x>=0`.
+  - `y` (double): `y!=0`; for `y<0` the Cauchy principal value.
+
+  Returns `Inf` for `y=0` (the integral diverges) and for `x=y=0`; `##NaN` for `x<0`. Elementary: $R_C(x,x)=1/\\sqrt x$.
+
+  Accuracy: relative error about 2e-16.
+
+  See also [[elliptic-Rf]], [[elliptic-Rj]]."
   ^double [^double x ^double y]
   (ellip/Rc x y))
 
 ;; Jacobi
 
 (defn jacobi-am
-  "Amplitude phi=am(u,m) such that u=F(phi,m)
+  "Jacobi amplitude $\\phi=\\operatorname{am}(u|m)$ such that $u=F(\\phi|m)$, the inverse of the incomplete elliptic integral of the first kind.
 
-  Inverse of the elliptic incomplete intergral of the first kind."
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns an increasing function of `u` with $\\operatorname{am}(u+2K(m))=\\operatorname{am}(u)+\\pi$.
+
+  Accuracy: relative error about 1e-16 for $|u|\\le50$.
+
+  See also [[elliptic-F]], [[jacobi-sn]]."
   ^double [^double u ^double m]
   (ellip/am u m))
 
 ;; Jacobi am, sn, cn, dn, sc, sd, cs, cd, ds, dc, ns, nc, nd
 
-(defn jacobi-sn "Jacobi sn(u,m)" ^double [^double u ^double k] (ellip/jsn u k))
-(defn jacobi-cn "Jacobi cn(u,m)" ^double [^double u ^double k] (ellip/jcn u k))
-(defn jacobi-dn "Jacobi dn(u,m)" ^double [^double u ^double k] (ellip/jdn u k))
-(defn jacobi-sc "Jacobi sc(u,m)" ^double [^double u ^double k] (ellip/jsc u k))
-(defn jacobi-sd "Jacobi sd(u,m)" ^double [^double u ^double k] (ellip/jsd u k))
-(defn jacobi-cs "Jacobi cs(u,m)" ^double [^double u ^double k] (ellip/jcs u k))
-(defn jacobi-cd "Jacobi cd(u,m)" ^double [^double u ^double k] (ellip/jcd u k))
-(defn jacobi-ds "Jacobi ds(u,m)" ^double [^double u ^double k] (ellip/jds u k))
-(defn jacobi-dc "Jacobi dc(u,m)" ^double [^double u ^double k] (ellip/jdc u k))
-(defn jacobi-ns "Jacobi ns(u,m)" ^double [^double u ^double k] (ellip/jns u k))
-(defn jacobi-nc "Jacobi nc(u,m)" ^double [^double u ^double k] (ellip/jnc u k))
-(defn jacobi-nd "Jacobi nd(u,m)" ^double [^double u ^double k] (ellip/jnd u k))
+(defn jacobi-sn
+  "Jacobi elliptic function $\\operatorname{sn}(u|m)=\\sin\\operatorname{am}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jsn u k))
+(defn jacobi-cn
+  "Jacobi elliptic function $\\operatorname{cn}(u|m)=\\cos\\operatorname{am}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jcn u k))
+(defn jacobi-dn
+  "Jacobi elliptic function $\\operatorname{dn}(u|m)=\\sqrt{1-m\\sin^2\\operatorname{am}(u|m)}$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jdn u k))
+(defn jacobi-sc
+  "Jacobi elliptic function $\\operatorname{sc}(u|m)=\\operatorname{sn}(u|m)/\\operatorname{cn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero.
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jsc u k))
+(defn jacobi-sd
+  "Jacobi elliptic function $\\operatorname{sd}(u|m)=\\operatorname{sn}(u|m)/\\operatorname{dn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`).
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jsd u k))
+(defn jacobi-cs
+  "Jacobi elliptic function $\\operatorname{cs}(u|m)=\\operatorname{cn}(u|m)/\\operatorname{sn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`cs(0)=Inf`).
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jcs u k))
+(defn jacobi-cd
+  "Jacobi elliptic function $\\operatorname{cd}(u|m)=\\operatorname{cn}(u|m)/\\operatorname{dn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`).
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jcd u k))
+(defn jacobi-ds
+  "Jacobi elliptic function $\\operatorname{ds}(u|m)=\\operatorname{dn}(u|m)/\\operatorname{sn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`ds(0)=Inf`).
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jds u k))
+(defn jacobi-dc
+  "Jacobi elliptic function $\\operatorname{dc}(u|m)=\\operatorname{dn}(u|m)/\\operatorname{cn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero.
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jdc u k))
+(defn jacobi-ns
+  "Jacobi elliptic function $\\operatorname{ns}(u|m)=\\operatorname{nn}(u|m)/\\operatorname{sn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`ns(0)=Inf`).
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jns u k))
+(defn jacobi-nc
+  "Jacobi elliptic function $\\operatorname{nc}(u|m)=\\operatorname{nn}(u|m)/\\operatorname{cn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero.
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jnc u k))
+(defn jacobi-nd
+  "Jacobi elliptic function $\\operatorname{nd}(u|m)=\\operatorname{nn}(u|m)/\\operatorname{dn}(u|m)$.
+
+  Parameters:
+
+  - `u` (double): the argument.
+  - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
+
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`).
+
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+
+  See also [[jacobi-am]], [[elliptic-K]]."
+  ^double [^double u ^double k] (ellip/jnd u k))
 
 ;; Inverse of Jacobi am, sn, cn, dn, sc, sd, cs, cd, ds, dc, ns, nc, nd
 
-(defn jacobi-asn "Jacobi arcsn(u,m)" ^double [^double x ^double k] (ellip/jasn x k))
-(defn jacobi-acn "Jacobi arccn(u,m)" ^double [^double x ^double k] (ellip/jacn x k))
-(defn jacobi-adn "Jacobi arcdn(u,m)" ^double [^double x ^double k] (ellip/jadn x k))
-(defn jacobi-asc "Jacobi arcsc(u,m)" ^double [^double x ^double k] (ellip/jasc x k))
-(defn jacobi-asd "Jacobi arcsd(u,m)" ^double [^double x ^double k] (ellip/jasd x k))
-(defn jacobi-acs "Jacobi arccs(u,m)" ^double [^double x ^double k] (ellip/jacs x k))
-(defn jacobi-acd "Jacobi arccd(u,m)" ^double [^double x ^double k] (ellip/jacd x k))
-(defn jacobi-ads "Jacobi arcds(u,m)" ^double [^double x ^double k] (ellip/jads x k))
-(defn jacobi-adc "Jacobi arcdc(u,m)" ^double [^double x ^double k] (ellip/jadc x k))
-(defn jacobi-ans "Jacobi arcns(u,m)" ^double [^double x ^double k] (ellip/jans x k))
-(defn jacobi-anc "Jacobi arcnc(u,m)" ^double [^double x ^double k] (ellip/janc x k))
-(defn jacobi-and "Jacobi arcnd(u,m)" ^double [^double x ^double k] (ellip/jand x k))
+(defn jacobi-asn
+  "Inverse of the Jacobi elliptic function [[jacobi-sn]]: `u` such that `sn(u|m)=x`, $\\operatorname{arcsn}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `sn` for the parameter `m`: $-1\\le x\\le1$ (|x|>1 gives `NaN`).
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-asn (jacobi-sn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-sn]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jasn x k))
+(defn jacobi-acn
+  "Inverse of the Jacobi elliptic function [[jacobi-cn]]: `u` such that `cn(u|m)=x`, $\\operatorname{arccn}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `cn` for the parameter `m`: $-1\\le x\\le1$.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-acn (jacobi-cn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-cn]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jacn x k))
+(defn jacobi-adn
+  "Inverse of the Jacobi elliptic function [[jacobi-dn]]: `u` such that `dn(u|m)=x`, $\\operatorname{arcdn}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `dn` for the parameter `m`: $\\sqrt{1-m}\\le x\\le1$.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-adn (jacobi-dn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-dn]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jadn x k))
+(defn jacobi-asc
+  "Inverse of the Jacobi elliptic function [[jacobi-sc]]: `u` such that `sc(u|m)=x`, $\\operatorname{arcsc}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `sc` for the parameter `m`: any real.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-asc (jacobi-sc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-sc]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jasc x k))
+(defn jacobi-asd
+  "Inverse of the Jacobi elliptic function [[jacobi-sd]]: `u` such that `sd(u|m)=x`, $\\operatorname{arcsd}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `sd` for the parameter `m`: any real.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-asd (jacobi-sd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-sd]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jasd x k))
+(defn jacobi-acs
+  "Inverse of the Jacobi elliptic function [[jacobi-cs]]: `u` such that `cs(u|m)=x`, $\\operatorname{arccs}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `cs` for the parameter `m`: any real.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-acs (jacobi-cs u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-cs]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jacs x k))
+(defn jacobi-acd
+  "Inverse of the Jacobi elliptic function [[jacobi-cd]]: `u` such that `cd(u|m)=x`, $\\operatorname{arccd}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `cd` for the parameter `m`: $-1\\le x\\le1$.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-acd (jacobi-cd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-cd]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jacd x k))
+(defn jacobi-ads
+  "Inverse of the Jacobi elliptic function [[jacobi-ds]]: `u` such that `ds(u|m)=x`, $\\operatorname{arcds}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `ds` for the parameter `m`: $|x|\\ge\\sqrt{1-m}$.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-ads (jacobi-ds u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-ds]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jads x k))
+(defn jacobi-adc
+  "Inverse of the Jacobi elliptic function [[jacobi-dc]]: `u` such that `dc(u|m)=x`, $\\operatorname{arcdc}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `dc` for the parameter `m`: $x\\ge1$.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-adc (jacobi-dc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-dc]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jadc x k))
+(defn jacobi-ans
+  "Inverse of the Jacobi elliptic function [[jacobi-ns]]: `u` such that `ns(u|m)=x`, $\\operatorname{arcns}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `ns` for the parameter `m`: $|x|\\ge1$.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-ans (jacobi-ns u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-ns]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jans x k))
+(defn jacobi-anc
+  "Inverse of the Jacobi elliptic function [[jacobi-nc]]: `u` such that `nc(u|m)=x`, $\\operatorname{arcnc}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `nc` for the parameter `m`: $x\\ge1$.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-anc (jacobi-nc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-nc]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/janc x k))
+(defn jacobi-and
+  "Inverse of the Jacobi elliptic function [[jacobi-nd]]: `u` such that `nd(u|m)=x`, $\\operatorname{arcnd}(x|m)$.
+
+  Parameters:
+
+  - `x` (double): the value, in the range of `nd` for the parameter `m`: $1\\le x\\le1/\\sqrt{1-m}$.
+  - `m` (double): the parameter ($m=k^2$).
+
+  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-and (jacobi-nd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+
+  See also [[jacobi-nd]], [[jacobi-am]]."
+  ^double [^double x ^double k] (ellip/jand x k))

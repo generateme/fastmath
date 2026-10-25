@@ -35,7 +35,8 @@
             [fastmath.vector :as v]
             [fastmath.calculus.quadrature :as qint]
             [fastmath.polynomials :as poly]
-            [fastmath.special :as special])
+            [fastmath.special :as special]
+            [fastmath.special.gamma :as gamma])
   (:import [fastmath.java Array]))
 
 ;; https://www.researchgate.net/profile/Armin_Doerry/publication/316281181_Catalog_of_Window_Taper_Functions_for_Sidelobe_Control/links/58f92cb2a6fdccb121c9d54d/Catalog-of-Window-Taper-Functions-for-Sidelobe-Control.pdf
@@ -265,11 +266,9 @@
   (double (qint/gk-quadrature (fn ^double [^double phi] (double (h (m/cos phi)))) 0.0 m/HALF_PI quad-options)))
 
 (defn- gamma-ratio
-  "`Gamma(a) / Gamma(b)` for `a, b > 0`, through log-gamma when the gamma function gets large."
+  "`Gamma(a) / Gamma(b)` for `a, b > 0`, through log-gamma when the gamma function overflows."
   ^double [^double a ^double b]
-  (if (m/< (m/max a b) 100.0)
-    (m// (special/gamma a) (special/gamma b))
-    (m/exp (m/- (special/log-gamma a) (special/log-gamma b)))))
+  (gamma/gamma-ratio [a] [b]))
 
 (defn- bessel-scaled-asymptotic
   "`exp(-z) I_nu(z)` from the asymptotic series for large `z`, `mu = 4 nu^2`."

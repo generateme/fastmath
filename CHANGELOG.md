@@ -31,6 +31,8 @@ All notable changes to this project will be documented in this file. This change
 
 ### Fixed
 
+* `fastmath.special` audit: wrong or `NaN` results fixed in `hypergeometric-2F1`, `tricomis-U`, `whittaker-W`, `gamma` (overflow at 142), `Cin`, `lower-incomplete-gamma`, `inv-erfc`, `elliptic-D`, incomplete `elliptic-PI`, `bessel-Y`, `owens-t`, `minkowski`, spherical Bessel, `log-gamma-complex`, `bessel-K-half-odd-complex`
+* `fastmath.special` edge conventions: the limit where it exists (`gamma(Inf)`, `log-gamma(0)`, `lambert-W(Inf)`), `NaN` at two-sided poles, `log-beta` is `log|beta|`, `polygamma` order is a double, `bessel-K-half-odd` throws for an even order, `hankel-1/2` principal branch for `x<0`
 * `fastmath.stats.bins/doane` truncated its raw formula value instead of rounding up (`ceil`), unlike its sibling bin-count estimators (`sturges`/`rice`/`scott`/`freedman-diaconis`), silently undercounting bins by 1 whenever the raw value wasn't already an integer (i.e. almost always); confirmed against numpy's `histogram_bin_edges(bins='doane')` and an independent R `e1071::skewness(type=1)`-based re-derivation
 * `fastmath.stats/estimate-bins`'s `:sqrt` method had the same truncation-instead-of-ceiling issue as `doane` above (its own inline `(int (m/sqrt n))`, not delegating to `fastmath.stats.bins`); fixed by delegating to the new `fastmath.stats.bins/sqrt`
 * `fastmath.stats.bins/sturges` threw `IllegalArgumentException: Value out of range for long: -Infinity` for `n < 1` (`log2` of a non-positive `n` is not finite); now returns `1`

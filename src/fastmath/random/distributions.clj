@@ -7,6 +7,7 @@
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.special :as special]
+            [fastmath.special.gamma :as gamma]
             [fastmath.polynomials :as poly]
             [fastmath.kernel.density :as k]
             [fastmath.solver :as solver]
@@ -2733,7 +2734,7 @@
                  (m/not-pos? p) ##-Inf
                  (m/>= p 1.0) ##Inf
                  :else (icdf-solver cdf p delta init-guess)))
-        gamma-ratio (delay (m/exp (m/- (special/log-gamma (m/* 0.5 df-1)) (special/log-gamma half-df))))]
+        gamma-ratio (delay (gamma/gamma-ratio [(m/* 0.5 df-1)] [half-df]))]
     (->distribution
      {:pdf pdf
       :cdf cdf

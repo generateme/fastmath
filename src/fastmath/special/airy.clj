@@ -58,6 +58,7 @@
          (poly/mevalpoly x 1.0, 0.4952379318195294, 0.2162773881682495, 0.05555863041440847, 0.013462108119986573, 0.0021389588233556925, 0.0003499286802943533, 3.0276702049000568e-5, 3.5914680052925263e-6))))
 
 (defn ai-pos-args
+  "Airy Ai(x) for `x >= 0` (Taylor series, Chebyshev expansion and the asymptotic series by interval); see [[fastmath.special/airy-Ai]]."
   ^double [^double x]
   (if (m/> x 2.06)
     (let [c (m/exp (m/* -1.0 x m/THIRD (m/sqrt x)))]
@@ -65,6 +66,7 @@
     (ai-small-pos-args x)))
 
 (defn aip-pos-args
+  "Derivative Ai'(x) for `x >= 0`; see [[fastmath.special/airy-Ai']]."
   ^double [^double x]
   (if (m/> x 2.06)
     (let [c (m/exp (m/* -1.0 x m/THIRD (m/sqrt x)))]
@@ -87,6 +89,7 @@
     (m// (m/* -2.0 INVPIPOW32 a) (m/sqrt xsqr))))
 
 (defn ai-neg-args
+  "Airy Ai(x) for `x < 0` (oscillating region); see [[fastmath.special/airy-Ai]]."
   ^double [^double x]
   (cond
     (m/< x -10.0) (ai-large-neg-args x)
@@ -121,6 +124,7 @@
     (m/* 2.0 INVPIPOW32 c (m/sqrt xsqr))))
 
 (defn aip-neg-args
+  "Derivative Ai'(x) for `x < 0`; see [[fastmath.special/airy-Ai']]."
   ^double [^double x]
   (cond
     (m/< x -10.0) (aip-large-neg-args x)
@@ -152,6 +156,7 @@
     (m/* 2.0 INVPIPOW32 (m// (m/muladd xsqrx p1 p) xsqr))))
 
 (defn bi-pos-args
+  "Airy Bi(x) for `x >= 0` (Taylor series for `x <= 2`, scaled Chebyshev expansions `abi-1`, `abi-2` for `2 < x <= 10`, the asymptotic series above); see [[fastmath.special/airy-Bi]]."
   ^double [^double x]
   (if (m/<= x 2.0)
     (poly/mevalpoly x 0.6149266274460008, 0.4482883573538208, 3.5122876076055943e-13, 0.10248777123224333, 0.03735736322749984, -9.112176579053885e-10, 0.003416263825552168, 0.0008894434900642912, 4.656589540929903e-8, 4.7356203781096e-5, 1.0019617843212616e-5, -1.5501028624002673e-7, 4.936240473816792e-7, -2.4890774184202023e-8, 4.351871351672967e-8, -1.397416816153122e-8, 4.207858977853583e-9, -6.320382000910312e-10, 5.7683713281742576e-11)
@@ -172,6 +177,7 @@
     (m/* -2.0 INVPIPOW32 (m/muladd xsqrx q1 q) xsqr)))
 
 (defn bip-pos-args
+  "Derivative Bi'(x) for `x >= 0`; see [[fastmath.special/airy-Bi']]."
   ^double [^double x]
   (if (m/<= x 2.0)
     (poly/mevalpoly x 0.4482883573538264, -1.3251373159736958e-14, 0.30746331372383734, 0.1494294524303411, 2.758926834393856e-10, 0.020497552037528, 0.006226238906796048, -4.342796143830116e-8, 0.0004271490047546154, 9.859632186626943e-5, 3.5043952855799877e-7, 3.911502040592847e-6, 1.1754828402935787e-6, -2.3404028248712297e-7, 1.4233554924731257e-7, -3.8239033234612784e-8, 1.0757888521998427e-8, -1.6237703662454916e-9, 1.5114681466422037e-10)
@@ -196,6 +202,7 @@
     (m// (m/* 2.0 INVPIPOW32 b) (m/sqrt xsqr))))
 
 (defn bi-neg-args
+  "Airy Bi(x) for `x < 0` (oscillating region); see [[fastmath.special/airy-Bi]]."
   ^double [^double x]
   (cond
     (m/< x -10.0) (bi-large-neg-args x)
@@ -232,6 +239,7 @@
     (m/* -2.0 INVPIPOW32 d (m/sqrt xsqr))))
 
 (defn bip-neg-args
+  "Derivative Bi'(x) for `x < 0`; see [[fastmath.special/airy-Bi']]."
   ^double [^double x]
   (cond
     (m/< x -10.0) (bip-large-neg-args x)

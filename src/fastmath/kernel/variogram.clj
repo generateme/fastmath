@@ -806,7 +806,7 @@
   The denominator `2F1(0.5, d, 1.5, 1.0)` is a normalisation constant ensuring the model
   reaches exactly `psill` at `range`.
 
-  Accuracy limits (measured against 80-digit mpmath): the evaluation of the hypergeometric function `2F1` loses digits for large orders. For orders giving a negative integer parameter `d` (odd dimensions here, integer orders for [[->superspherical]]) the absolute error is below `1e-12` up to `d = -15` (dimension 31, order 15), about `4e-12` at `d = -20` and `3e-9` at `d = -30`. For the other orders the error stays below `3e-14` up to the dimension 60 (order 29.5 for [[->superspherical]]) and the result is unreliable from the dimension 75 (error `6e-7`).
+  Accuracy (measured against 100-digit mpmath, `fastmath.special/hypergeometric-2F1` terminating and half-integer cases): the absolute error is below `3e-14` for the dimensions up to 121 (odd and even).
 
   Parameters:
 
@@ -887,7 +887,7 @@
   The denominator `2F1(0.5, -order, 1.5, 1.0)` is a normalisation constant ensuring the
   model reaches exactly `psill` at `range`.
 
-  Accuracy limits (measured against 80-digit mpmath): the evaluation of the hypergeometric function `2F1` loses digits for large orders. For orders giving a negative integer parameter `d` (odd dimensions here, integer orders for [[->superspherical]]) the absolute error is below `1e-12` up to `d = -15` (dimension 31, order 15), about `4e-12` at `d = -20` and `3e-9` at `d = -30`. For the other orders the error stays below `3e-14` up to the dimension 60 (order 29.5 for [[->superspherical]]) and the result is unreliable from the dimension 75 (error `6e-7`).
+  Accuracy (measured against 100-digit mpmath): the absolute error is below `6e-14` for the orders up to 90 (integer and half-integer).
 
   Parameters:
 

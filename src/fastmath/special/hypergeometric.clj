@@ -2,6 +2,7 @@
   "Internal Hypergeometric helper functions."
   (:require [fastmath.core :as m]
             [fastmath.special.poly :as spoly]
+            [fastmath.special.gamma :as gam]
             [fastmath.polynomials :as poly]
             [fastmath.vector :as v]
             [fastmath.complex :as cplx])
@@ -14,6 +15,7 @@
 
 ;; https://github.com/JuliaMath/HypergeometricFunctions.jl/blob/master/src/weniger.jl#L226
 (defn weniger-1F1
+  "Internal helper of the Gauss hypergeometric function: the port of `weniger 1F1` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double x]
   (let [absa (m/abs a)
         zeta (m// x)
@@ -78,18 +80,21 @@
                   :else tlo)))))))))
 
 (defn cosnasinsqrt
+  "Internal helper of the Gauss hypergeometric function: the port of `cosnasinsqrt` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double n ^double x]
   (if (m/pos? x)
     (m/cos (m/* n (m/asin (m/sqrt x))))
     (m/cosh (m/* n (m/asinh (m/sqrt (m/- x)))))))
 
 (defn sinnasinsqrt
+  "Internal helper of the Gauss hypergeometric function: the port of `sinnasinsqrt` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double n ^double x]
   (if (m/pos? x)
     (let [s (m/sqrt x)] (m// (m/sin (m/* n (m/asin s))) (m/* n s)))
     (let [s (m/sqrt (m/- x))] (m// (m/sinh (m/* n (m/asinh s))) (m/* n s)))))
 
 (defn expnlog1pcoshatanhsqrt
+  "Internal helper of the Gauss hypergeometric function: the port of `expnlog1pcoshatanhsqrt` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double n ^double x]
   (let [v (m/exp (m/* 0.5 n (m/log1p (m/- x))))]
     (if (m/pos? x)
@@ -97,21 +102,28 @@
       (m/* v (m/cos (m/* n (m/atan (m/sqrt (m/- x)))))))))
 
 (defn sqrtasinsqrt
+  "Internal helper of the Gauss hypergeometric function: the port of `sqrtasinsqrt` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double x]
   (if (m/pos? x)
     (let [s (m/sqrt x)] (m// (m/asin s) s))
     (let [s (m/sqrt (m/- x))] (m// (m/asinh s) s))))
 
 (defn sqrtatanhsqrt
+  "Internal helper of the Gauss hypergeometric function: the port of `sqrtatanhsqrt` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double x]
   (if (m/pos? x)
     (let [s (m/sqrt x)] (m// (m/atanh s) s))
     (let [s (m/sqrt (m/- x))] (m// (m/atan s) s))))
 
-(defn log1pover ^double [^double x] (m// (m/log1p x) x))
-(defn expm1nlog1p ^double [^double n ^double x] (m// (m/expm1 (m/* n (m/log1p x))) (m/* n x)))
+(defn log1pover
+  "Internal helper of the Gauss hypergeometric function: the port of `log1pover` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
+  ^double [^double x] (m// (m/log1p x) x))
+(defn expm1nlog1p
+  "Internal helper of the Gauss hypergeometric function: the port of `expm1nlog1p` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
+  ^double [^double n ^double x] (m// (m/expm1 (m/* n (m/log1p x))) (m/* n x)))
 
 (defn maclaurin-2F1
+  "Internal helper of the Gauss hypergeometric function: the port of `_₂F₁maclaurin` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double c ^double x]
   (loop [j (long 1)
          s0 1.0
@@ -125,33 +137,89 @@
                     (m/+ c j))]
         (recur (m/inc j) s1 (m/+ s1 (m/* (m/- s1 s0) rj)))))))
 
+(defn- terminating-2F1-sum
+  "`[sum_k (a)_k (b)_k / ((c)_k k!) x^k, sum_k |term_k|]` for `k = 0..n` as a [[Vec2]]; the ratio of the two is the condition number of the sum."
+  ^Vec2 [a b c x n]
+  (let [a (double a) b (double b) c (double c) x (double x) n (long n)]
+    (loop [k (long 1) term 1.0 sum 1.0 abs-sum 1.0]
+      (if (m/> k n)
+        (Vec2. sum abs-sum)
+        (let [nterm (m// (m/* term (m/+ a (m/dec k)) (m/+ b (m/dec k)) x)
+                         (m/* (m/+ c (m/dec k)) k))]
+          (recur (m/inc k) nterm (m/+ sum nterm) (m/+ abs-sum (m/abs nterm))))))))
+
+(defn- non-positive-integer? [^double x] (and (m/not-pos? x) (m/== x (m/rint x))))
+
+(defn- condition-number
+  "Condition number `sum |term| / |sum|` of a [[terminating-2F1-sum]] result."
+  ^double [^Vec2 v]
+  (m// (.y v) (m/abs (.x v))))
+
+(defn terminating-2F1
+  "Polynomial `2F1(a,b,c,x)` for `a` or `b` a non-positive integer, valid for any `x`.
+
+  Precondition: `c` is not a pole reachable before the series terminates (the caller checks it).
+
+  The alternating direct sum cancels for a large degree. The transformations
+  `2F1(-n,b;c;x) = (1-x)^n 2F1(-n,c-b;c;x/(x-1))` (Pfaff, `x < 1`) and
+  `2F1(-n,b;c;x) = (c-b)_n/(c)_n 2F1(-n,b;b-c-n+1;1-x)` (DLMF 15.8.7, `x <= 1`, when regular) are evaluated too,
+  and the sum with the smallest condition number `sum |term| / |sum|` is returned."
+  ^double [^double a ^double b ^double c ^double x]
+  (let [a-term? (non-positive-integer? a)
+        b-term? (non-positive-integer? b)
+        ;; the terminating parameter (-n) and the other one
+        [^double q ^double o] (if (and a-term? b-term?)
+                                (if (m/<= (m/- a) (m/- b)) [a b] [b a])
+                                (if a-term? [a b] [b a]))
+        n (long (m/- q))
+        c' (m/- o c (m/- q) -1.0)      ;; o - c - n + 1
+        ^Vec2 direct (terminating-2F1-sum a b c x n)
+        ^Vec2 best (Vec2. (.x direct) (condition-number direct))
+        ;; (1-x)^n 2F1(-n, c-o; c; x/(x-1))
+        ^Vec2 best (if (and (m/< x 1.0) (not (non-positive-integer? c)))
+               (let [^Vec2 pf (terminating-2F1-sum q (m/- c o) c (m// x (m/dec x)) n)
+                     kp (condition-number pf)]
+                 (if (m/< kp (.y best)) (Vec2. (m/* (m/pow (m/- 1.0 x) n) (.x pf)) kp) best))
+               best)
+        ;; (c-o)_n / (c)_n 2F1(-n, o; o-c-n+1; 1-x)
+        ^Vec2 best (if (and (m/<= x 1.0)
+                      (not (non-positive-integer? c))
+                      ;; the denominators (c')_k, k < n, must not vanish
+                      (not (and (non-positive-integer? c') (m/< (m/- c') n))))
+               (let [pre (double (loop [k (long 0) r 1.0]
+                                   (if (m/== k n)
+                                     r
+                                     (recur (m/inc k) (m/* r (m// (m/+ (m/- c o) k) (m/+ c k)))))))
+                     ^Vec2 alt (terminating-2F1-sum q o c' (m/- 1.0 x) n)
+                     ka (condition-number alt)]
+                 (if (m/< ka (.y best)) (Vec2. (m/* pre (.x alt)) ka) best))
+               best)]
+    (.x best)))
+
 (defn recinfa0
+  "Internal helper of the Gauss hypergeometric function: the port of `recInfα₀` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (if (m/zero? eps)
-    (let [res (m// (m/* (Gamma/gamma m) (Gamma/gamma (.z abcw)))
-                   (m/* (Gamma/gamma (m/+ m (.x abcw)))
-                        (Gamma/gamma (m/- (.z abcw) (.x abcw)))))]
+    (let [res (gam/gamma-ratio [(double m) (.z abcw)]
+                               [(m/+ m (.x abcw)) (m/- (.z abcw) (.x abcw))])]
       (if (m/even? m) res (m/- res)))
-    (m// (Gamma/gamma (.z abcw))
-         (m/* eps
-              (Gamma/gamma (m/- 1.0 m eps))
-              (Gamma/gamma (m/+ (.x abcw) m eps))
-              (Gamma/gamma (m/- (.z abcw) (.x abcw)))))))
+    (m// (gam/gamma-ratio [(.z abcw)]
+                          [(m/- 1.0 m eps) (m/+ (.x abcw) m eps) (m/- (.z abcw) (.x abcw))])
+         eps)))
 
 (defn reconea0
+  "Internal helper of the Gauss hypergeometric function: the port of `reconeα₀` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (if (m/zero? eps)
-    (let [res (m// (m/* (Gamma/gamma m) (Gamma/gamma (.z abcw)))
-                   (m/* (Gamma/gamma (m/+ m (.x abcw)))
-                        (Gamma/gamma (m/+ m (.y abcw)))))]
+    (let [res (gam/gamma-ratio [(double m) (.z abcw)]
+                               [(m/+ m (.x abcw)) (m/+ m (.y abcw))])]
       (if (m/even? m) res (m/- res)))
-    (m// (Gamma/gamma (.z abcw))
-         (m/* eps
-              (Gamma/gamma (m/- 1.0 m eps))
-              (Gamma/gamma (m/+ (.x abcw) m eps))
-              (Gamma/gamma (m/+ (.y abcw) m eps))))))
+    (m// (gam/gamma-ratio [(.z abcw)]
+                          [(m/- 1.0 m eps) (m/+ (.x abcw) m eps) (m/+ (.y abcw) m eps)])
+         eps)))
 
 (defn ainf
+  "Internal helper of the Gauss hypergeometric function: the port of `Ainf` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (let [m-2 (m/- m 2)]
     (if (m/not-pos? m)
@@ -168,6 +236,7 @@
             (recur na0 (m/+ res na0) (m/inc n))))))))
 
 (defn aone
+  "Internal helper of the Gauss hypergeometric function: the port of `Aone` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (let [m-2 (m/- m 2)]
     (if (m/not-pos? m)
@@ -194,10 +263,12 @@
         `(m// ~n ~d))))
 
 (defn lanczos-ratio
+  "Internal helper of the Gauss hypergeometric function: the port of `lanczosratio` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double x ^double eps]
   (lanczos-ratio-macro x eps 0.99999999999999709182, 57.156235665862923517, -59.597960355475491248, 14.136097974741747174, -0.49191381609762019978, 0.33994649984811888699E-4, 0.46523628927048575665E-4, -0.98374475304879564677E-4, 0.15808870322491248884E-3, -0.21026444172410488319E-3, 0.21743961811521264320E-3, -0.16431810653676389022E-3, 0.84418223983852743293E-4, -0.26190838401581408670E-4, 0.36899182659531622704E-5))
 
 (defn H
+  "Internal helper of the Gauss hypergeometric function: the port of `H` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double x ^double eps]
   (if (m/nan? x)
     ##NaN
@@ -219,27 +290,29 @@
               (m// temp (m/- 1.0 (m/* eps temp))))))))))
 
 (defn G
+  "Internal helper of the Gauss hypergeometric function: the port of `G` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double x ^double eps]
   (let [n (m/round x)
         zpe (m/+ x eps)]
     (cond
       (m/zero? eps) (if (and (m/== x n)
                              (m/not-pos? n))
-                      (if (m/odd? n) (Gamma/gamma (m/- 1.0 n)) (m/- (Gamma/gamma (m/- 1.0 n))))
-                      (m// (Gamma/digamma x) (Gamma/gamma x)))
-      (m/> (m/abs eps) 0.1) (m// (m/- (m// (Gamma/gamma x))
-                                      (m// (Gamma/gamma zpe))) eps)
+                      (if (m/odd? n) (gam/unsafe-gamma (m/- 1.0 n)) (m/- (gam/unsafe-gamma (m/- 1.0 n))))
+                      (m// (gam/digamma x) (gam/unsafe-gamma x)))
+      (m/> (m/abs eps) 0.1) (m// (m/- (m// (gam/unsafe-gamma x))
+                                      (m// (gam/unsafe-gamma zpe))) eps)
       :else (let [m (m/round zpe)]
               (cond
                 (and (m/== x n)
-                     (m/not-pos? n)) (m/- (m// (m/* eps (Gamma/gamma zpe))))
+                     (m/not-pos? n)) (m/- (m// (m/* eps (gam/unsafe-gamma zpe))))
                 (and (m/== zpe m)
-                     (m/not-pos? m)) (m// (m/* eps (Gamma/gamma x)))
+                     (m/not-pos? m)) (m// (m/* eps (gam/unsafe-gamma x)))
                 (m/< (m/abs (m/+ x (m/abs n)))
-                     (m/abs (m/+ zpe (m/abs m)))) (m// (H x eps) (Gamma/gamma zpe))
-                :else (m// (H zpe (m/- eps)) (Gamma/gamma x)))))))
+                     (m/abs (m/+ zpe (m/abs m)))) (m// (H x eps) (gam/unsafe-gamma zpe))
+                :else (m// (H zpe (m/- eps)) (gam/unsafe-gamma x)))))))
 
 (defn P
+  "Internal helper of the Gauss hypergeometric function: the port of `P` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double x ^double eps ^long m]
   (let [n0 (m/- (m/round x))]
     (if (m/zero? eps)
@@ -272,11 +345,13 @@
             (recur (m/inc n) (m/+ ret (m/log1p (m// eps (m/+ x n)))))))))))
 
 (defn E
+  "Internal helper of the Gauss hypergeometric function: the port of `E` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double x ^double eps]
   (if (m/zero? eps) x
       (m// (m/expm1 (m/* eps x)) eps)))
 
 (defn recinfb0
+  "Internal helper of the Gauss hypergeometric function: the port of `recInfβ₀` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (let [a (.x abcw)        
         c (.z abcw)
@@ -284,36 +359,37 @@
     (if (m/> (m/abs eps) 0.1)
       (m// (m/* (m/- (m// (m/* (m/rising-factorial-int m a)
                                (m/rising-factorial-int m (m/inc (m/- a c))))
-                          (m/* (Gamma/gamma (m/- 1.0 eps))
-                               (Gamma/gamma (m/+ a m eps))
-                               (Gamma/gamma (m/- c a))
-                               (Gamma/gamma (m/inc m))))
+                          (m/* (gam/unsafe-gamma (m/- 1.0 eps))
+                               (gam/unsafe-gamma (m/+ a m eps))
+                               (gam/unsafe-gamma (m/- c a))
+                               (gam/unsafe-gamma (m/inc m))))
                      (m// (m/* (m/pow (m/- w) eps) (m/rising-factorial-int m (m/- (m/+ 1.0 a eps) c)))
-                          (m/* (Gamma/gamma a)
-                               (Gamma/gamma (m/- c a eps))
-                               (Gamma/gamma (m/+ m 1.0 eps)))))
-                (Gamma/gamma c)
+                          (m/* (gam/unsafe-gamma a)
+                               (gam/unsafe-gamma (m/- c a eps))
+                               (gam/unsafe-gamma (m/+ m 1.0 eps)))))
+                (gam/unsafe-gamma c)
                 (m/fpow w m)) eps)
       (let [-eps (m/- eps)
             ph (m/rising-factorial-int m (m/- (m/+ 1.0 a eps) c))
-            game (Gamma/gamma (m/+ a m eps))
-            gca (Gamma/gamma (m/- c a))
-            gm1e (Gamma/gamma (m/+ m 1.0 eps))]
+            game (gam/unsafe-gamma (m/+ a m eps))
+            gca (gam/unsafe-gamma (m/- c a))
+            gm1e (gam/unsafe-gamma (m/+ m 1.0 eps))]
         (m/* (m/+ (m// (m/- (m/* ph (G 1.0 -eps))
-                            (m// (P (m/inc (m/- a c)) eps m) (Gamma/gamma (m/- 1.0 eps))))
-                       (m/* gca game (Gamma/gamma (m/inc m))))
+                            (m// (P (m/inc (m/- a c)) eps m) (gam/unsafe-gamma (m/- 1.0 eps))))
+                       (m/* gca game (gam/unsafe-gamma (m/inc m))))
                   (m/* ph (m/- (m// (m/- (m// (G (m/inc m) eps) game)
                                          (m// (G (m/+ a m) eps) gm1e))
                                     gca)
                                (m// (m/- (G (m/- c a) -eps)
                                          (m// (E (m/- (m/log (m/- w))) -eps)
-                                              (Gamma/gamma (m/- c a eps))))
-                                    (m/* gm1e (Gamma/gamma (m/+ a m)))))))
-             (Gamma/gamma c)
+                                              (gam/unsafe-gamma (m/- c a eps))))
+                                    (m/* gm1e (gam/unsafe-gamma (m/+ a m)))))))
+             (gam/unsafe-gamma c)
              (m/rising-factorial-int m a)
              (m/fpow w m))))))
 
 (defn reconeb0
+  "Internal helper of the Gauss hypergeometric function: the port of `reconeβ₀` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (let [a (.x abcw)
         b (.y abcw)
@@ -323,46 +399,47 @@
       (let [m+ (m/inc m)]
         (m// (m/* (m/- (m// (m/* (m/rising-factorial-int m a)
                                  (m/rising-factorial-int m b))
-                            (m/* (Gamma/gamma (m/- 1.0 eps))
-                                 (Gamma/gamma (m/+ a m eps))
-                                 (Gamma/gamma (m/+ b m eps))
-                                 (Gamma/gamma m+)))
+                            (m/* (gam/unsafe-gamma (m/- 1.0 eps))
+                                 (gam/unsafe-gamma (m/+ a m eps))
+                                 (gam/unsafe-gamma (m/+ b m eps))
+                                 (gam/unsafe-gamma m+)))
                        (m// (m/pow w eps)
-                            (m/* (Gamma/gamma a)
-                                 (Gamma/gamma b)
-                                 (Gamma/gamma (m/+ m+ eps)))))
-                  (Gamma/gamma c)
+                            (m/* (gam/unsafe-gamma a)
+                                 (gam/unsafe-gamma b)
+                                 (gam/unsafe-gamma (m/+ m+ eps)))))
+                  (gam/unsafe-gamma c)
                   (m/fpow w m)) eps))
       (let [-eps (m/- eps)
             m+ (m/inc m)
-            gbme (Gamma/gamma (m/+ b m eps))
-            gam (Gamma/gamma (m/+ a m))
-            gm1eps (Gamma/gamma (m/+ m+ eps))]
-        (m/* (m/- (m// (m/+ (m// (G 1.0 -eps) (Gamma/gamma m+)) (G m+ eps))
-                       (m/* (Gamma/gamma (m/+ a m eps)) gbme))
+            gbme (gam/unsafe-gamma (m/+ b m eps))
+            gam (gam/unsafe-gamma (m/+ a m))
+            gm1eps (gam/unsafe-gamma (m/+ m+ eps))]
+        (m/* (m/- (m// (m/+ (m// (G 1.0 -eps) (gam/unsafe-gamma m+)) (G m+ eps))
+                       (m/* (gam/unsafe-gamma (m/+ a m eps)) gbme))
                   (m// (m/+ (m// (G (m/+ a m) eps) gbme)
                             (m// (G (m/+ b m) eps) gam))
                        gm1eps)
                   (m// (E (m/log w) eps)
-                       (m/* gam (Gamma/gamma (m/+ b m)) gm1eps)))
-             (Gamma/gamma c)
+                       (m/* gam (gam/unsafe-gamma (m/+ b m)) gm1eps)))
+             (gam/unsafe-gamma c)
              (m/rising-factorial-int m a)
              (m/rising-factorial-int m b)
              (m/fpow w m))))))
 
 (defn recinfg0
+  "Internal helper of the Gauss hypergeometric function: the port of `recInfγ₀` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (let [a (.x abcw)
         c (.z abcw)
         w (.w abcw)]
-    (m// (m/* (Gamma/gamma c)
+    (m// (m/* (gam/unsafe-gamma c)
               (m/rising-factorial-int m a)
               (m/rising-factorial-int m (m/inc (m/- a c)))
               (m/pow w m))
-         (m/* (Gamma/gamma (m/+ a m eps))
-              (Gamma/gamma (m/- c a))
-              (Gamma/gamma (m/inc m))
-              (Gamma/gamma (m/- 1.0 eps))))))
+         (m/* (gam/unsafe-gamma (m/+ a m eps))
+              (gam/unsafe-gamma (m/- c a))
+              (gam/unsafe-gamma (m/inc m))
+              (gam/unsafe-gamma (m/- 1.0 eps))))))
 
 (defn- reconeg0
   ^double [^Vec4 abcw ^long m ^double eps]
@@ -370,16 +447,17 @@
         b (.y abcw)
         c (.z abcw)
         w (.w abcw)]
-    (m// (m/* (Gamma/gamma c)
+    (m// (m/* (gam/unsafe-gamma c)
               (m/rising-factorial-int m a)
               (m/rising-factorial-int m b)
               (m/pow w m))
-         (m/* (Gamma/gamma (m/+ a m eps))
-              (Gamma/gamma (m/+ b m eps))
-              (Gamma/gamma (m/inc m))
-              (Gamma/gamma (m/- 1.0 eps))))))
+         (m/* (gam/unsafe-gamma (m/+ a m eps))
+              (gam/unsafe-gamma (m/+ b m eps))
+              (gam/unsafe-gamma (m/inc m))
+              (gam/unsafe-gamma (m/- 1.0 eps))))))
 
 (defn binf
+  "Internal helper of the Gauss hypergeometric function: the port of `Binf` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (let [a (.x abcw)
         c (.z abcw)
@@ -407,6 +485,7 @@
           (recur n+ nbn ngn (m/+ ret nbn)))))))
 
 (defn bone
+  "Internal helper of the Gauss hypergeometric function: the port of `Bone` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^Vec4 abcw ^long m ^double eps]
   (let [a (.x abcw)
         b (.y abcw)
@@ -436,6 +515,7 @@
           (recur n+ nbn ngn (m/+ ret nbn)))))))
 
 (defn inf-2F1
+  "Internal helper of the Gauss hypergeometric function: the port of `_₂F₁Inf` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double c ^double x]
   ;; requires b >= a (m = round(b-a) >= 0): the a/b-Norlund-Rice series
   ;; construction below assumes this ordering; without it, P's internal
@@ -458,6 +538,7 @@
       (if (m/even? m) res (m/- res)))))
 
 (defn one-2F1
+  "Internal helper of the Gauss hypergeometric function: the port of `_₂F₁one` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double c ^double x]
   (let [c-b-a (m/- c b a)
         m (m/round c-b-a)
@@ -469,6 +550,7 @@
     (if (m/even? m) res (m/- res))))
 
 (defn weniger-2F1
+  "Internal helper of the Gauss hypergeometric function: the port of `weniger 2F1` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double c ^double x]
   (let [absa (m/abs a)
         absb (m/abs b)
@@ -527,6 +609,7 @@
                   :else rlo)))))))))
 
 (defn general-2F1
+  "Internal helper of the Gauss hypergeometric function: the port of `_₂F₁general` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double c ^double x]
   (cond
     (m/one? x) (let [v (m/- c a b)]
@@ -544,10 +627,17 @@
                                            (Gamma/logGamma b))
                                       (Gamma/logGamma (m/- v)))]
                            (if (m/valid-double? f) ##Inf ##NaN))))
-    (and (m/== (m/rint a) a) (m/not-pos? a)
-         (m/== (m/rint b) b) (m/not-pos? b)
-         (m/< (m/abs x) 0.72)) (maclaurin-2F1 a b c x)
-    (m/neg? (m/- c a b)) (m/* (m/exp (m/* (m/- c a b) (m/log1p (m/- x))))
+    (m/< b a) (general-2F1 b a c x)
+    (or (and (m/== (m/rint a) a) (m/not-pos? a))
+        (and (m/== (m/rint b) b) (m/not-pos? b))) (terminating-2F1 a b c x)
+    ;; a negative non-integer parameter makes the direct series alternate (the terms grow before they decay):
+    ;; the Euler transformation turns it into a series with positive terms
+    (and (m/pos? x) (m/<= x 0.72) (m/pos? (m/- c a b)) (m/pos? (m/- c a)) (m/pos? (m/- c b))
+         (or (m/neg? a) (m/neg? b))) (m/* (m/exp (m/* (m/- c a b) (m/log1p (m/- x))))
+                                          (maclaurin-2F1 (m/- c a) (m/- c b) c x))
+    (m/<= (m/abs x) 0.72) (maclaurin-2F1 a b c x)
+    ;; positively balanced: Euler transformation
+    (m/pos? (m/- c a b)) (m/* (m/exp (m/* (m/- c a b) (m/log1p (m/- x))))
                               (general-2F1 (m/- c a) (m/- c b) c x))
     (m/<= (m/abs (m// x (m/dec x))) 0.72) (m/* (m/exp (m/* (m/- a) (m/log1p (m/- x))))
                                                (maclaurin-2F1 a (m/- c b) c (m// x (m/dec x))))
@@ -555,8 +645,8 @@
     (m/<= (m/abs (m/- 1.0 (m// x))) 0.72) (m/* (m/exp (m/* (m/- a) (m/log1p (m/- x))))
                                                (inf-2F1 a (m/- c b) c (m// x (m/dec x))))
     (m/<= (m/abs (m/- 1.0 x)) 0.72) (one-2F1 a b c x)
-    (m/<= (m/abs (m/- 1.0 (m/- 1.0 x))) 0.72) (m/* (m/exp (m/* (m/- a) (m/log1p (m/- x))))
-                                                   (one-2F1 a (m/- c b) c (m// x (m/dec x))))
+    (m/<= (m/abs (m// (m/- 1.0 x))) 0.72) (m/* (m/exp (m/* (m/- a) (m/log1p (m/- x))))
+                                               (one-2F1 a (m/- c b) c (m// x (m/dec x))))
     :else (weniger-2F1 a b c x)))
 
 (defn hypergeometric-2F1
@@ -596,16 +686,7 @@
       ;; elsewhere even though the true value is perfectly finite and
       ;; real -- fixed this session). The pole check above already
       ;; guarantees c cannot be an unreachable-in-time pole by this point.
-      (let [a-term? (and (m/not-pos? a) (m/integer? a))
-            n (if (and a-term? (m/not-pos? b) (m/integer? b))
-                (m/min (m/- a) (m/- b))
-                (if a-term? (m/- a) (m/- b)))]
-        (loop [k (long 1) term 1.0 sum 1.0]
-          (if (m/> k n)
-            sum
-            (let [nterm (m// (m/* term (m/+ a (m/dec k)) (m/+ b (m/dec k)) x)
-                             (m/* (m/+ c (m/dec k)) k))]
-              (recur (m/inc k) nterm (m/+ sum nterm))))))
+      (terminating-2F1 a b c x)
 
       (m/== a c) (m/exp (m/* -1.0 b (m/log1p (m/- x))))
       (m/== b c) (m/exp (m/* -1.0 a (m/log1p (m/- x))))
@@ -658,6 +739,7 @@
 ;;
 
 (defn weniger-2F0
+  "Internal helper of the Gauss hypergeometric function: the port of `weniger 2F0` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double x]
   (let [absa (m/abs a)
         absb (m/abs b)
@@ -715,6 +797,7 @@
                       :else rlo)))))))))))
 
 (defn weniger-0F2
+  "Internal helper of the Gauss hypergeometric function: the port of `weniger 0F2` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double x]
   (if (m/< (m/abs x) m/MACHINE-EPSILON)
     1.0
@@ -778,6 +861,7 @@
             :else tlo))))))
 
 (defn maclaurin-0F2
+  "Internal helper of the Gauss hypergeometric function: the port of `_₀F₂maclaurin` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double a ^double b ^double x]
   (loop [j (long 1)
          s0 1.0

@@ -265,9 +265,9 @@
       (is (= 176 (count values)))
       (is (< (max-err values gamma) 1e-12))))
   (testing "limits are documented"
-    (is (re-find #"dimension 60" (:doc (meta #'vg/->hyperspherical))))
-    (is (re-find #"d = -15" (:doc (meta #'vg/->hyperspherical))))
-    (is (re-find #"Accuracy limits" (:doc (meta #'vg/->superspherical))))))
+    (is (re-find #"dimensions up to 121" (:doc (meta #'vg/->hyperspherical))))
+    (is (re-find #"3e-14" (:doc (meta #'vg/->hyperspherical))))
+    (is (re-find #"orders up to 90" (:doc (meta #'vg/->superspherical))))))
 
 (deftest tplstable-test
   (testing "tplstable reference (mpmath expint), integer orders 1 + 2H/beta and H 0.8, beta 1.9"

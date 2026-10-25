@@ -297,8 +297,8 @@
 (t/deftest bessel-I0
   (t/is (m/nan? (sut/bessel-I0 ##NaN)))
   (t/is (m/one? (sut/bessel-I0 0.0)))
-  (t/is (m/nan? (sut/bessel-I0 ##Inf)))
-  (t/is (m/nan? (sut/bessel-I0 ##-Inf)))
+  (t/is (m/pos-inf? (sut/bessel-I0 ##Inf))) ;; the limit
+  (t/is (m/pos-inf? (sut/bessel-I0 ##-Inf)))
   ;; positive & negative
   (t/is (check1 sut/bessel-I0 (blk :bessel-I0 :pos)))
   (t/is (check1 sut/bessel-I0 (blk :bessel-I0 :neg))))
@@ -306,8 +306,8 @@
 (t/deftest bessel-I1
   (t/is (m/nan? (sut/bessel-I1 ##NaN)))
   (t/is (m/zero? (sut/bessel-I1 0.0)))
-  (t/is (m/nan? (sut/bessel-I1 ##Inf)))
-  (t/is (m/nan? (sut/bessel-I1 ##-Inf)))
+  (t/is (m/pos-inf? (sut/bessel-I1 ##Inf))) ;; the limits
+  (t/is (m/neg-inf? (sut/bessel-I1 ##-Inf)))
   ;; positive & negative
   (t/is (check1 sut/bessel-I1 (blk :bessel-I1 :pos)))
   (t/is (check1 sut/bessel-I1 (blk :bessel-I1 :neg))))
@@ -492,8 +492,12 @@
   (t/testing "negative arguments: true pole (p or q itself a non-positive integer) is NaN"
     (t/is (m/nan? (sut/beta -1.0 2.0)))
     (t/is (m/nan? (sut/beta 2.0 -1.0)))
-    (t/is (m/nan? (sut/beta -2.0 -3.0)))
-    (t/is (m/nan? (sut/beta -1.0 1.0))))
+    (t/is (m/nan? (sut/beta -2.0 -3.0))))
+  (t/testing "negative integer q with p+q a non-positive integer: the two poles cancel, finite (checked vs mpmath)"
+    (t/is (m/delta-eq -1.0 (sut/beta -1.0 1.0) 1.0e-13))
+    (t/is (m/delta-eq -1.0 (sut/beta 1.0 -1.0) 1.0e-13))
+    (t/is (m/delta-eq 0.05 (sut/beta 2.0 -5.0) 1.0e-13))
+    (t/is (m/delta-eq 0.05 (sut/beta -5.0 2.0) 1.0e-13)))
   (t/testing "symmetry: beta(p,q) = beta(q,p)"
     (let [ps (get-in @beta-reference [:beta :p])
           qs (get-in @beta-reference [:beta :q])]
@@ -530,18 +534,17 @@
     (t/is (m/nan? (sut/log-beta -1.0 2.0)))
     (t/is (m/nan? (sut/log-beta 2.0 -1.0)))
     (t/is (m/nan? (sut/log-beta -2.0 -3.0)))
-    (t/is (m/nan? (sut/log-beta -1.0 1.0))))
-  (t/testing "negative arguments: beta(p,q) < 0 has no real logarithm -> NaN"
-    (t/is (m/nan? (sut/log-beta -0.5 2.0))) ;; beta(-0.5,2.0) = -4.0
-    (t/is (m/nan? (sut/log-beta 3.2 -3.7)))) ;; negative beta value, see beta-reference
+    (t/is (m/delta-eq 0.0 (sut/log-beta -1.0 1.0) 1.0e-13))) ;; beta(-1,1) = -1
+  (t/testing "negative arguments: log-beta is log|beta|"
+    (t/is (m/delta-eq (m/log 4.0) (sut/log-beta -0.5 2.0) 1.0e-13)) ;; beta(-0.5,2.0) = -4.0
+    (t/is (m/delta-eq (m/log (m/abs (sut/beta 3.2 -3.7))) (sut/log-beta 3.2 -3.7) 1.0e-13)))
   (t/testing "matches beta over the same reference grid"
     (let [ps (get-in @beta-reference [:beta :p])
           qs (get-in @beta-reference [:beta :q])
           refs (get-in @beta-reference [:beta :ref])]
       (doseq [[p q r] (map vector ps qs refs)]
-        (if (m/pos? r)
-          (t/is (m/delta-eq (m/log r) (sut/log-beta p q) 1.0e-9 1.0e-10))
-          (t/is (m/nan? (sut/log-beta p q))))))))
+        (when (m/valid-double? r)
+          (t/is (m/delta-eq (m/log (m/abs r)) (sut/log-beta p q) 1.0e-9 1.0e-10)))))))
 
 (t/deftest regularized-beta
   (t/is (m/nan? (sut/regularized-beta ##NaN 1.0 2.0)))
@@ -722,11 +725,11 @@
     ;; expect -Inf, a result of Jafama's `tan(-0.0) = +0.0`)
     (t/is (m/pos-inf? (sut/polygamma 2 -0.0)))
     (t/is (m/pos-inf? (sut/polygamma 3 -0.0))))
-  (t/testing "poles at negative integers: large magnitude (a floating-point
-              approximation of a true pole via `cotderiv`'s cot(pi*z),
-              not exactly +-Inf)"
-    (t/is (> (Math/abs (sut/polygamma 2 -1.0)) 1.0e40))
-    (t/is (> (Math/abs (sut/polygamma 3 -2.0)) 1.0e40)))
+  (t/testing "poles at negative integers: +Inf for odd order (both one-sided limits agree), NaN for even order"
+    (t/is (m/nan? (sut/polygamma 2 -1.0)))
+    (t/is (m/nan? (sut/polygamma 4 -3.0)))
+    (t/is (m/pos-inf? (sut/polygamma 3 -2.0)))
+    (t/is (m/pos-inf? (sut/polygamma 5 -1.0))))
   (t/testing "closed form at x=1: psi^(m)(1) = (-1)^(m+1) * m! * zeta(m+1)"
     (doseq [m [2 3 4 5 10 50 100 150]]
       (let [expected (* (if (odd? m) 1.0 -1.0)
@@ -1718,7 +1721,7 @@
     (t/is (check3 sut/tricomis-U {:a (get-in @tricomis-u-reference [:a])
                                   :b (get-in @tricomis-u-reference [:b])
                                   :x (get-in @tricomis-u-reference [:x])
-                                  :ref (get-in @tricomis-u-reference [:ref])} 5.0e-3))))
+                                  :ref (get-in @tricomis-u-reference [:ref])} 1.0e-10))))
 
 ;; Reference values for `whittaker-W` below were computed once from mpmath
 ;; (`mpmath.whitw`) and are stored in
@@ -1782,7 +1785,7 @@
     (t/is (check3 sut/whittaker-W {:a (get-in @whittaker-w-reference [:kappa])
                                    :b (get-in @whittaker-w-reference [:mu])
                                    :x (get-in @whittaker-w-reference [:x])
-                                   :ref (get-in @whittaker-w-reference [:ref])} 1.0e-5))))
+                                   :ref (get-in @whittaker-w-reference [:ref])} 1.0e-10))))
 
 ;; Reference values for `hypergeometric-2F1` (Gauss's hypergeometric
 ;; function) below were computed once from mpmath (`mpmath.hyp2f1`) and are

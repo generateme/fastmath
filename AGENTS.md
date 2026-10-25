@@ -88,6 +88,7 @@ Use:
   - `uv` Python package manager run in `/home/ts/penv` environment - for any Python package 
   - `octave` - for any Octave/Matlab package
 - Use `m/delta-eq` or `v/delta-eq`  with the default tolerance for anything closed-form; use an explicit looser tolerance (with a one-line comment stating why and the empirically observed error) when needed
+- when creating EDN reference test file, always keep script in the `utils/fastmath/dev` folder for reproducibility
 - more in `fastmath-testing` skill
 
 ## Skills
