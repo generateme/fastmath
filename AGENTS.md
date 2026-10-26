@@ -80,6 +80,14 @@ Use:
 - Type-hint aggressively: `^double`, `^long`, `^doubles`, `^Vec2`, etc. on params and return types.
 - 2-space indentation; no trailing commas.
 
+### Auditing
+
+Audit is a proces of verification of numerical correctness and completeness of given namespace or namespaces, writing docstings, writing tests, filling gaps and implementing low hanging fruits.
+
+### Documentation of development
+
+Use `obisdian` vault to store all information about the development process: findings, spec, progress log, overview and maybe other related files documenting the process.
+
 ### Writing tests
 
 - For a reference values in tests you can use (with caution):
