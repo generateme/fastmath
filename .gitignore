@@ -19,6 +19,7 @@ fastmath.core.matrix/target/
 img.png
 .clj-kondo/imports
 .#*
+AGENTS.md
 
 # Beads / Dolt files (added by bd init)
 .dolt/
