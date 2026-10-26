@@ -891,3 +891,49 @@
       (t/is (vector? r))
       (t/is (= [5.0 7.0 9.0] r))
       (t/is (every? double? r)))))
+
+;; ==== Orthonormal polynomials: stability for a large number of points ====
+;; Reference: R `poly(1:n, n - 1)`, `crossprod()` equals the identity up to 6e-16 for n = 60.
+;; The previous recurrence of monic polynomials lost orthonormality: 1e-9 for 30 points, 0.4 for 60 points.
+
+(defn- orthonormality-error
+  [cols]
+  (let [cols (mapv double-array cols)
+        dot (fn [^doubles a ^doubles b] (areduce a i s 0.0 (+ s (* (aget a i) (aget b i)))))]
+    (apply max (for [i (range (count cols)) j (range i (count cols))]
+                 (Math/abs (- (if (== i j) 1.0 0.0) (dot (cols i) (cols j))))))))
+
+(t/deftest orthonormal-polynomials-stability
+  (doseq [n [2 3 10 30 60 100 300]]
+    (let [cols (vec (sut/orthonormal-polynomials (range n)))]
+      (t/is (= (dec n) (count cols)))
+      (t/is (every? #(= n (count %)) cols))
+      (t/is (< (orthonormality-error cols) 1.0e-13) (str n " points"))))
+  (t/testing "not equally spaced and negative points"
+    (doseq [xs [[0.5 1.5 4.0 9.0 10.0] [-3.0 -1.0 0.0 0.5 7.0 20.0] (map #(Math/pow 1.1 %) (range 40))]]
+      (t/is (< (orthonormality-error (sut/orthonormal-polynomials xs)) 1.0e-9) (str (count xs)))))
+  (t/testing "the same vectors as the normalized orthogonal polynomials, including the sign"
+    (doseq [xs [[0.5 1.5 4.0 9.0 10.0] [1 2 3 4 5 6 7] [-2.0 -1.0 0.3 5.0]]]
+      (doseq [[o p] (map vector (sut/orthogonal-polynomials xs) (sut/orthonormal-polynomials xs))]
+        (t/is (sut/delta-eq (sut/normalize o) p 1.0e-10)))))
+  (t/testing "the order of points does not change the vectors, they follow the points"
+    (let [xs [3.0 1.0 4.0 1.5 9.0 2.6]
+          a (sut/orthonormal-polynomials xs)
+          b (sut/orthonormal-polynomials (reverse xs))]
+      (doseq [[p q] (map vector a b)]
+        (t/is (sut/delta-eq p (reverse q) 1.0e-12)))))
+  (t/testing "the linear vector is the centered and normalized points"
+    (let [xs [1.0 4.0 6.0 10.0]
+          centered (sut/shift xs (- (/ (reduce + xs) 4.0)))]
+      (t/is (sut/delta-eq (sut/normalize centered) (first (sut/orthonormal-polynomials xs)) 1.0e-12))))
+  (t/testing "boundaries: no points, one point, two points"
+    (t/is (empty? (sut/orthonormal-polynomials [])))
+    (t/is (empty? (sut/orthonormal-polynomials [5.0])))
+    (t/is (sut/delta-eq [-0.7071067811865476 0.7071067811865476] (first (sut/orthonormal-polynomials [1 2])) 1.0e-12))
+    (t/is (sut/delta-eq [0.7071067811865476 -0.7071067811865476] (first (sut/orthonormal-polynomials [2 1])) 1.0e-12)))
+  (t/testing "repeated points: fewer than requested orthogonal vectors, the others are NaN"
+    (let [cols (sut/orthonormal-polynomials [1 1 2])]
+      (t/is (= 2 (count cols)))
+      (t/is (every? #(Double/isNaN %) (second cols)))))
+  (t/testing "points far from zero (the polynomials are centered by the recurrence)"
+    (t/is (< (orthonormality-error (sut/orthonormal-polynomials (range 1.0e6 (+ 1.0e6 40)))) 1.0e-9))))

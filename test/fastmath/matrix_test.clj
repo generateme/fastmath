@@ -391,6 +391,34 @@
   (t/is (true? (sut/symmetric? 7.0)))
   (t/is (= [7.0] (sut/diag 7.0))))
 
+(t/deftest symmetrize
+  (t/testing "every matrix type: symmetric entry by entry, same type, equals (A + A^T) / 2"
+    (doseq [A [m22 m33 m44 m44a m44ra]
+            :let [S (sut/symmetrize A)
+                  expected (sut/muls (sut/add A (sut/transpose A)) 0.5)]]
+      (t/is (true? (sut/symmetric? S)))
+      (t/is (= (class A) (class S)))
+      (t/is (v/delta-eq (sut/mat->seq expected) (sut/mat->seq S) 1.0e-15))))
+  (t/testing "hand-copied value, R: (A + t(A)) / 2 for A = matrix(c(2,3,5,-10), 2, byrow=TRUE)"
+    (t/is (v/delta-eq [2.0 4.0 4.0 -10.0] (sut/mat->seq (sut/symmetrize m22)) 1.0e-15)))
+  (t/testing "a symmetric matrix keeps its values, a skew-symmetric one gives zero"
+    (t/is (v/delta-eq (sut/mat->seq m33s) (sut/mat->seq (sut/symmetrize m33s)) 1.0e-15))
+    (t/is (v/delta-eq (repeat 9 0.0) (sut/mat->seq (sut/symmetrize (sut/sub m33 (sut/transpose m33)))) 1.0e-15))
+    (let [S (sut/add m33 (sut/transpose m33))
+          K (sut/sub m33 (sut/transpose m33))]
+      (t/is (v/delta-eq (sut/mat->seq S) (sut/mat->seq (sut/symmetrize (sut/add S K))) 1.0e-14))))
+  (t/testing "1x1 and 0.0"
+    (t/is (= 7.0 (sut/symmetrize 7.0)))
+    (t/is (= [7.0] (sut/mat->seq (sut/symmetrize (sut/mat [[7.0]]))))))
+  (t/testing "non-square input throws with its shape"
+    (doseq [A [(sut/mat [[1.0 2.0 3.0] [4.0 5.0 6.0]]) (sut/mat->RealMatrix (sut/mat [[1.0 2.0 3.0] [4.0 5.0 6.0]]))]]
+      (t/is (= {:shape [2 3]} (try (sut/symmetrize A) (catch clojure.lang.ExceptionInfo e (ex-data e)))))))
+  (t/testing "the Cholesky symmetry check passes after symmetrizing a matrix with a relative asymmetry of 2% at 1e-16"
+    (let [A (sut/mat [[1.0 8.17e-17] [8.33e-17 1.0]])]
+      (t/is (thrown? org.apache.commons.math3.linear.NonSymmetricMatrixException
+                     (sut/cholesky-decomposition A 1.0e-8 1.0e-16)))
+      (t/is (some? (sut/cholesky-decomposition (sut/symmetrize A) 1.0e-8 1.0e-16))))))
+
 (t/deftest symmetry
   (t/are [m s] (= s (boolean (sut/symmetric? m)))
     m22 false m33 false m44 false m44a false m44ra false m33s true
@@ -1145,3 +1173,27 @@
 (t/deftest pow-test
   (t/is (= (sut/mat2x2 (m/pow 2.0 3.0) (m/pow 3.0 3.0) (m/pow 3.0 3.0) (m/pow 2.0 3.0))
            (sut/pow (sut/mat2x2 2.0 3.0 3.0 2.0) 3.0))))
+
+(t/deftest symmetrize-boundaries
+  (t/testing "large entries do not overflow: both halves are scaled before the sum"
+    (doseq [big [1.0e308 -1.0e308 Double/MAX_VALUE]]
+      (let [A (sut/mat [[1.0 big] [big 2.0]])
+            S (sut/symmetrize A)]
+        (t/is (= [1.0 big big 2.0] (sut/mat->seq S))))
+      (let [A (sut/mat [[1.0 big] [(- big) 2.0]])]
+        (t/is (= [1.0 0.0 0.0 2.0] (sut/mat->seq (sut/symmetrize A)))))))
+  (t/testing "subnormal entries"
+    (let [tiny Double/MIN_VALUE
+          S (sut/symmetrize (sut/mat [[0.0 tiny] [0.0 0.0]]))]
+      (t/is (sut/symmetric? S))))
+  (t/testing "an empty double array is returned as it is"
+    (let [empty-array (make-array Double/TYPE 0 0)]
+      (t/is (identical? empty-array (sut/symmetrize empty-array)))))
+  (t/testing "NaN and infinities propagate to both entries"
+    (let [S (sut/symmetrize (sut/mat [[1.0 ##NaN] [2.0 3.0]]))]
+      (t/is (= [1.0 3.0] [(sut/entry S 0 0) (sut/entry S 1 1)]))
+      (t/is (Double/isNaN (sut/entry S 0 1)))
+      (t/is (Double/isNaN (sut/entry S 1 0)))))
+  (t/testing "other types of input are not matrices"
+    (doseq [bad [nil "a" :k [[1 2] [3 4]]]]
+      (t/is (thrown? IllegalArgumentException (sut/symmetrize bad)) (pr-str bad)))))

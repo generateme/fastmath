@@ -1804,7 +1804,7 @@
 
   The sequence starts with the vector for the polynomial of degree 1 and includes vectors up to degree `(count xs) - 1`.
 
-  This function is useful for constructing orthogonal bases for polynomial approximation or regression on discrete data."
+  This function is useful for constructing orthogonal bases for polynomial approximation or regression on discrete data. The polynomials are monic, so their values grow fast with the degree and the number of points; use [[orthonormal-polynomials]] for more than about 20 points."
   [xs]
   (let [cnt (count xs)
         m (m// (sum xs) cnt)
@@ -1821,14 +1821,39 @@
          (map first)
          (take (m/long-dec (count xs))))))
 
+(defn- orthogonalize
+  "Removes from `w` the components along the orthonormal vectors `basis`, twice
+  (one pass of the classical Gram-Schmidt process is not enough for many vectors)."
+  [basis w]
+  (let [pass (fn [w] (reduce (fn [w q] (sub w (mult q (dot w q)))) w basis))]
+    (pass (pass w))))
+
 (defn orthonormal-polynomials
-  "Generates a sequence of orthonormal vectors by evaluating orthogonal polynomials at the points specified in the input sequence `xs` and normalizing the resulting vectors.
+  "Generates a sequence of orthonormal vectors by evaluating orthogonal polynomials at the points specified in the input sequence `xs`.
 
-  The sequence starts with the vector for the polynomial of degree 1 and includes vectors up to degree `(count xs) - 1`. Orthogonality (and thus orthonormality after normalization) is with respect to the discrete inner product based on summation over the points in `xs`.
+  The sequence starts with the vector for the polynomial of degree 1 and includes vectors up to degree `(count xs) - 1`. Orthogonality (and thus orthonormality) is with respect to the discrete inner product based on summation over the points in `xs`. The vectors are the same as [[orthogonal-polynomials]] divided by their norms (the sign is the same: the leading coefficient is positive).
 
-  This function produces an orthonormal basis suitable for polynomial approximation or regression on discrete data points defined by `xs`, derived from the orthogonal basis computed by [[orthogonal-polynomials]]."
+  This function produces an orthonormal basis suitable for polynomial approximation or regression on discrete data points defined by `xs` (the columns of `poly(xs, degree)` of R). Each vector is the previous one multiplied by the centered points and orthogonalized against all previous vectors, so the vectors stay orthonormal also for a large number of points, where the values of [[orthogonal-polynomials]] grow too fast.
+
+  Returns a sequence of vectors, an empty one for fewer than two points. The points should be different: when some of them are repeated, there are fewer different polynomials than requested and the vectors of the higher degrees are filled with `NaN`."
   [xs]
-  (map normalize (orthogonal-polynomials xs)))
+  (let [n (count xs)]
+    (if (m/< n 2)
+      ()
+      (let [centered (shift xs (m/- (average xs)))
+            constant (vec (repeat n (m// 1.0 (m/sqrt n))))
+            next-vector (fn [basis]
+                          (let [raised (emult centered (peek basis))
+                                w (orthogonalize basis raised)
+                                norm (mag w)]
+                            ;; nothing is left when the polynomial is a combination of the previous ones (repeated points)
+                            (if (m/<= norm (m/* 1.0e-10 (mag raised)))
+                              (vec (repeat n ##NaN))
+                              (vec (div w norm)))))]
+        (->> (iterate (fn [basis] (conj basis (next-vector basis))) [constant])
+             (drop 1)
+             (map peek)
+             (take (dec n)))))))
 
 ;;
 

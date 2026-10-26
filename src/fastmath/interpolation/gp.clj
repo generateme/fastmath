@@ -14,6 +14,7 @@
   (:require [fastmath.core :as m]
             [fastmath.kernel :as k]
             [fastmath.vector :as v]
+            [fastmath.matrix :as mat]
             [fastmath.random :as r]
             [fastmath.interpolation.common :as ic])
   (:import [clojure.lang IFn]
@@ -330,17 +331,6 @@
            (seq mus)
            (with-sd (.ystddev gp-object) mus (post-variances gp-object xvals kv))))))))
 
-(defn- symmetric-matrix
-  "Symmetrised copy of the matrix (the average with its transpose)."
-  ^RealMatrix [^RealMatrix a]
-  (let [n (.getRowDimension a)
-        arr (make-array Double/TYPE n n)]
-    (dotimes [i n]
-      (dotimes [j n]
-        (Array/aset ^doubles (aget ^"[[D" arr i) j
-                    (m/* 0.5 (m/+ (.getEntry a i j) (.getEntry a j i))))))
-    (MatrixUtils/createRealMatrix ^"[[D" arr)))
-
 (defn- factor-eigen
   "Returns the matrix `B` with `B B^T` equal to the covariance, from the eigenvalues (negative ones are clipped to zero)."
   ^RealMatrix [^RealMatrix cov]
@@ -375,7 +365,7 @@
   The covariance is symmetrised and decomposed into the eigenvalues, negative eigenvalues (rounding errors of a rank deficient covariance) are clipped to zero, so a dense grid or a point at a training point is fine. The singular value decomposition is the fallback when the eigenvalue iteration of Apache Commons Math does not converge."
   ^doubles [^doubles mu ^RealMatrix cov ^RandomGenerator rng]
   (let [n (alength mu)
-        sym (symmetric-matrix cov)
+        sym (mat/symmetrize cov)
         ^RealMatrix b (try (factor-eigen sym)
                            (catch MaxCountExceededException _ (factor-svd sym)))
         z (double-array n)]

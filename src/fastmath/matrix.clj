@@ -5,7 +5,7 @@
 
   Constructors build matrices from scalars, rows, columns, diagonals or existing arrays and `RealMatrix` objects: `mat2x2`, `mat3x3`, `mat4x4`, `mat`, `real-matrix`, and their `rows->`, `cols->`, `diag->` and `array2d->` counterparts, plus `eye`, `zero` and `diagonal`.
 
-  Element and structural access is provided by `entry`, `row`, `col`, `rows`, `cols`, `diag`, `nrow`, `ncol`, `shape`, `mat->seq`, `mat->array`, `mat->array2d` and their float variants, along with the predicates `square?` and `symmetric?`.
+  Element and structural access is provided by `entry`, `row`, `col`, `rows`, `cols`, `diag`, `nrow`, `ncol`, `shape`, `mat->seq`, `mat->array`, `mat->array2d` and their float variants, along with the predicates `square?` and `symmetric?`, and `symmetrize` for the symmetric part of a square matrix.
 
   Arithmetic and linear algebra operations include `add`, `adds`, `sub`, `negate`, `mulm` (and its transposed variants `mulmt`, `tmulm`, `tmulmt`), `emulm`, `mulv`, `vtmul`, `muls`, `outer`, `kronecker`, `transpose`, `inverse`, `det`, `trace`, `cholesky`, `pow`, `norm` and `condition`.
 
@@ -1281,6 +1281,28 @@
   "Is matrix square?"
   [m]
   (m/== (nrow m) (ncol m)))
+
+(defn symmetrize
+  "Returns the symmetric part of a square matrix, `(A + A^T) / 2`.
+
+  Rounding errors make a matrix that is symmetric in exact arithmetic (a covariance matrix, a normal matrix `X^T W X`) slightly asymmetric. Entries that are close to zero can then differ by a large relative amount, which makes the symmetry check of [[cholesky-decomposition]] fail. Symmetrizing the matrix first removes the asymmetry exactly: the result is symmetric entry by entry.
+
+  Parameters:
+
+  - `A` - a square matrix of any type of this namespace
+
+  Returns a matrix of the same type as `A`. A symmetric matrix is returned with the same values, an empty `double[][]` is returned as it is.
+
+  Throws `ex-info` with the `:shape` of `A` when `A` is not square.
+
+  See also [[symmetric?]], [[cholesky-decomposition]]."
+  [A]
+  (cond
+    ;; an empty array has no dimensions
+    (and (some? A) (.isArray (class A)) (zero? (java.lang.reflect.Array/getLength A))) A
+    (not (square? A)) (throw (ex-info "Matrix should be square." {:shape (shape A)}))
+    ;; both halves are scaled first: the sum of two large entries does not overflow
+    :else (add (muls A 0.5) (muls (transpose A) 0.5))))
 
 (defn block-diagonal
   "Creates a block diagonal `RealMatrix` from a sequence of square matrices, placed along the diagonal in order, zero elsewhere.
