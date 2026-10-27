@@ -1320,7 +1320,7 @@
   - `xs` (optional): initial values, filled into the created vector via [[as-vec]] (extra values are dropped, missing values default to `0.0`)."
   ([dims xs] (prot/as-vec (make-vector dims) xs))
   ([^long dims]
-   (when (pos? dims)
+   (when (m/pos? dims)
      (case dims
        1 0.0
        2 (vec2)
@@ -1896,7 +1896,7 @@
         (->> (iterate (fn [basis] (conj basis (next-vector basis))) [constant])
              (drop 1)
              (map peek)
-             (take (dec n)))))))
+             (take (m/long-dec n)))))))
 
 ;;
 

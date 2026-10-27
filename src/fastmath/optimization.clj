@@ -289,7 +289,7 @@
 (defmulti ^:private utility-function (fn [t & _] t))
 
 (defmethod utility-function :default [t _]
-  (common/throw-unknown :utility-function-type t #{:ucb :ei :poi}))
+  (common/throw-unknown :utility-function-type t #{:ucb :ei :poi :log-ucb :log-ei :log-poi}))
 
 (defmethod utility-function :ucb
   [_ ^double kappa]

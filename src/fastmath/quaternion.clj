@@ -5,7 +5,7 @@
 
   Quaternions extend complex numbers and are widely used in fields like 3D graphics and physics for representing rotations.
 
-  In `fastmath`, quaternions are represented as 4-dimensional vectors ([[Vec4]]) where the components correspond to the scalar part and the three imaginary parts ($i$, $j$, $k$): $q = a + bi + cj + dk$ is `(Vec4. a b c d)`.
+  In `fastmath`, quaternions are represented as 4-dimensional vectors ([[Vec4]]) where the components correspond to the scalar part and the three imaginary parts (`i`, `j`, `k`): `q = a + bi + cj + dk` is `(Vec4. a b c d)`.
 
   The namespace provides functions for creating quaternions, accessing scalar and vector parts, predicates (e.g., [[real?]], [[zero?]], [[inf?]], [[nan?]]), and fundamental properties (magnitude, argument, normalization).
 
@@ -14,7 +14,7 @@
   - **Transcendental Functions:** Extensions of standard complex functions like exponential, logarithm, power, trigonometric, hyperbolic functions, and their inverses.
   - **Rotations:** Functions for creating rotation quaternions (from an axis and an angle, from two vectors), rotating 3D vectors ([[rotate]]), interpolation ([[slerp]], [[nlerp]]), and conversions between quaternions, Euler angles (ZYX body 3-2-1 and z-y'-x''), axis and angle, and rotation matrices.
 
-  The transcendental functions are computed with the complex functions of `fastmath.complex` applied to the scalar part and the magnitude of the vector part, so they share their branch cuts and accuracy. A quaternion with a zero vector part is treated as a complex number with the imaginary part on the $i$ axis (for example the square root of `-4` is `2i`).
+  The transcendental functions are computed with the complex functions of `fastmath.complex` applied to the scalar part and the magnitude of the vector part, so they share their branch cuts and accuracy. A quaternion with a zero vector part is treated as a complex number with the imaginary part on the `i` axis (for example the square root of `-4` is `2i`).
 
   The implementation correctly handles floating-point special values, including `##Inf` and `##NaN`."
   (:refer-clojure :exclude [vector zero?])
@@ -51,6 +51,11 @@
   (^Vec4 [^double scalar [^double i ^double j ^double k]] (Vec4. scalar i j k))
   (^Vec4 [^double a] (Vec4. a 0.0 0.0 0.0)))
 
+(defn seq->quaternion
+  "Creates a quaternion from the sequence of numbers."
+  ^Vec4 [[^double a ^double b ^double c ^double d]]
+  (Vec4. a b c d))
+
 (defn complex->quaternion
   "Creates a quaternion from the complex number `z` (a [[Vec2]]), `a+bi` becomes `a+bi+0j+0k`."
   ^Vec4 [^Vec2 z]
@@ -59,26 +64,34 @@
 (defn ensure-quaternion
   "Converts `q` to a quaternion.
 
-  A number becomes a quaternion with the scalar part only, a complex number ([[Vec2]]) is converted by [[complex->quaternion]]. Any other value (a [[Vec4]] included) is returned unchanged. The arithmetic functions of this namespace use it for their arguments."
+  A number becomes a quaternion with the scalar part only, a complex number ([[Vec2]]) is converted by [[complex->quaternion]]. Any sequence value is returned converted to a [[Vec4]]. The arithmetic functions of this namespace use it for their arguments."
   ^Vec4 [q]
   (cond
+    (instance? Vec4 q) q
     (number? q) (quaternion q)
     (instance? Vec2 q) (complex->quaternion q)
-    :else q))
+    (sequential? q) (seq->quaternion q)
+    :else (throw (ex-info "Can't infer quaternion from input." {:q q}))))
 
 (defn scalar
   "Returns the scalar part of the quaternion as a double. Alias of [[re]]."
-  ^double [^Vec4 quaternion] (.x quaternion))
+  ^double [quaternion]
+  (let [^Vec4 quaternion (ensure-quaternion quaternion)]
+    (.x quaternion)))
 
 (defn re
   "Returns the scalar (real) part of the quaternion as a double. Alias of [[scalar]]."
-  ^double [^Vec4 quaternion] (.x quaternion))
+  ^double [quaternion]
+  (let [^Vec4 quaternion (ensure-quaternion quaternion)]
+    (.x quaternion)))
 
 (defn vector
   "Returns the vector part (the `i`, `j`, `k` parts) of the quaternion as [[Vec3]]."
-  ^Vec3 [^Vec4 quaternion] (Vec3. (.y quaternion)
-                                  (.z quaternion)
-                                  (.w quaternion)))
+  ^Vec3 [quaternion]
+  (let [^Vec4 quaternion (ensure-quaternion quaternion)]
+    (Vec3. (.y quaternion)
+           (.z quaternion)
+           (.w quaternion))))
 
 (defn im-i "Returns the `i` imaginary part as a double." ^double [^Vec4 quaternion] (.y quaternion))
 (defn im-j "Returns the `j` imaginary part as a double." ^double [^Vec4 quaternion] (.z quaternion))
@@ -90,25 +103,29 @@
 
 (defn imaginary?
   "Returns `true` when the scalar part of the quaternion is zero, a pure imaginary quaternion (the zero quaternion included)."
-  [^Vec4 quaternion] (m/zero? (.x quaternion)))
+  [quaternion] (m/zero? (.x ^Vec4 (ensure-quaternion quaternion))))
 
 (defn zero?
   "Returns `true` when all parts of the quaternion are zero."
-  [^Vec4 quaternion] (v/is-zero? quaternion))
+  [quaternion] (v/is-zero? quaternion))
 
 (defn inf?
   "Returns `true` when any part of the quaternion is infinite (also when another part is `NaN`)."
-  [^Vec4 quaternion] (or (m/inf? (.x quaternion))
-                         (m/inf? (.y quaternion))
-                         (m/inf? (.z quaternion))
-                         (m/inf? (.w quaternion))))
+  [quaternion]
+  (let [^Vec4 quaternion (ensure-quaternion quaternion)]
+    (or (m/inf? (.x quaternion))
+        (m/inf? (.y quaternion))
+        (m/inf? (.z quaternion))
+        (m/inf? (.w quaternion)))))
 
 (defn nan?
   "Returns `true` when any part of the quaternion is `NaN`."
-  [^Vec4 quaternion] (or (m/nan? (.x quaternion))
-                         (m/nan? (.y quaternion))
-                         (m/nan? (.z quaternion))
-                         (m/nan? (.w quaternion))))
+  [quaternion]
+  (let [^Vec4 quaternion (ensure-quaternion quaternion)]
+    (or (m/nan? (.x quaternion))
+        (m/nan? (.y quaternion))
+        (m/nan? (.z quaternion))
+        (m/nan? (.w quaternion)))))
 
 (defn invalid?
   "Returns `true` when the quaternion has an infinite or `NaN` part. See also [[valid?]]."
@@ -119,20 +136,29 @@
   [z] (not (invalid? z)))
 
 (defn delta-eq
-  "Compares quaternions `q1` and `q2` with the given absolute `accuracy` (`1.0e-6` by default) in each part.
+  "Checks whether quaternions `q1` and `q2` are equal within a tolerance. Returns `true` or `false`.
 
-  Note that `q` and `-q` represent the same rotation but they are not equal. See also [[fastmath.vector/delta-eq]]."
+  The tolerance is applied to the length of the difference, `|q1 - q2|`, not to each part separately:
+
+  * `(delta-eq q1 q2)` - absolute tolerance `1.0e-6`,
+  * `(delta-eq q1 q2 abs-tol)` - the quaternions are equal when `|q1 - q2| <= abs-tol`,
+  * `(delta-eq q1 q2 abs-tol rel-tol)` - the quaternions are equal when `|q1 - q2| < max(abs-tol, rel-tol * max(|q1|, |q2|))`.
+
+  A part that is `NaN` makes the result `false`. Note that `q` and `-q` describe the same rotation but they are not equal. Delegates to [[fastmath.vector/delta-eq]]. See also [[norm]]."
   ([q1 q2]
    (v/delta-eq q1 q2))
-  ([q1 q2 ^double accuracy]
-   (v/delta-eq q1 q2 accuracy)))
+  ([q1 q2 ^double abs-tol]
+   (v/delta-eq q1 q2 abs-tol))
+  ([q1 q2 ^double abs-tol ^double rel-tol]
+   (v/delta-eq q1 q2 abs-tol rel-tol)))
 
 (defn arg
   "Argument of the quaternion, `atan2(|vector(q)|, re(q))`, in the range `[0, pi]`.
 
   See also [[norm]], [[to-axis-angle]]."
-  ^double [^Vec4 quaternion]
-  (m/atan2 (v/mag (vector quaternion)) (.x quaternion)))
+  ^double [quaternion]
+  (let [^Vec4 quaternion (ensure-quaternion quaternion)]
+    (m/atan2 (v/mag (vector quaternion)) (.x quaternion))))
 
 (defn norm
   "Norm (magnitude, length) of the quaternion, `sqrt(a^2+b^2+c^2+d^2)`, as a double.
@@ -140,13 +166,13 @@
   The value is correct over the whole range of doubles. Note that [[fastmath.complex/norm]] is the squared magnitude.
 
   See also [[normalize]], [[fastmath.vector/magsq]]."
-  ^double [quaternion] (v/mag (ensure-quaternion quaternion)))
+  ^double [quaternion] (v/mag quaternion))
 
 (defn normalize
   "Normalizes the quaternion to the unit length (a versor). The zero quaternion stays zero.
 
   See also [[norm]]."
-  ^Vec4 [quaternion] (v/normalize (ensure-quaternion quaternion)))
+  ^Vec4 [quaternion] (v/normalize quaternion))
 
 (defn add
   "Sum of quaternions.
@@ -212,19 +238,20 @@
   ^Vec4 [quaternion]
   (let [^Vec4 q (ensure-quaternion quaternion)
         mg (v/mag q)]
-    (if (m/inf? mg)
-      (Vec4. (m/copy-sign 0.0 (.x q))
-             (m/- (m/copy-sign 0.0 (.y q)))
-             (m/- (m/copy-sign 0.0 (.z q)))
-             (m/- (m/copy-sign 0.0 (.w q))))
-      (if (and (m/< mg 1.0e-300) (m/pos? mg))
-        ;; 1/|q| overflows for a subnormal length: scale by a power of two (exact), invert, scale back
-        (v/mult ^Vec4 (reciprocal (v/mult q 4.149515568880993E180)) 4.149515568880993E180)
-        (let [r (/ 1.0 mg)]
-          (Vec4. (m/* (m/* (.x q) r) r)
-                 (m/* (m/* (m/- (.y q)) r) r)
-                 (m/* (m/* (m/- (.z q)) r) r)
-                 (m/* (m/* (m/- (.w q)) r) r)))))))
+    (cond
+      (m/inf? mg) (Vec4. (m/copy-sign 0.0 (.x q))
+                         (m/- (m/copy-sign 0.0 (.y q)))
+                         (m/- (m/copy-sign 0.0 (.z q)))
+                         (m/- (m/copy-sign 0.0 (.w q))))
+      (m/< 0.0 mg 1.0e-300)
+      ;; 1/|q| overflows for a subnormal length: scale by a power of two (exact), invert, scale back
+      (v/mult ^Vec4 (reciprocal (v/mult q 4.149515568880993E180)) 4.149515568880993E180)
+      ;; numerical stability
+      :else (let [r (m// 1.0 mg)]
+              (Vec4. (m/* r (.x q) r)
+                     (m/* r (m/- (.y q)) r)
+                     (m/* r (m/- (.z q)) r)
+                     (m/* r (m/- (.w q)) r))))))
 
 (defn inverse
   "Multiplicative inverse of the quaternion, alias of [[reciprocal]]. For a unit quaternion (a rotation) it is the conjugate, the opposite rotation."
@@ -266,8 +293,9 @@
 
 (defn sq
   "Square of the quaternion, `q*q`."
-  ^Vec4 [^Vec4 quaternion]
-  (let [a (.x quaternion)
+  ^Vec4 [quaternion]
+  (let [^Vec4 quaternion (ensure-quaternion quaternion)
+        a (.x quaternion)
         b (.y quaternion)
         c (.z quaternion)
         d (.w quaternion)
@@ -286,8 +314,9 @@
             (m/zero? im-i)
             (m/zero? im-j)
             (m/zero? im-k)) 0.0 (m/sgn re)))
-  (^double [^Vec4 q]
-   (if (zero? q) 0.0 (m/sgn (.x q)))))
+  (^double [q]
+   (let [^Vec4 q (ensure-quaternion q)]
+     (if (zero? q) 0.0 (m/sgn (.x q))))))
 
 ;; transcendental functions: f(a + b i + c j + d k) = f(a + |v| i) with the imaginary part of the result
 ;; spread over the direction of the vector part v
@@ -310,8 +339,9 @@
              "A quaternion with a zero vector part is treated as a complex number with the imaginary part on the `i` axis. "
              "Branch cuts and the accuracy are the ones of the complex function.\n\n"
              "  See also [[fastmath.complex/" nm "]].")
-       ^Vec4 [~q]
-       (let [a# (.x ~q)
+       ^Vec4 [~'quaternion]
+       (let [~q (ensure-quaternion ~'quaternion)
+             a# (.x ~q)
              b# (.y ~q)
              c# (.z ~q)
              d# (.w ~q)
@@ -349,7 +379,7 @@
   "Throws `ex-info` when the vector `u` can't give a direction: the zero vector or a vector with an infinite or `NaN` part.
 
   A finite vector is accepted also when its length is not representable (`(1.7e308, 1.7e308, 1.7e308)`): then the length of the half of the vector is finite."
-  [option ^Vec3 u]
+  [option u]
   (let [mg (v/mag u)
         finite? (or (m/zero? mg)
                     (not (or (m/inf? mg) (m/nan? mg)))
@@ -373,9 +403,9 @@
   Returns A unit quaternion (Vec4) representing the rotation. Throws `ex-info` when `u` is the zero vector or has an infinite or `NaN` part (a finite vector is fine also when its length is not representable).
 
   See also [[from-axis-angle]], [[to-axis-angle]], [[rotate]]."
-  ^Vec4 [^double angle ^Vec3 u]
+  ^Vec4 [^double angle u]
   (check-direction :u u)
-  (let [half (* 0.5 angle)]
+  (let [half (m/* 0.5 angle)]
     (quaternion (m/cos half)
                 (v/mult (v/normalize u) (m/sin half)))))
 
@@ -383,7 +413,7 @@
   "Creates a unit quaternion representing a rotation by `angle` (radians) around the `axis`.
 
   Alias of [[rotation-quaternion]], the arguments have the same order. The axis is normalized, a zero axis throws `ex-info`. See also [[to-axis-angle]]."
-  ^Vec4 [^double angle ^Vec3 axis]
+  ^Vec4 [^double angle axis]
   (rotation-quaternion angle axis))
 
 (defn to-axis-angle
@@ -400,12 +430,12 @@
   [quaternion]
   (let [^Vec4 q (normalize quaternion)
         flip (if (m/neg? (.x q)) -1.0 1.0)
-        a (* flip (.x q))
+        a (m/* flip (.x q))
         vv (v/mult (vector q) flip)
         s (v/mag vv)]
     (if (m/zero? s)
       {:axis (Vec3. 1.0 0.0 0.0) :angle 0.0}
-      {:axis (v/div vv s) :angle (* 2.0 (m/atan2 s a))})))
+      {:axis (v/div vv s) :angle (m/* 2.0 (m/atan2 s a))})))
 
 (defn from-two-vectors
   "Creates a unit quaternion representing the shortest rotation which takes the direction of the vector `u` to the direction of the vector `v`.
@@ -413,11 +443,11 @@
   The lengths of the vectors do not matter (also subnormal ones). For opposite directions the rotation is by `pi` around some axis perpendicular to `u`. Throws `ex-info` when any vector is the zero vector or has an infinite or `NaN` part (a finite vector is fine also when its length is not representable).
 
   See also [[rotate]], [[rotation-quaternion]]."
-  ^Vec4 [^Vec3 u ^Vec3 v]
+  ^Vec4 [u v]
   (check-direction :u u)
   (check-direction :v v)
-  (let [^Vec3 nu (v/normalize u)
-        ^Vec3 nv (v/normalize v)
+  (let [^Vec3 nu (v/vec3 (v/normalize u))
+        ^Vec3 nv (v/vec3 (v/normalize v))
         d (v/dot nu nv)]
     (if (m/< d -0.999999999999999)
       ;; opposite directions: a half turn around any axis perpendicular to u
@@ -439,14 +469,14 @@
   * `angle`, `u`: the angle (radians) and the axis of rotation (`Vec3`).
 
   Returns the rotated vector as `Vec3`."
-  (^Vec3 [in ^Vec4 rotq]
+  (^Vec3 [in rotq]
    (let [in (apply v/vec3 in)
-         ^Vec4 rotq (v/normalize rotq)
+         ^Vec4 rotq (v/vec4 (v/normalize rotq))
          qw (.x rotq)
          q (vector rotq)
          t (v/mult (v/cross q in) 2.0)]
      (v/add (v/add in (v/mult t qw)) (v/cross q t))))
-  (^Vec3 [^Vec3 in ^double angle ^Vec3 u]
+  (^Vec3 [in ^double angle u]
    (rotate in (rotation-quaternion angle u))))
 
 (defn nlerp
@@ -489,7 +519,7 @@
   ^Vec4 [q1 q2 ^double t]
   (let [^Vec4 q1 (ensure-quaternion q1)
         ^Vec4 q2 (ensure-quaternion q2)
-        t (if (m/nan? t) t (m/constrain t 0.0 1.0))]
+        t (m/constrain t 0.0 1.0)]
     (cond
       (m/nan? t) (Vec4. ##NaN ##NaN ##NaN ##NaN)
       (m/zero? t) q1
@@ -502,8 +532,8 @@
                 (nlerp q1 q2 t)
                 (let [theta (m/acos (m/min d 1.0))
                       sin-theta (m/sin theta)
-                      w1 (/ (m/sin (m/* (m/- 1.0 t) theta)) sin-theta)
-                      w2 (/ (m/* s (m/sin (m/* t theta))) sin-theta)]
+                      w1 (m// (m/sin (m/* (m/- 1.0 t) theta)) sin-theta)
+                      w2 (m// (m/* s (m/sin (m/* t theta))) sin-theta)]
                   (v/add (v/mult q1 w1) (v/mult q2 w2))))))))
 
 ;; the angle at the gimbal lock is twice an arctangent of the (half angle) quaternion parts: wrapped to [-pi, pi]
@@ -525,8 +555,8 @@
   At the gimbal lock (pitch is `+-pi/2`, only the sum or the difference of roll and yaw is defined) the roll is set to zero and the yaw takes the whole rotation, so [[from-euler]] of the result represents the same rotation. The lock is detected when `cos(pitch)` is below `1.0e-8`.
 
   See also [[from-euler]], [[to-angles]]."
-  ^Vec3 [^Vec4 q]
-  (let [^Vec4 q (v/normalize q)
+  ^Vec3 [q]
+  (let [^Vec4 q (v/normalize (ensure-quaternion q))
         w (.x q) x (.y q) y (.z q) z (.w q)
         sinr-cosp (m/* 2.0 (m/+ (m/* w x) (m/* y z)))
         cosr-cosp (m/- 1.0 (m/* 2.0 (m/+ (m/* x x) (m/* y y))))
@@ -585,8 +615,8 @@
   At the gimbal lock (y is `+-pi/2`, only the sum or the difference of x and z is defined) x is set to zero and z takes the whole rotation, so [[from-angles]] of the result represents the same rotation. The lock is detected when `cos(y)` is below `1.0e-8`.
 
   See also [[from-angles]], [[to-euler]]."
-  ^Vec3 [^Vec4 q]
-  (let [^Vec4 q (v/normalize q)
+  ^Vec3 [q]
+  (let [^Vec4 q (v/normalize (ensure-quaternion q))
         w (.x q) x (.y q) y (.z q) z (.w q)
         ww (m/* w w) xx (m/* x x) yy (m/* y y) zz (m/* z z)
         y1 (m/* 2.0 (m/- (m/* w x) (m/* y z)))
@@ -649,8 +679,8 @@
   Returns A 3x3 rotation matrix (Mat3x3).
 
   See also [[from-rotation-matrix]]."
-  ^Mat3x3 [^Vec4 q]
-  (let [^Vec4 q (v/normalize q)
+  ^Mat3x3 [q]
+  (let [^Vec4 q (v/normalize (ensure-quaternion q))
         a (.x q) b (.y q) c (.z q) d (.w q)
         aa (m/* a a) bb (m/* b b) cc (m/* c c) dd (m/* d d)
         bc (m/* b c) ad (m/* a d) bd (m/* b d)

@@ -152,7 +152,7 @@
   (symmetric? [_ tol] (m/delta-eq a01 a10 tol))
   (transpose [_] (Mat2x2. a00 a10 a01 a11))
   (inverse [_] (let [d (gen-det2 a00 a01 a10 a11)]
-                 (when-not (zero? d)
+                 (when-not (m/zero? d)
                    (let [d (m// d)]
                      (Mat2x2. (m/* d a11) (m/* d (m/- a01)) (m/* d (m/- a10)) (m/* d a00))))))
   (diag [_] (Vec2. a00 a11))
@@ -287,7 +287,7 @@
   (symmetric? [_ tol] (and (m/delta-eq a01 a10 tol) (m/delta-eq a12 a21 tol) (m/delta-eq a20 a02 tol)))
   (transpose [_] (Mat3x3. a00 a10 a20 a01 a11 a21 a02 a12 a22))
   (inverse [_] (let [d (gen-det3 a00 a01 a02 a10 a11 a12 a20 a21 a22)]
-                 (when-not (zero? d)
+                 (when-not (m/zero? d)
                    (let [adj (Mat3x3. (gen-det2 a11 a12 a21 a22)
                                       (gen-det2 a02 a01 a22 a21)
                                       (gen-det2 a01 a02 a11 a12)
@@ -461,7 +461,7 @@
                             (m/* (m/- a10) (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33 ))
                             (m/* a20 (gen-det3 a01 a02 a03 a11 a12 a13 a31 a32 a33))
                             (m/* (m/- a30) (gen-det3 a01 a02 a03 a11 a12 a13 a21 a22 a23)))]
-                 (when-not (zero? d)
+                 (when-not (m/zero? d)
                    (let [adj (Mat4x4. (gen-det3 a11 a12 a13 a21 a22 a23 a31 a32 a33)
                                       (m/- (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33))
                                       (gen-det3 a01 a02 a03 a11 a12 a13 a31 a32 a33)
@@ -1291,18 +1291,15 @@
 
   - `A` - a square matrix of any type of this namespace
 
-  Returns a matrix of the same type as `A`. A symmetric matrix is returned with the same values, an empty `double[][]` is returned as it is.
+  Returns a matrix of the same type as `A`. A symmetric matrix is returned with the same values.
 
   Throws `ex-info` with the `:shape` of `A` when `A` is not square.
 
   See also [[symmetric?]], [[cholesky-decomposition]]."
   [A]
-  (cond
-    ;; an empty array has no dimensions
-    (and (some? A) (.isArray (class A)) (zero? (java.lang.reflect.Array/getLength A))) A
-    (not (square? A)) (throw (ex-info "Matrix should be square." {:shape (shape A)}))
-    ;; both halves are scaled first: the sum of two large entries does not overflow
-    :else (add (muls A 0.5) (muls (transpose A) 0.5))))
+  (if (not (square? A)) (throw (ex-info "Matrix should be square." {:shape (shape A)}))
+      ;; both halves are scaled first: the sum of two large entries does not overflow
+      (add (muls A 0.5) (muls (transpose A) 0.5))))
 
 (defn block-diagonal
   "Creates a block diagonal `RealMatrix` from a sequence of square matrices, placed along the diagonal in order, zero elsewhere.

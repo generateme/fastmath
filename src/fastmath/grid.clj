@@ -41,7 +41,7 @@
            [clojure.lang Named]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defn coords->cell
   "Converts 2d space coordinates `(x,y)` to cell coordinates `(q,r)`.
@@ -149,8 +149,8 @@
          triangle? (= typ :triangle)]
      (reify
        prot/GridProto
-       (coords->cell [_ [^double x ^double y]] (to-cell size (- x (.x sv)) (- y (.y sv))))
-       (coords->cell [_ x y] (to-cell size (- ^double x (.x sv)) (- ^double y (.y sv))))
+       (coords->cell [_ [^double x ^double y]] (to-cell size (m/- x (.x sv)) (m/- y (.y sv))))
+       (coords->cell [_ x y] (to-cell size (m/- (double x) (.x sv)) (m/- (double y) (.y sv))))
        (cell->anchor [_ [q r]] (let [cell (from-cell size q r)]
                                  (if triangle?
                                    (v/add cell sv3)
@@ -164,8 +164,8 @@
        (coords->mid [g coords] (to-mid size (anchor g coords)))
        (coords->mid [g x y] (to-mid size (anchor g x y)))
        (corners [g coords] (vertices size (anchor g coords)))
-       (corners [g coords scale] (vertices (* ^double scale size) (anchor g coords)))
-       (corners [g x y scale] (vertices (* ^double scale size) (anchor g x y)))
+       (corners [g coords scale] (vertices (m/* (double scale) size) (anchor g coords)))
+       (corners [g x y scale] (vertices (m/* (double scale) size) (anchor g x y)))
        (grid-type [_] typ)
        (area [_] (area-fn size))
        Named
@@ -178,33 +178,29 @@
 (defn- square->pixel
   "Square cell coords to anchor."
   [^double size ^long q ^long r]
-  (Vec2. (* q size) (* r size)))
+  (Vec2. (m/* q size) (m/* r size)))
 
 (defn- pixel->square
   "Square 2d coords to cell coords."
   [^double size ^double x ^double y]
-  (Vec2. (m/floor (/ x size)) (m/floor (/ y size))))
+  (Vec2. (m/floor (m// x size)) (m/floor (m// y size))))
 
 (defn- square-pixel->mid
   "Mid point of cell"
   [^double size v]
-  (let [s2 (/ size 2.0)]
+  (let [s2 (m// size 2.0)]
     (v/add v (Vec2. s2 s2))))
 
 (defn- square-corners
   "Square shape."
   ([^double size ^double x ^double y]
-   (let [x+ (+ x size)
-         y+ (+ y size)]
+   (let [x+ (m/+ x size)
+         y+ (m/+ y size)]
      [(v/vec2 x y)
       (v/vec2 x+ y)
       (v/vec2 x+ y+)
       (v/vec2 x y+)]))
   ([size [x y]] (square-corners size x y)))
-
-(defn- square-area
-  "Area of a square cell (side `size`)."
-  ^double [^double size] (* size size))
 
 ;; hex
 
@@ -213,43 +209,43 @@
   ^Vec2 [^Vec2 v]
   (let [x (.x v)
         z (.y v)
-        y (- (- x) z)
+        y (m/- (m/- x) z)
         rx (m/round x)
         ry (m/round y)
         rz (m/round z)
-        diff-x (m/abs (- rx x))
-        diff-y (m/abs (- ry y))
-        diff-z (m/abs (- rz z))]
-    (if (and (> diff-x diff-y)
-             (> diff-x diff-z))
-      (Vec2. (- (- ry) rz) rz)
-      (if (> diff-y diff-z)
+        diff-x (m/abs (m/- rx x))
+        diff-y (m/abs (m/- ry y))
+        diff-z (m/abs (m/- rz z))]
+    (if (and (m/> diff-x diff-y)
+             (m/> diff-x diff-z))
+      (Vec2. (m/- (m/- ry) rz) rz)
+      (if (m/> diff-y diff-z)
         (Vec2. rx rz)
-        (Vec2. rx (- (- rx) ry))))))
+        (Vec2. rx (m/- (m/- rx) ry))))))
 
 (defn- pointy-hex->pixel
   "Pointy hex cell to anchor."
   [^double size ^double q ^double r]
-  (v/mult (Vec2. (+ (* m/SQRT3 q) (* m/SQRT3_2 r))
-                 (* 1.5 r)) size))
+  (v/mult (Vec2. (m/+ (m/* m/SQRT3 q) (m/* m/SQRT3_2 r))
+                 (m/* 1.5 r)) size))
 
 (defn- pixel->pointy-hex
   "2d coords to pointy topped hex cell coords."
   [^double size ^double x ^double y]
-  (hex-round-coords (v/div (v/vec2 (- (* m/SQRT3_3 x) (* m/THIRD y))
-                                   (* m/TWO_THIRD y)) size)))
+  (hex-round-coords (v/div (v/vec2 (m/- (m/* m/SQRT3_3 x) (m/* m/THIRD y))
+                                   (m/* m/TWO_THIRD y)) size)))
 
 (defn- flat-hex->pixel
   "Flat hex cell to anchor."
   [^double size ^long q ^long r]
-  (v/mult (v/vec2 (* 1.5 q)
-                  (+ (* m/SQRT3_2 q) (* m/SQRT3 r))) size))
+  (v/mult (v/vec2 (m/* 1.5 q)
+                  (m/+ (m/* m/SQRT3_2 q) (m/* m/SQRT3 r))) size))
 
 (defn- pixel->flat-hex
   "2d coords to flat topped hex cell coords."
   [^double size ^double x ^double y]
-  (hex-round-coords (v/div (v/vec2 (* m/TWO_THIRD x)
-                                   (- (* m/SQRT3_3 y) (* m/THIRD x))) size)))
+  (hex-round-coords (v/div (v/vec2 (m/* m/TWO_THIRD x)
+                                   (m/- (m/* m/SQRT3_3 y) (m/* m/THIRD x))) size)))
 
 (defn ^:private angles->vectors
   "Returns list of vertices from unit circle."
@@ -278,60 +274,60 @@
   "Area of a regular hexagon cell with circumradius `size` (the internal, already
   `/sqrt(3)`-scaled size stored for `:pointy-hex`/`:flat-hex`, see [[grid]]):
   `(3*sqrt(3)/2)*size^2`."
-  ^double [^double size] (* 1.5 m/SQRT3 size size))
+  ^double [^double size] (m/* 1.5 m/SQRT3 size size))
 
 ;; shifted square
 
 (defn- shifted-square->pixel
   "Shifted square to anchor."
   [^double size ^long q ^long r]
-  (v/vec2 (+ (* 0.5 r size) (* q size)) (* r size)))
+  (v/vec2 (m/+ (m/* 0.5 r size) (m/* q size)) (m/* r size)))
 
 (defn- pixel->shifted-square
   "2d coords to shifted square cell."
   ([^double size ^double x ^double y]
-   (let [yy (m/floor (/ y size))]
-     (v/vec2 (m/floor (/ (- x (* 0.5 yy size)) size)) yy))))
+   (let [yy (m/floor (m// y size))]
+     (v/vec2 (m/floor (m// (m/- x (m/* 0.5 yy size)) size)) yy))))
 
 ;; rhombus
 
 (defn- rhombus->pixel
   "Shifted square to anchor."
   [^double size ^long q ^long r]
-  (v/vec2 (+ (* 0.5 r size) (* q size)) (* r size m/SQRT3_2)))
+  (v/vec2 (m/+ (m/* 0.5 r size) (m/* q size)) (m/* r size m/SQRT3_2)))
 
 (defn- pixel->rhombus
   "2d coords to rhombus cell."
   [^double size ^double x ^double y]
-  (let [h (* size m/SQRT3_2)
-        ys (/ y h)
+  (let [h (m/* size m/SQRT3_2)
+        ys (m// y h)
         yy (m/floor ys)
-        fy (if (neg? ys) (- 1.0 (m/frac ys)) (m/frac ys))
-        hs (* 0.5 size)]
-    (v/vec2 (m/floor (/ (+ (* fy hs)
-                           (- x (* yy hs))) size))
+        fy (if (m/neg? ys) (m/- 1.0 (m/frac ys)) (m/frac ys))
+        hs (m/* 0.5 size)]
+    (v/vec2 (m/floor (m// (m/+ (m/* fy hs)
+                               (m/- x (m/* yy hs))) size))
             yy)))
 
 (defn- rhombus-pixel->mid
   [^double size v]
-  (let [hs (* m/SQRT3_4 size)
-        qs (* 0.25 size)]
+  (let [hs (m/* m/SQRT3_4 size)
+        qs (m/* 0.25 size)]
     (v/add v (Vec2. qs hs))))
 
 (defn- rhombus-corners
   "Rhombus vertices."
   ([^double size ^double x ^double y]
-   (let [hs (* 0.5 size)
-         y+ (+ y (* m/SQRT3_2 size))]
+   (let [hs (m/* 0.5 size)
+         y+ (m/+ y (m/* m/SQRT3_2 size))]
      [(v/vec2 x y)
-      (v/vec2 (+ x size) y)
-      (v/vec2 (+ x hs) y+)
-      (v/vec2 (- x hs) y+)]))
+      (v/vec2 (m/+ x size) y)
+      (v/vec2 (m/+ x hs) y+)
+      (v/vec2 (m/- x hs) y+)]))
   ([size [x y]] (rhombus-corners size x y)))
 
 (defn- rhombus-area
   "Area of a rhombus cell (side `size`, 60°/120° angles): `(sqrt(3)/2)*size^2`."
-  ^double [^double size] (* m/SQRT3_2 size size))
+  ^double [^double size] (m/* m/SQRT3_2 size size))
 
 
 ;; triangle
@@ -339,7 +335,7 @@
 (defn- triangle->pixel
   "Triangle cell to anchor."
   [^double size ^long q ^long r]
-  (v/vec3 (rhombus->pixel size (m/>> q 1) r) (bit-and q 0x1)))
+  (v/vec3 (rhombus->pixel size (m/>> q 1) r) (m/bit-and q 0x1)))
 
 (defn- pixel->triangle
   "2d coords to triangle cell.
@@ -353,44 +349,44 @@
   the resolution is now sign-symmetric (same convention for negative and positive
   coordinates), where it previously favored different cells depending on coordinate sign."
   [^double size ^double x ^double y]
-  (let [h (* size m/SQRT3_2)
-        ys (/ y h)
+  (let [h (m/* size m/SQRT3_2)
+        ys (m// y h)
         yy (m/floor ys)
-        fy (- ys yy) ;; floor-based fractional part; sign-symmetric and exact at integer boundaries
-        hs (* 0.5 size)
-        xs (/ (+ (* fy hs)
-                 (- x (* yy hs))) size)
+        fy (m/- ys yy) ;; floor-based fractional part; sign-symmetric and exact at integer boundaries
+        hs (m/* 0.5 size)
+        xs (m// (m/+ (m/* fy hs)
+                     (m/- x (m/* yy hs))) size)
         xsf (m/floor xs)
-        xx (* 2.0 xsf)
-        fx (- xs xsf)]
-    (if (< fy fx)
-      (Vec2. (inc xx) yy)
+        xx (m/* 2.0 xsf)
+        fx (m/- xs xsf)]
+    (if (m/< fy fx)
+      (Vec2. (m/inc xx) yy)
       (Vec2. xx yy))))
 
 (defn- triangle-corners
   "Triangle shape."
   ([^double size ^double x ^double y ^long down?]
-   (let [y+ (+ y (* m/SQRT3_2 size))
-         hsize (* 0.5 size)]
-     (if (zero? down?)
+   (let [y+ (m/+ y (m/* m/SQRT3_2 size))
+         hsize (m/* 0.5 size)]
+     (if (m/zero? down?)
        [(v/vec2 x y)
-        (v/vec2 (+ x hsize) y+)
-        (v/vec2 (- x hsize) y+)]
+        (v/vec2 (m/+ x hsize) y+)
+        (v/vec2 (m/- x hsize) y+)]
        [(v/vec2 x y)
-        (v/vec2 (+ x size) y)
-        (v/vec2 (+ x hsize) y+)])))
+        (v/vec2 (m/+ x size) y)
+        (v/vec2 (m/+ x hsize) y+)])))
   ([size [x y down?]] (triangle-corners size x y down?)))
 
 (defn- triangle-area
   "Area of an equilateral triangle cell (side `size`)."
-  ^double [^double size] (* m/SQRT3_4 size size))
+  ^double [^double size] (m/* m/SQRT3_4 size size))
 
 (defn- triangle-pixel->mid
   [^double size [^double x ^double y ^long down?]]
-  (let [h (* m/SQRT3_2 size)]
-    (if (zero? down?)
-      (v/vec2 x (+ y (* m/TWO_THIRD h)))
-      (v/vec2 (+ x (/ size 2.0)) (+ y (* m/THIRD h))))))
+  (let [h (m/* m/SQRT3_2 size)]
+    (if (m/zero? down?)
+      (v/vec2 x (m/+ y (m/* m/TWO_THIRD h)))
+      (v/vec2 (m/+ x (m// size 2.0)) (m/+ y (m/* m/THIRD h))))))
 
 (defn- coords->triangle-anchor
   "2d coordinates to triangle anchor with cell information (even or odd)."
@@ -404,10 +400,10 @@
 ;;
 
 (def ^:private grid-type-fns
-  {:square {:from-cell square->pixel :to-cell pixel->square :to-mid square-pixel->mid :vertices square-corners :area square-area}
+  {:square {:from-cell square->pixel :to-cell pixel->square :to-mid square-pixel->mid :vertices square-corners :area m/sq}
    :pointy-hex {:from-cell pointy-hex->pixel :to-cell pixel->pointy-hex :to-mid hex->mid :vertices pointy-hex-corners :area hex-area}
    :flat-hex {:from-cell flat-hex->pixel :to-cell pixel->flat-hex :to-mid hex->mid :vertices flat-hex-corners :area hex-area}
-   :shifted-square {:from-cell shifted-square->pixel :to-cell pixel->shifted-square :to-mid square-pixel->mid :vertices square-corners :area square-area}
+   :shifted-square {:from-cell shifted-square->pixel :to-cell pixel->shifted-square :to-mid square-pixel->mid :vertices square-corners :area m/sq}
    :rhombus {:from-cell rhombus->pixel :to-cell pixel->rhombus :to-mid rhombus-pixel->mid :vertices rhombus-corners :area rhombus-area}
    :triangle {:from-cell triangle->pixel :to-cell pixel->triangle :to-mid triangle-pixel->mid :vertices triangle-corners :anchor coords->triangle-anchor :area triangle-area}})
 
@@ -423,10 +419,10 @@
   "Inverse of each type's area formula: `size` such that `(area (grid type size)) == area`."
   {:square (fn ^double [^double area] (m/sqrt area))
    :shifted-square (fn ^double [^double area] (m/sqrt area))
-   :pointy-hex (fn ^double [^double area] (m/sqrt (/ (* 2.0 area) m/SQRT3)))
-   :flat-hex (fn ^double [^double area] (m/sqrt (/ (* 2.0 area) m/SQRT3)))
-   :rhombus (fn ^double [^double area] (m/sqrt (/ (* 2.0 area) m/SQRT3)))
-   :triangle (fn ^double [^double area] (* 2.0 (m/sqrt (/ area m/SQRT3))))})
+   :pointy-hex (fn ^double [^double area] (m/sqrt (m// (m/* 2.0 area) m/SQRT3)))
+   :flat-hex (fn ^double [^double area] (m/sqrt (m// (m/* 2.0 area) m/SQRT3)))
+   :rhombus (fn ^double [^double area] (m/sqrt (m// (m/* 2.0 area) m/SQRT3)))
+   :triangle (fn ^double [^double area] (m/* 2.0 (m/sqrt (m// area m/SQRT3))))})
 
 (defn area->size
   "Returns the `size` for which a `type` cell has the given `area`.
@@ -468,11 +464,10 @@
                      {:type type :valid-types cell-names})))
    (let [sv (v/vec2 sv)
          size (if (or (= type :pointy-hex)
-                      (= type :flat-hex)) (/ size m/SQRT3) size)
+                      (= type :flat-hex)) (m// size m/SQRT3) size)
          fp (grid-type-fns type)]
      (grid-obj type fp size sv)))
   ([type ^double size] (grid type size [0.0 0.0]))
   ([type] (grid type 10.0))
   ([] (grid :square)))
 
-(m/unuse-primitive-operators)

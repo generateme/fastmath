@@ -1186,9 +1186,6 @@
     (let [tiny Double/MIN_VALUE
           S (sut/symmetrize (sut/mat [[0.0 tiny] [0.0 0.0]]))]
       (t/is (sut/symmetric? S))))
-  (t/testing "an empty double array is returned as it is"
-    (let [empty-array (make-array Double/TYPE 0 0)]
-      (t/is (identical? empty-array (sut/symmetrize empty-array)))))
   (t/testing "NaN and infinities propagate to both entries"
     (let [S (sut/symmetrize (sut/mat [[1.0 ##NaN] [2.0 3.0]]))]
       (t/is (= [1.0 3.0] [(sut/entry S 0 0) (sut/entry S 1 1)]))

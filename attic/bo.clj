@@ -1,4 +1,5 @@
 (ns fastmath.optimization.bo
+  
   (:require [fastmath.interpolation.gp :as gp]
             [fastmath.random :as r]
             [fastmath.kernel :as k]
@@ -6,7 +7,7 @@
             [fastmath.optimization :as opt]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defmulti utility-function :method)
 

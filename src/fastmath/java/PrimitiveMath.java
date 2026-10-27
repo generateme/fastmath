@@ -121,14 +121,14 @@ public final class PrimitiveMath {
     public static boolean xor(boolean a, boolean b) { return (a || b) && !(a && b); }
 
     public static long min(long a, long b) { return a<b?a:b; }
-    public static double min(double a, long b) { return a<b?a:b; }
-    public static double min(long a, double b) { return a<b?a:b; }
-    public static double min(double a, double b) { return a<b?a:b; }
+    public static double min(double a, long b) { return Double.isNaN(a)?a:(a<b?a:b); }
+    public static double min(long a, double b) { return Double.isNaN(b)?a:(a<b?a:b); }
+    public static double min(double a, double b) { return Double.isNaN(a)?a:Double.isNaN(b)?b:(a<b?a:b); }
     
     public static long max(long a, long b) { return a>b?a:b; }
-    public static double max(double a, long b) { return a>b?a:b; }
-    public static double max(long a, double b) { return a>b?a:b; }
-    public static double max(double a, double b) { return a>b?a:b; }
+    public static double max(double a, long b) { return Double.isNaN(a)?a:(a>b?a:b); }
+    public static double max(long a, double b) { return Double.isNaN(b)?a:(a>b?a:b); }
+    public static double max(double a, double b) { return Double.isNaN(a)?a:Double.isNaN(b)?b:(a>b?a:b); }
 
     public static boolean isEven(long a) { return (a&1)==0; }
     public static boolean isOdd(long a) { return (a&1)==1; }
@@ -140,7 +140,7 @@ public final class PrimitiveMath {
         return start2 + (stop2 - start2) * norm(v, start1, stop1);
     }
 
-    public static double lerp(double a, double b, double t) { return a + t * (b - a); }
+public static double lerp(double a, double b, double t) { return a + t * (b - a); }
     public static double hermite(double v) { return v * v * (3.0 - 2.0 * v); }
     public static double quintic(double v) { return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }
 
