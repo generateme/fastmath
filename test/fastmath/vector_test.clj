@@ -610,6 +610,69 @@
     (t/is (= zero-v2 (sut/normalize-L1 zero-v2)))
     (t/is (= zero-v2 (sut/normalize-LInf zero-v2)))))
 
+(t/deftest mag-range-test
+  ;; the plain sqrt of the sum of squares overflowed above 1e154 and underflowed below 1e-154 (audit of complex/quaternion, CX-10)
+  (t/testing "no overflow"
+    (t/is (= 1.414213562373095E200 (sut/mag (sut/vec2 1.0e200 1.0e200))))
+    (t/is (= 1.7320508075688772E200 (sut/mag (sut/vec3 1.0e200 1.0e200 1.0e200))))
+    (t/is (= 2.0e200 (sut/mag (sut/vec4 1.0e200 1.0e200 1.0e200 1.0e200))))
+    (t/is (= 3.0e300 (sut/mag (sut/vec2 -1.8e300 2.4e300)))))
+  (t/testing "no underflow"
+    (t/is (= 1.414213562373095E-200 (sut/mag (sut/vec2 1.0e-200 1.0e-200))))
+    (t/is (= 1.7320508075688772E-200 (sut/mag (sut/vec3 1.0e-200 1.0e-200 1.0e-200))))
+    (t/is (= 2.0e-200 (sut/mag (sut/vec4 1.0e-200 1.0e-200 1.0e-200 1.0e-200)))))
+  (t/testing "normalize"
+    (t/is (sut/delta-eq (sut/vec2 0.7071067811865475 0.7071067811865475) (sut/normalize (sut/vec2 1.0e200 1.0e200)) 1.0e-15))
+    (t/is (sut/delta-eq (sut/vec2 0.7071067811865475 0.7071067811865475) (sut/normalize (sut/vec2 1.0e-200 1.0e-200)) 1.0e-15))
+    (t/is (sut/delta-eq (sut/vec3 0.5773502691896258 0.5773502691896258 0.5773502691896258) (sut/normalize (sut/vec3 1.0e300 1.0e300 1.0e300)) 1.0e-15)))
+  (t/testing "special values"
+    (t/is (= 0.0 (sut/mag (sut/vec2 0.0 0.0))))
+    (t/is (= 0.0 (sut/mag (sut/vec4 -0.0 0.0 0.0 0.0))))
+    (t/is (= ##Inf (sut/mag (sut/vec2 ##Inf ##NaN))))
+    (t/is (= ##Inf (sut/mag (sut/vec3 ##-Inf 1.0 2.0))))
+    (t/is (m/nan? (sut/mag (sut/vec4 ##NaN 1.0 2.0 3.0))))
+    (t/is (= 5.0 (sut/mag (sut/vec2 3.0 4.0))) "the unchanged path in the normal range")
+    (t/is (= (m/sqrt 14.0) (sut/mag (sut/vec3 1.0 2.0 3.0))))
+    (t/is (= (m/sqrt 30.0) (sut/mag (sut/vec4 1.0 2.0 3.0 4.0))))))
+
+(t/deftest normalize-longer-than-max-test
+  ;; the length is not representable (it overflows to Infinity), the direction is (RV-17)
+  (t/testing "finite elements"
+    (t/is (sut/delta-eq (sut/vec2 0.7071067811865475 0.7071067811865475) (sut/normalize (sut/vec2 1.7e308 1.7e308)) 1.0e-15))
+    (t/is (sut/delta-eq (sut/vec2 -0.7071067811865475 0.7071067811865475) (sut/normalize (sut/vec2 -1.7e308 1.7e308)) 1.0e-15))
+    (t/is (sut/delta-eq (sut/vec3 0.5773502691896258 0.5773502691896258 0.5773502691896258) (sut/normalize (sut/vec3 1.7e308 1.7e308 1.7e308)) 1.0e-15))
+    (t/is (sut/delta-eq (sut/vec4 0.5 -0.5 0.5 0.5) (sut/normalize (sut/vec4 1.7e308 -1.7e308 1.7e308 1.7e308)) 1.0e-15))
+    (t/is (sut/delta-eq (sut/vec2 1.0 5.58659217877095e-9) (sut/normalize (sut/vec2 1.79e308 1.0e300)) 1.0e-15) "one dominant element")
+    (t/is (m/approx-eq 1.0 (sut/mag (sut/normalize (sut/vec3 1.7e308 1.0e308 -1.7e308))))))
+  (t/testing "the length is representable: as before"
+    (t/is (sut/delta-eq (sut/vec2 0.6 0.8) (sut/normalize (sut/vec2 3.0 4.0)) 1.0e-15))
+    (t/is (= 1.0 (sut/mag (sut/normalize (sut/vec2 1.7e308 0.0))))))
+  (t/testing "an infinite or NaN element: no finite direction"
+    (t/is (some #(or (m/nan? %) (m/inf? %)) (seq (sut/normalize (sut/vec2 ##Inf 1.0)))))
+    (t/is (some #(or (m/nan? %) (m/inf? %)) (seq (sut/normalize (sut/vec2 ##NaN 1.0)))))
+    (t/is (= (sut/vec2 0.0 0.0) (sut/normalize (sut/vec2 0.0 0.0))))))
+
+(t/deftest perpendicular-range-test
+  ;; the cross product overflowed (and underflowed) before it was normalized (BR-14)
+  (t/testing "long vectors"
+    (t/is (sut/delta-eq (sut/vec3 0.5773502691896258 -0.5773502691896258 0.5773502691896258)
+                        (sut/perpendicular (sut/vec3 1.7e308 1.7e308 0.0) (sut/vec3 0.0 1.7e308 1.7e308)) 1.0e-15))
+    (t/is (sut/delta-eq (sut/vec3 0.0 0.0 1.0) (sut/perpendicular (sut/vec3 1.0e200 0.0 0.0) (sut/vec3 0.0 1.0e200 0.0)) 1.0e-15)))
+  (t/testing "short vectors"
+    (t/is (sut/delta-eq (sut/vec3 0.0 0.0 1.0) (sut/perpendicular (sut/vec3 1.0e-200 0.0 0.0) (sut/vec3 0.0 1.0e-200 0.0)) 1.0e-15) "was the zero vector")
+    (t/is (sut/delta-eq (sut/vec3 0.0 0.0 -1.0) (sut/perpendicular (sut/vec3 0.0 3.0e-300 0.0) (sut/vec3 5.0e-300 0.0 0.0)) 1.0e-15)))
+  (t/testing "mixed sizes"
+    (t/is (sut/delta-eq (sut/vec3 0.0 0.0 1.0) (sut/perpendicular (sut/vec3 1.0e200 0.0 0.0) (sut/vec3 0.0 1.0e-200 0.0)) 1.0e-15)))
+  (t/testing "the common range: as before"
+    (t/is (sut/delta-eq (sut/vec3 0.0 0.0 1.0) (sut/perpendicular (sut/vec3 1.0 0.0 0.0) (sut/vec3 0.0 2.0 0.0)) 1.0e-15))
+    (t/is (= (sut/normalize (sut/cross (sut/vec3 1.0 2.0 3.0) (sut/vec3 -2.0 0.5 4.0)))
+             (sut/perpendicular (sut/vec3 1.0 2.0 3.0) (sut/vec3 -2.0 0.5 4.0)))))
+  (t/testing "parallel vectors: no direction, a zero vector"
+    (t/is (= (sut/vec3 0.0 0.0 0.0) (sut/perpendicular (sut/vec3 1.0 2.0 3.0) (sut/vec3 2.0 4.0 6.0))))
+    (t/is (= (sut/vec3 0.0 0.0 0.0) (sut/perpendicular (sut/vec3 1.0e200 0.0 0.0) (sut/vec3 2.0e200 0.0 0.0)))))
+  (t/testing "an infinite element: no finite direction"
+    (t/is (some #(or (m/nan? %) (m/inf? %)) (seq (sut/perpendicular (sut/vec3 ##Inf 1.0 0.0) (sut/vec3 0.0 1.0 0.0)))))))
+
 (t/deftest set-mag-test
   (t/is (sut/delta-eq (sut/vec2 -0.48507125007266594 1.9402850002906638) (sut/set-mag v2-in1 2.0)))
   (t/is (m/approx-eq 2.0 (sut/mag (sut/set-mag v2-in1 2.0))))
@@ -937,3 +1000,28 @@
       (t/is (every? #(Double/isNaN %) (second cols)))))
   (t/testing "points far from zero (the polynomials are centered by the recurrence)"
     (t/is (< (orthonormality-error (sut/orthonormal-polynomials (range 1.0e6 (+ 1.0e6 40)))) 1.0e-9))))
+
+(t/deftest div-by-subnormal-test
+  ;; the vector was multiplied by 1/d, which is infinite for d below 2.2e-308 (found in the test phase, BR-1)
+  (t/testing "div"
+    (t/is (= (sut/vec2 1.0 0.0) (sut/div (sut/vec2 1.0e-320 0.0) 1.0e-320)))
+    (t/is (= (sut/vec3 1.0 2.0 0.0) (sut/div (sut/vec3 1.0e-320 2.0e-320 0.0) 1.0e-320)))
+    (t/is (= (sut/vec4 1.0 -1.0 0.0 2.0) (sut/div (sut/vec4 4.9e-324 -4.9e-324 0.0 9.9e-324) 4.9e-324)))
+    (t/is (= (sut/vec2 ##Inf ##Inf) (sut/div (sut/vec2 1.0 1.0) 4.9e-324)) "a quotient which is not representable is infinite")
+    (t/is (= (sut/vec2 -1024.0 0.0) (sut/div (sut/vec2 (* -1024.0 Double/MIN_VALUE) 0.0) Double/MIN_VALUE)) "a representable quotient")
+    (t/is (= (sut/vec2 6.0 4.0) (sut/div (sut/vec2 3.0 2.0) 0.5)) "the common path")
+    (t/is (= (sut/vec2 0.0 0.0) (sut/div (sut/vec2 3.0 2.0) ##Inf)))
+    (t/is (= ##Inf (.x ^fastmath.vector.Vec2 (sut/div (sut/vec2 3.0 2.0) 0.0))) "division by zero as before"))
+  (t/testing "a huge divisor: 1/v is subnormal and loses bits"
+    (t/is (= (sut/vec2 1.0 0.0) (sut/div (sut/vec2 1.7e308 0.0) 1.7e308)))
+    (t/is (= (sut/vec3 1.0 -1.0 0.0) (sut/div (sut/vec3 1.0e308 -1.0e308 0.0) 1.0e308)))
+    (t/is (= 1.0 (sut/mag (sut/normalize (sut/vec2 1.7e308 0.0)))) "was 1.0000000000000002")
+    (t/is (= (sut/vec2 0.0 0.0) (sut/div (sut/vec2 3.0 2.0) ##-Inf)) "an infinite divisor: zero as before"))
+  (t/testing "the threshold: the reciprocal of 5.6e-309 is finite, of 5.5e-309 it is not"
+    (t/is (= (sut/vec2 1.0 0.0) (sut/div (sut/vec2 5.6e-309 0.0) 5.6e-309)))
+    (t/is (= (sut/vec2 1.0 0.0) (sut/div (sut/vec2 5.5e-309 0.0) 5.5e-309)))
+    (t/is (= (sut/vec2 1.0 0.0) (sut/div (sut/vec2 4.6e307 0.0) 4.6e307))))
+  (t/testing "normalize of a subnormal vector"
+    (t/is (sut/delta-eq (sut/vec2 1.0 0.0) (sut/normalize (sut/vec2 1.0e-320 0.0)) 1.0e-15))
+    (t/is (sut/delta-eq (sut/vec3 0.6 0.8 0.0) (sut/normalize (sut/vec3 3.0e-320 4.0e-320 0.0)) 1.0e-3) "few significant bits")
+    (t/is (sut/delta-eq (sut/vec4 1.0 0.0 0.0 0.0) (sut/normalize (sut/vec4 4.9e-324 0.0 0.0 0.0)) 1.0e-15))))

@@ -61,7 +61,7 @@ Every source file starts with:
 Use:
 
 - `fastmath.core` (alias `m`) for every primitive math operations.
-- `fastmath.java.Array` (import it first) for `Array/aget` and `Array/aset` for working with double arrays (`^doubles` type).
+- `fastmath.java.Array` (import it first) for `Array/aget` and `Array/aset` for working with double/long/int arrays (`^doubles`, `^long` and `^int` types).
 - `^{:private true :const true :tag 'double}` metadata for a constant, private, double values (use `'long` for long values, etc.)
 
 ### Naming & Formatting

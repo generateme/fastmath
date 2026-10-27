@@ -1,7 +1,37 @@
 ;; # Namespace scope
 ;;
 ;; Functions to manipulate Vec2 as Complex numbers.
-;; Implementation based on Apache Commons Math and https://ece.uwaterloo.ca/~dwharder/C++/CQOST/src/Complex.cpp
+;; Implementation based on Apache Commons Math, https://ece.uwaterloo.ca/~dwharder/C++/CQOST/src/Complex.cpp
+;; and, for the inverse trigonometric and hyperbolic functions, on the algorithms of
+;; Hull, Fairgrieve and Tang (1997) as implemented in the FreeBSD msun library (catrig.c)
+;;
+;; The functions `asinh`, `acos`, `atanh` and their helpers (`hard-work`, `f-helper`, `sum-squares`,
+;; `real-part-reciprocal`, the constants and the branch conditions) are based on FreeBSD
+;; `lib/msun/src/catrig.c`, which is distributed under the following licence:
+;;
+;; Copyright (c) 2012 Stephen Montgomery-Smith <stephen@FreeBSD.ORG>
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions
+;; are met:
+;; 1. Redistributions of source code must retain the above copyright
+;;    notice, this list of conditions and the following disclaimer.
+;; 2. Redistributions in binary form must reproduce the above copyright
+;;    notice, this list of conditions and the following disclaimer in the
+;;    documentation and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+;; ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+;; FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;; DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+;; OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+;; HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+;; LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+;; OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+;; SUCH DAMAGE.
 
 (ns fastmath.complex
   "Complex numbers operations.
@@ -10,29 +40,45 @@
   A complex number $z = a + bi$ corresponds to the vector `(Vec2. a b)`.
 
   To create a complex number, use [[complex]], [[vec2]], or convert from sequences/arrays using functions like [[fastmath.vector/seq->vec2]].
-  
-  The implementation correctly handles floating-point special values such as `##Inf`, `##NaN`, and distinguishes between `+0.0` and `-0.0` where necessary.
 
-  This namespace provides standard complex number operations like arithmetic (+, -, *, /), exponentiation (pow, exp, log), trigonometric functions (sin, cos, tan, etc.), and their inverses, as well as utility functions like `abs`, `arg`, `conjugate`, etc."
+  The implementation correctly handles floating-point special values such as `##Inf`, `##NaN`, and distinguishes between `+0.0` and `-0.0` where necessary. Branch cuts follow C99 (Annex G) and the signed zero of the imaginary part selects the side of the cut: the result for `x+0.0i` is the limit from above, for `x-0.0i` from below.
+
+  This namespace provides standard complex number operations like arithmetic (+, -, *, /), exponentiation (pow, exp, log), trigonometric functions (sin, cos, tan, etc.), and their inverses, as well as utility functions like `abs`, `arg`, `conjugate`, etc.
+
+  The functions are accurate over the whole range of doubles: they do not overflow or underflow in intermediate results and do not lose the small component near zero, near the unit circle and near the branch points. The exception are `asec`, `acsc`, `acot`, `asech`, `acsch` and `acoth`, computed from the rounded reciprocal `1/z`: close to their branch points they are less accurate (see the functions)."
   (:refer-clojure :exclude [abs zero?])
   (:require [fastmath.core :as m]
             [fastmath.vector :as v])
-  (:import [fastmath.vector Vec2]))
+  (:import [fastmath.vector Vec2 Vec4]))
 
 (set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
 (m/use-primitive-operators #{'abs 'zero?})
 
-(def ^{:doc "z=0+i"} I (Vec2. 0.0 1.0))
-(def ^{:doc "z=0-i"} I- (Vec2. 0.0 -1.0))
-(def ^{:doc "z=0-i"} -I (Vec2. 0.0 -1.0))
-(def ^{:doc "z=1+0i"} ONE (Vec2. 1.0 0.0))
-(def ^{:doc "z=2+0i"} TWO (Vec2. 2.0 0.0))
-(def ^{:doc "z=0+0i"} ZERO (Vec2. 0.0 0.0))
-(def ^{:doc "z=pi+0i"} PI (Vec2. m/PI 0.0))
+(def ^{:doc "The imaginary unit, z=0+1i."} I (Vec2. 0.0 1.0))
+(def ^{:doc "Minus the imaginary unit, z=0-1i. Alias of [[-I]]."} I- (Vec2. 0.0 -1.0))
+(def ^{:doc "Minus the imaginary unit, z=0-1i."} -I (Vec2. 0.0 -1.0))
+(def ^{:doc "The real unit, z=1+0i."} ONE (Vec2. 1.0 0.0))
+(def ^{:doc "The real number two, z=2+0i."} TWO (Vec2. 2.0 0.0))
+(def ^{:doc "The complex zero, z=0+0i."} ZERO (Vec2. 0.0 0.0))
+(def ^{:doc "The real number pi as a complex number, z=pi+0i."} PI (Vec2. m/PI 0.0))
+
+;; constants for the algorithms below
+
+(def ^{:private true :const true :tag 'double} eps 2.220446049250313E-16)
+(def ^{:private true :const true :tag 'double} ln2 0.6931471805599453)
+(def ^{:private true :const true :tag 'double} recip-eps 4.503599627370496E15)
+(def ^{:private true :const true :tag 'double} sqrt-6-eps-4 9.125060374972143E-9) ;; sqrt(6 eps) / 4
+(def ^{:private true :const true :tag 'double} sqrt-3-eps-2 1.2904784139758925E-8) ;; sqrt(3 eps) / 2
+(def ^{:private true :const true :tag 'double} four-sqrt-min 5.966672584960166E-154) ;; 4 sqrt(Double/MIN_NORMAL)
+(def ^{:private true :const true :tag 'double} sqrt-min 1.4916681462400413E-154)
+(def ^{:private true :const true :tag 'double} a-crossover 10.0)
+(def ^{:private true :const true :tag 'double} b-crossover 0.6417)
 
 (defn complex
   "Creates a complex number represented as a [[Vec2]].
-  Takes optional real and imaginary parts.
+
+  Takes optional real and imaginary parts. Without arguments returns `0+0i`, with one argument the imaginary part is `0.0`.
 
   Examples:
 
@@ -44,7 +90,9 @@
   ([] ZERO))
 
 (defn ensure-complex
-  "Convert possible number or Apache Commpons Math Complex type to complex or return input."
+  "Converts `v` to a complex number.
+
+  A number (including a ratio) becomes a complex number with zero imaginary part, an Apache Commons Math `Complex` is converted to [[Vec2]] and any other value is returned unchanged (a [[Vec2]] stays itself)."
   [v]
   (cond
     (number? v) (Vec2. (double v) 0.0)
@@ -55,21 +103,45 @@
 
     :else v))
 
-(defn re "Real part" ^double [^Vec2 z] (.x z))
-(defn im "Imaginary part" ^double [^Vec2 z] (.y z))
+(defn re "Real part of `z` as a double." ^double [^Vec2 z] (.x z))
+(defn im "Imaginary part of `z` as a double." ^double [^Vec2 z] (.y z))
 
-(defn real? "Is z is a real number?"  [^Vec2 z] (m/zero? (.y z)))
-(defn imaginary? "Is z is a pure imaginary number?"  [^Vec2 z] (m/zero? (.x z)))
-(defn zero? "Is zero?" [^Vec2 z] (v/is-zero? z))
-(defn inf? "Is infinite?" [^Vec2 z] (or (m/inf? (.x z))
-                                     (m/inf? (.y z))))
-(defn nan? "Is NaN?" [^Vec2 z] (or (m/nan? (.x z))
-                                (m/nan? (.y z))))
-(defn invalid? "Is NaN or Inf?" [z] (or (inf? z) (nan? z)))
-(defn valid? "Is valid complex (not NaN or Inf)?" [z] (not (invalid? z)))
+(defn real?
+  "Returns `true` when the imaginary part of `z` is zero (`+0.0` or `-0.0`)."
+  [^Vec2 z] (m/zero? (.y z)))
+
+(defn imaginary?
+  "Returns `true` when the real part of `z` is zero (`+0.0` or `-0.0`), a pure imaginary number (zero included)."
+  [^Vec2 z] (m/zero? (.x z)))
+
+(defn zero?
+  "Returns `true` when both parts of `z` are zero (the sign of a zero does not matter)."
+  [^Vec2 z] (v/is-zero? z))
+
+(defn inf?
+  "Returns `true` when any part of `z` is infinite (also when the other part is `NaN`)."
+  [^Vec2 z] (or (m/inf? (.x z))
+                (m/inf? (.y z))))
+
+(defn nan?
+  "Returns `true` when any part of `z` is `NaN`."
+  [^Vec2 z] (or (m/nan? (.x z))
+                (m/nan? (.y z))))
+
+(defn invalid?
+  "Returns `true` when `z` has an infinite or `NaN` part. See also [[valid?]]."
+  [z] (or (inf? z) (nan? z)))
+
+(defn valid?
+  "Returns `true` when both parts of `z` are finite numbers. See also [[invalid?]]."
+  [z] (not (invalid? z)))
 
 (defn delta-eq
-  "Compare complex numbers with given accuracy (10e-6 by default)"
+  "Compares complex numbers `q1` and `q2` with the given absolute `accuracy` (`1.0e-6` by default) in each part.
+
+  The comparison is absolute, so use a relative check for large magnitudes. It returns `false` for infinite parts, because `Inf - Inf` is `NaN`.
+
+  See also [[fastmath.vector/delta-eq]]."
   ([q1 q2]
    (v/delta-eq q1 q2))
   ([q1 q2 ^double accuracy]
@@ -78,14 +150,18 @@
 (defn csgn
   "Complex signum function.
 
-  Returns `0.0` for the zero. For any other vector, returns the sign of the real part."
+  Takes `z` or the parts `re` and `im`. Returns `0.0` for the zero. For any other number returns the sign of the real part (`-1.0` or `1.0`), not the unit complex number.
+
+  See also [[arg]], [[normalize]]."
   (^double [^double re ^double im]
    (if (and (m/zero? re)
             (m/zero? im)) 0.0 (m/sgn re)))
   (^double [^Vec2 z]
    (if (zero? z) 0.0 (m/sgn (.x z)))))
 
-(defn flip "Exchange imaginary and real parts" ^Vec2 [^Vec2 z] (Vec2. (.y z) (.x z)))
+(defn flip
+  "Exchanges the real and imaginary parts: `a+bi` becomes `b+ai`. It is `i * conjugate(z)`."
+  ^Vec2 [^Vec2 z] (Vec2. (.y z) (.x z)))
 
 (defn abs
   "Calculates the magnitude (absolute value) of the complex number `z`.
@@ -97,71 +173,121 @@
   (m/hypot (.x z) (.y z)))
 
 (defn norm
-  "Calculates the squared magnitude (norm) of the complex number `z`.
+  "Calculates the squared magnitude (norm) of the complex number `z`, `a^2+b^2`.
 
-  Also known as the squared modulus or squared Euclidean norm."
+  Also known as the squared modulus or squared Euclidean norm. Note that [[fastmath.quaternion/norm]] is the magnitude (not squared). The value overflows to `Infinity` when `a^2+b^2` is not representable.
+
+  See also [[abs]], [[abs-sq]]."
   ^double [^Vec2 z]
   (if (inf? z)
     ##Inf
     (+ (m/sq (.x z)) (m/sq (.y z)))))
 
+(defn abs-sq
+  "Squared magnitude of `z`, alias of [[norm]]."
+  ^double [^Vec2 z]
+  (norm z))
+
 (defn normalize
-  "Normalize complex number to make abs(z) = 1"
+  "Normalizes `z` to the unit magnitude, `z / abs(z)`. The zero stays zero.
+
+  See also [[abs]], [[csgn]]."
   ^Vec2 [^Vec2 z] (v/normalize z))
 
 (defn arg
-  "Argument (angle) of the complex number."
-  ^double [z]
-  (v/heading z))
+  "Argument (phase angle) of the complex number `z`, `atan2(im, re)`, in the range `[-pi, pi]`.
+
+  The sign of a zero imaginary part is respected: `arg(-1-0i)` is `-pi`, `arg(-1+0i)` is `pi`.
+
+  See also [[abs]], [[log]]."
+  ^double [^Vec2 z]
+  (m/atan2 (.y z) (.x z)))
+
+(defn proj
+  "Projection onto the Riemann sphere (C99 `cproj`).
+
+  Any number with an infinite part is mapped to the single point at infinity, `Infinity` as the real part and a zero imaginary part with the sign of the original imaginary part. Other numbers (also `NaN`) are returned unchanged.
+
+  See also [[inf?]]."
+  ^Vec2 [^Vec2 z]
+  (if (inf? z)
+    (Vec2. ##Inf (m/copy-sign 0.0 (.y z)))
+    z))
 
 (defn add
-  "Sum of two complex numbers."
-  ^Vec2 [^Vec2 z1 ^Vec2 z2]
-  (Vec2. (+ (.x z1) (.x z2))
-         (+ (.y z1) (.y z2))))
+  "Sum of complex numbers.
+
+  Without arguments returns `0`, with one argument the argument itself. More than two arguments are added from left to right."
+  (^Vec2 [] ZERO)
+  (^Vec2 [^Vec2 z] z)
+  (^Vec2 [^Vec2 z1 ^Vec2 z2]
+   (Vec2. (+ (.x z1) (.x z2))
+          (+ (.y z1) (.y z2))))
+  (^Vec2 [z1 z2 & more]
+   (reduce add (add z1 z2) more)))
 
 (defn adds
-  "Add scalar to complex number."
+  "Adds the real number `v` to the complex number `z`."
   ^Vec2 [^Vec2 z ^double v]
   (Vec2. (+ (.x z) v) (.y z)))
 
+(defn neg
+  "Negation of the complex number, `-z`."
+  ^Vec2 [^Vec2 z]
+  (Vec2. (- (.x z)) (- (.y z))))
+
 (defn sub
-  "Difference of two complex numbers."
-  ^Vec2 [^Vec2 z1 ^Vec2 z2]
-  (Vec2. (- (.x z1) (.x z2))
-         (- (.y z1) (.y z2))))
+  "Difference of complex numbers, `z1 - z2 - ...`.
+
+  With one argument returns the negation [[neg]]. More than two arguments are subtracted from the first one, from left to right."
+  (^Vec2 [^Vec2 z] (neg z))
+  (^Vec2 [^Vec2 z1 ^Vec2 z2]
+   (Vec2. (- (.x z1) (.x z2))
+          (- (.y z1) (.y z2))))
+  (^Vec2 [z1 z2 & more]
+   (reduce sub (sub z1 z2) more)))
 
 (defn scale
-  "Multiplication by real number"
+  "Multiplication of the complex number `z` by the real number `v`."
   ^Vec2 [^Vec2 z ^double v]
   (Vec2. (* (.x z) v)
          (* (.y z) v)))
 
 (defn mult
-  "Multiplication of two complex numbers."
-  ^Vec2 [^Vec2 z1 ^Vec2 z2]
-  (let [a (.x z1)
-        b (.y z1)
-        c (.x z2)
-        d (.y z2)]
-    (Vec2. (- (* a c) (* b d))
-           (+ (* a d) (* b c)))))
+  "Product of complex numbers.
+
+  Without arguments returns `1`, with one argument the argument itself. More than two arguments are multiplied from left to right.
+
+  See also [[muladd]], [[scale]], [[mult-I]]."
+  (^Vec2 [] ONE)
+  (^Vec2 [^Vec2 z] z)
+  (^Vec2 [^Vec2 z1 ^Vec2 z2]
+   (let [a (.x z1)
+         b (.y z1)
+         c (.x z2)
+         d (.y z2)]
+     (Vec2. (- (* a c) (* b d))
+            (+ (* a d) (* b c)))))
+  (^Vec2 [z1 z2 & more]
+   (reduce mult (mult z1 z2) more)))
 
 (defn mult-I
-  "Multiplication by 0+i."
+  "Multiplication by `0+i`, `i*z`. Exact, a rotation by 90 degrees."
   ^Vec2 [^Vec2 z] (Vec2. (- (.y z)) (.x z)))
 
 (defn mult-I-
-  "Multiplication by 0-i."
+  "Multiplication by `0-i`, `-i*z`. Exact, a rotation by -90 degrees."
   ^Vec2 [^Vec2 z] (Vec2. (.y z) (- (.x z))))
 
 (defn muladd
-  "(+ z (* x y))"
+  "Multiply-add of complex numbers, `z + x*y`.
+
+  See also [[mult]], [[add]]."
   ^Vec2 [x y z]
   (add z (mult x y)))
 
 (defn sq
-  "Square of the complex number."
+  "Square of the complex number, `z^2`."
   ^Vec2 [^Vec2 z]
   (let [a (.x z)
         b (.y z)]
@@ -169,8 +295,8 @@
            (* 2.0 a b))))
 
 (defn conjugate
-  "Complex conjugate."
-  ^Vec2 [^Vec2 z] 
+  "Complex conjugate, `a-bi` for `a+bi`."
+  ^Vec2 [^Vec2 z]
   (Vec2. (.x z) (- (.y z))))
 
 (defn div
@@ -195,9 +321,11 @@
                (/ (- (* b r) a) den))))))
 
 (defn reciprocal
-  "Reciprocal, 1/z.
+  "Reciprocal, `1/z`.
 
-  Computed without intermediate overflow or underflow, correct for the whole range of doubles."
+  Computed without intermediate overflow or underflow, correct for the whole range of doubles. The reciprocal of zero has infinite parts with the signs of the zeros (`1/(+0+0i)` is `Inf-Inf*i`), the reciprocal of an infinite number is zero.
+
+  See also [[div]]."
   ^Vec2 [^Vec2 z]
   (let [a (.x z)
         b (.y z)]
@@ -214,20 +342,18 @@
               (let [r (/ a b)
                     den (+ b (* a r))]
                 (Vec2. (/ r den) (/ -1.0 den)))))))
-(defn neg
-  "Negation of the complex number, -z."
-  ^Vec2 [^Vec2 z]
-  (Vec2. (- (.x z)) (- (.y z))))
 
 (defn sqrt
   "Principal square root of the complex number, `sqrt(z)`.
 
-  The real part of the result is not negative; the imaginary part has the sign of the imaginary part of `z` (the sign of a zero imaginary part included). The root is computed without cancellation and without intermediate overflow or underflow, so it is accurate to a few ulps over the whole range of doubles (for example `1e200+1e200i`, `1e-200+1e-200i`, `-1e-10+1e-30i`). The zero is returned as it is.
+  The real part of the result is not negative; the imaginary part has the sign of the imaginary part of `z` (the sign of a zero imaginary part included). The root is computed without cancellation and without intermediate overflow or underflow, so it is accurate to a few ulps over the whole range of doubles (for example `1e200+1e200i`, `1e-200+1e-200i`, `-1e-10+1e-30i`). The zero is returned as `0` with the imaginary part of the argument. Special values (C99): an infinite imaginary part gives `Infinity+Infinity*i` (with the sign of the imaginary part) whatever the real part is, also `NaN`.
 
-  See also [[sqrt1z]], [[abs]]."
+  See also [[sqrt1z]], [[cbrt]], [[nth-root]], [[abs]]."
   ^Vec2 [^Vec2 z]
-  (if (zero? z)
-    z
+  (cond
+    (zero? z) (Vec2. 0.0 (.y z))
+    (m/inf? (.y z)) (Vec2. ##Inf (.y z)) ;; C99: whatever the real part is, also NaN
+    :else
     (let [big? (> (m/max (m/abs (.x z)) (m/abs (.y z))) 1.0e300)
           ;; a quarter of a huge number keeps |a| + hypot(a, b) finite
           k (if big? 0.25 1.0)
@@ -240,7 +366,7 @@
         (Vec2. (* back (/ (m/abs b) (* 2.0 t))) (* back (m/copy-sign t b)))))))
 
 (defn sqrt1z
-  "sqrt(1-z^2)"
+  "Computes `sqrt(1-z^2)`, the companion of [[asin]] and [[acos]] (`sin(acos z)`)."
   ^Vec2 [z]
   (->> z
        (mult z)
@@ -250,647 +376,673 @@
 ;; exp
 
 (defn exp
-  "exp(z)"
+  "Complex exponential, `exp(z) = exp(a) (cos(b) + i sin(b))`.
+
+  Entire function, no branch cut. For a real argument returns a real number with the sign of the zero imaginary part kept. The result does not overflow too early: `exp(710+i)` is finite in the parts which are representable.
+
+  Special values (C99): an infinite real part with a non finite imaginary part gives `Infinity+NaN*i` for `+Infinity` and a zero for `-Infinity`.
+
+  See also [[log]], [[expm1]], [[cis]], [[pow]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
     (cond
       (m/zero? y) (Vec2. (m/exp x) y)
       (m/zero? x) (Vec2. (m/cos y) (m/sin y))
+      ;; C99: an infinite real part and a non finite imaginary part
+      (and (m/inf? x) (or (m/inf? y) (m/nan? y))) (if (pos? x)
+                                                      (Vec2. ##Inf ##NaN)
+                                                      (Vec2. -0.0 (m/copy-sign 0.0 y)))
+      (> x 700.0) (let [h (m/exp (* 0.5 x))]
+                    (Vec2. (* (* h (m/cos y)) h)
+                           (* (* h (m/sin y)) h)))
       :else (let [e (m/exp x)]
               (Vec2. (* e (m/cos y))
                      (* e (m/sin y)))))))
 
-;; log
+(defn cis
+  "Returns `cos(theta) + i sin(theta)`, a point on the unit circle for the real angle `theta`.
 
-(defn log
-  "log(z), principal value"
-  ^Vec2 [^Vec2 z]
-  (let [a (.x z)
-        b (.y z)]
-    (cond
-      (m/zero? b) (cond
-                    (m/pos? a) (Vec2. (m/log a) b)
-                    (m/zero? a) (Vec2. ##-Inf ##NaN)
-                    :else (Vec2. (m/log (- a)) (m/copy-sign m/PI b)))
-      (m/zero? a) (if (m/pos? b)
-                    (Vec2. (m/log b) m/HALF_PI)
-                    (Vec2. (m/log (- b)) m/-HALF_PI))
-      :else (Vec2. (* 0.5 (m/log (+ (* a a) (* b b))))
-                   (m/atan2 b a)))))
+  See also [[exp]], [[arg]]."
+  ^Vec2 [^double theta]
+  (Vec2. (m/cos theta) (m/sin theta)))
 
-(defn logb
-  "log with base b"
-  ^Vec2 [z b]
-  (div (log z) (log b)))
+(defn expm1
+  "Computes `exp(z) - 1` accurately for `z` near zero.
 
-;; bunch of power branches
+  The real part is computed as `expm1(a) cos(b) - 2 sin^2(b/2)`, so it does not cancel.
 
-(defn- pow-a+0i-x+0i
-  [^double r ^double zr]
-  (if (pos? r) ;; real exponent
-    (Vec2. (m/pow r zr) 0.0)
-    (let [e (m/exp (* zr (m/log (- r))))
-          p (* zr m/PI)]
-      (Vec2. (* e (m/cos p))
-             (* e (m/sin p))))))
-
-(defn- pow-a+0i-0+yi
-  [^double r ^double i ^double zi]
-  (if (pos? r) ;; pure imaginary exponent
-    (let [p (* zi (m/log r))]
-      (Vec2. (m/cos p) (m/sin p)))
-    (let [p (* zi (m/log (- r)))]
-      (if (m/negative-zero? i)
-        (let [e (m/exp (* zi m/PI))]
-          (Vec2. (* e (m/cos p)) (* e (m/sin p))))
-        (let [e (m/exp (* zi m/-PI))]
-          (Vec2. (* e (m/cos p)) (* e (m/sin p))))))))
-
-(defn- pow-a+0i-x+yi-neg-0
-  [^double r ^double zr ^double zi]
-  (let [pw (m/pow (- r) zr)
-        e (m/exp (* zi m/PI))
-        p (+ (* -1.0 zi (m/log (- r)))
-             (* zr m/PI))]
-    (Vec2. (* pw e (m/cos p))
-           (* -1.0 pw e (m/sin p)))))
-
-(defn- pow-a+0i-x+yi-pos-0
-  [^double r ^double zr ^double zi]
-  (let [lr (m/log (- r))
-        e (m/exp (- (* zr lr)
-                    (* zi m/PI)))
-        p (+ (* zi lr)
-             (* zr m/PI))]
-    (Vec2. (* e (m/cos p)) (* e (m/sin p)))))
-
-(defn- pow-a+0i-x+yi
-  [^double r ^double i ^double zr ^double zi]
-  (if (pos? r)
-    (let [lr (m/log r)
-          e (m/exp (* zr lr))
-          p (* zi lr)]
-      (Vec2. (* e (m/cos p)) (* e (m/sin p))))
-    (if (m/negative-zero? i)
-      (pow-a+0i-x+yi-neg-0 r zr zi)
-      (pow-a+0i-x+yi-pos-0 r zr zi))))
-
-(defn- pow-0+bi-x+0i
-  [^double i ^double zr]
-  (let [hzr (* 0.5 zr)
-        e (m/exp (* hzr (m/log (* i i))))
-        p (* hzr (m/sgn i) m/PI)]
-    (Vec2. (* e (m/cos p)) (* e (m/sin p)))))
-
-(defn- pow-0+bi-0+yi
-  [^double i ^double zi]
-  (let [hzi (* 0.5 zi)
-        e (m/exp (* -1.0 hzi (m/sgn i) m/PI))
-        p (* hzi (m/log (* i i)))]
-    (Vec2. (* e (m/cos p)) (* e (m/sin p)))))
-
-(defn- pow-0+bi-x+yi
-  [^double i ^double zr ^double zi]
-  (let [hzr (* 0.5 zr)
-        hzi (* 0.5 zi)
-        lii (m/log (* i i))
-        spi (* (m/sgn i) m/PI)
-        e (m/exp (- (* hzr lii)
-                    (* hzi spi)))
-        p (+ (* hzi lii)
-             (* hzr spi))]
-    (Vec2. (* e (m/cos p)) (* e (m/sin p)))))
-
-(defn- pow-a+bi-a+0i
-  [^double r ^double i ^double zr]
-  (let [e (m/exp (* 0.5 zr (m/log (+ (* r r) (* i i)))))
-        p (* zr (m/atan2 i r))]
-    (Vec2. (* e (m/cos p)) (* e (m/sin p)))))
-
-(defn- pow-a+bi-0+yi
-  [^double r ^double i ^double zi]
-  (let [e (m/exp (* -1.0 zi (m/atan2 i r)))
-        p (* 0.5 zi (m/log (+ (* r r) (* i i))))]
-    (Vec2. (* e (m/cos p)) (* e (m/sin p)))))
-
-(defn- pow-a+bi-x+yi
-  [^double r ^double i ^double zr ^double zi]
-  (let [lrrii (m/log (+ (* r r) (* i i)))
-        at2 (m/atan2 i r)
-        e (m/exp (- (* 0.5 zr lrrii)
-                    (* zi at2)))
-        p (+ (* 0.5 zi lrrii)
-             (* zr at2))]
-    (Vec2. (* e (m/cos p)) (* e (m/sin p)))))
-
-(defn pow
-  "Complex power, z^z"
-  ^Vec2 [^Vec2 z1 ^Vec2 z2]
-  (if (zero? z1)
-    (if (zero? z2) ;; both zero
-      (Vec2. ##NaN ##NaN)
-      (if (m/negative-zero? (.x z1)) ;; zero base, non-zero exponent 
-        (Vec2. ##Inf ##Inf)
-        ZERO))
-    (if (zero? z2) ;; non-zero base and zero exponent, always one
-      ONE
-      (let [r (.x z1)
-            i (.y z1)
-            zr (.x z2)
-            zi (.y z2)]
-        (cond (m/zero? i) (cond
-                            (m/zero? zi) (pow-a+0i-x+0i r zr)
-                            (m/zero? zr) (pow-a+0i-0+yi r i zi)
-                            :else (pow-a+0i-x+yi r i zr zi))
-              (m/zero? r) (cond
-                            (m/zero? zi) (pow-0+bi-x+0i i zr)
-                            (m/zero? zr) (pow-0+bi-0+yi i zi)
-                            :else (pow-0+bi-x+yi i zr zi))
-              :else (cond
-                      (m/zero? zi) (pow-a+bi-a+0i r i zr)
-                      (m/zero? zr) (pow-a+bi-0+yi r i zi)
-                      :else (pow-a+bi-x+yi r i zr zi)))))))
-
-;;;;;; trig
-
-(defn sin
-  "sin(z)"
+  See also [[exp]], [[log1p]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
     (cond
-      (m/zero? y) (Vec2. (m/sin x) (* y (m/cos x)))
+      (m/zero? y) (Vec2. (m/expm1 x) y)
+      (> x 700.0) (let [w (exp z)] (Vec2. (- (.x w) 1.0) (.y w)))
+      :else (let [s (m/sin (* 0.5 y))
+                  w (exp z)]
+              (Vec2. (- (* (m/expm1 x) (m/cos y)) (* 2.0 s s))
+                     (.y w))))))
+
+;; log
+
+(defn- log-abs
+  "log of the magnitude, log|a+bi|, without overflow and underflow, accurate near the unit circle."
+  ^double [^double a ^double b]
+  (cond
+    (or (m/inf? a) (m/inf? b)) ##Inf
+    (or (m/nan? a) (m/nan? b)) ##NaN
+    :else
+    (let [x (m/abs a)
+          y (m/abs b)
+          hi (m/max x y)
+          lo (m/min x y)]
+      (if (m/zero? hi)
+        ##-Inf
+        (let [mag2 (+ (* hi hi) (* lo lo))]
+          (if (and (>= mag2 0.5) (<= mag2 2.0))
+            ;; hi^2 + lo^2 - 1 as a double-double, exact enough for any distance to the unit circle
+            (let [p (* hi hi)
+                  pe (m/fma hi hi (- p))
+                  q (* lo lo)
+                  qe (m/fma lo lo (- q))
+                  s1 (- p 1.0)
+                  ;; p - 1 is exact for p in [0.5, 2], two-sum otherwise
+                  bb1 (- s1 p)
+                  e1 (+ (- p (- s1 bb1)) (- -1.0 bb1))
+                  s2 (+ s1 q)
+                  bb2 (- s2 s1)
+                  e2 (+ (- s1 (- s2 bb2)) (- q bb2))]
+              (* 0.5 (m/log1p (+ s2 (+ (+ e1 e2) (+ pe qe))))))
+            (let [r (/ lo hi)]
+              (+ (m/log hi) (* 0.5 (m/log1p (* r r)))))))))))
+
+(defn log
+  "Principal value of the natural logarithm, `log(z) = log|z| + i arg(z)`.
+
+  The imaginary part is in the range `[-pi, pi]`. The branch cut is the negative real axis, the sign of a zero imaginary part selects the side. The real part is computed without overflow or underflow (`1e200+1e200i` gives `461.8`) and without cancellation near the unit circle. `log(0)` is `-Infinity` with the argument of the signed zeros (`0`, `-0` or `+-pi`).
+
+  See also [[log1p]], [[logb]], [[exp]], [[arg]]."
+  ^Vec2 [^Vec2 z]
+  (let [a (.x z)
+        b (.y z)]
+    (Vec2. (log-abs a b) (m/atan2 b a))))
+
+(defn log1p
+  "Computes `log(1+z)` accurately for `z` near zero.
+
+  Principal value, the branch cut is `z` real and less than -1.
+
+  See also [[log]], [[expm1]]."
+  ^Vec2 [^Vec2 z]
+  (let [a (.x z)
+        b (.y z)]
+    (if (< (m/max (m/abs a) (m/abs b)) 0.5)
+      (Vec2. (* 0.5 (m/log1p (m/fma b b (* a (+ 2.0 a)))))
+             (m/atan2 b (+ 1.0 a)))
+      (log (Vec2. (+ 1.0 a) b)))))
+
+(defn logb
+  "Logarithm of `z` with the complex base `b`, `log(z)/log(b)`.
+
+  Both arguments can be numbers. See also [[log]]."
+  ^Vec2 [z b]
+  (div (log (ensure-complex z)) (log (ensure-complex b))))
+
+;; power
+
+(defn- pow-int
+  "Integer power by repeated squaring, `n` is not zero."
+  ^Vec2 [^Vec2 z ^long n]
+  (let [a (.x z)
+        b (.y z)]
+    (if (m/zero? b)
+      ;; real base: no NaN from 0*Inf in the squares, the sign of the zero imaginary part is computed
+      (let [odd? (== 1 (bit-and n 1))
+            s (* (m/copy-sign 1.0 b)
+                 (if (< n 0) -1.0 1.0)
+                 (if (and (neg? (m/copy-sign 1.0 a)) (not odd?)) -1.0 1.0))]
+        (Vec2. (m/pow a (double n)) (m/copy-sign 0.0 s)))
+      (loop [r nil
+             base (if (< n 0) (reciprocal z) z)
+             e (m/abs n)]
+        (if (zero? (double e))
+          r
+          (let [r (if (== 1 (bit-and e 1))
+                    (if (nil? r) base (mult r base))
+                    r)]
+            (if (== e 1)
+              r
+              (recur r (sq base) (bit-shift-right e 1)))))))))
+
+(defn pow
+  "Complex power `z1^z2`, the principal value `exp(z2 log(z1))`.
+
+  Integer real exponents with absolute value up to 32 are computed by repeated multiplication, so they are exact for exactly representable results (`(1+2i)^3 = -11-2i`). Other exponents use the logarithm and the exponential, which are free of overflow in the intermediate results.
+
+  Special cases:
+
+  * any non zero base with a zero exponent gives `1`;
+  * zero base: `0` when the real part of the exponent is positive, `Infinity+NaN*i` (the complex infinity) when it is negative, `NaN+NaN*i` when it is zero (also for `0^0`).
+
+  See also [[exp]], [[log]], [[sq]], [[nth-root]]."
+  ^Vec2 [^Vec2 z1 ^Vec2 z2]
+  (let [zr (.x z2)
+        zi (.y z2)]
+    (cond
+      (zero? z1) (cond
+                   (pos? zr) ZERO
+                   (neg? zr) (Vec2. ##Inf ##NaN)
+                   :else (Vec2. ##NaN ##NaN))
+      (zero? z2) ONE
+      (and (m/zero? zi)
+           (== zr (m/rint zr))
+           (<= (m/abs zr) 32.0)) (pow-int z1 (long zr))
+      (and (m/zero? zi)
+           (m/zero? (.y z1))
+           (pos? (.x z1))) (Vec2. (m/pow (.x z1) zr) (* (.y z1) zr))
+      :else (let [l (log z1)
+                  lr (.x l)
+                  li (.y l)]
+              (exp (Vec2. (- (* zr lr) (* zi li))
+                          (+ (* zr li) (* zi lr))))))))
+
+(defn nth-root
+  "Principal `n`-th root of `z`, `z^(1/n)` for the integer `n` (positive or negative).
+
+  The root has the argument `arg(z)/n`, the other roots are obtained by multiplying by the roots of unity. The root of zero is zero for `n>0` and `Infinity+NaN*i` for `n<0`, the root of an infinite number is infinite for `n>0` and zero for `n<0`.
+
+  Throws `ex-info` when `n` is zero.
+
+  See also [[sqrt]], [[cbrt]], [[pow]]."
+  ^Vec2 [^Vec2 z ^long n]
+  (when (== n 0)
+    (throw (ex-info "n-th root requires a non zero n" {:option :n :value n :expected "not 0"})))
+  (cond
+    (zero? z) (if (pos? n) (Vec2. 0.0 (.y z)) (Vec2. ##Inf ##NaN))
+    (inf? z) (if (pos? n) (Vec2. ##Inf (m/copy-sign 0.0 (.y z))) ZERO)
+    (nan? z) (Vec2. ##NaN ##NaN)
+    :else (let [dn (double n)
+                r (m/exp (/ (log-abs (.x z) (.y z)) dn))
+                t (/ (m/atan2 (.y z) (.x z)) dn)]
+            (Vec2. (* r (m/cos t)) (* r (m/sin t))))))
+
+(defn cbrt
+  "Principal cube root of the complex number `z`.
+
+  For a non negative real number the result is the real cube root (exact for perfect cubes). The branch cut is the negative real axis.
+
+  See also [[nth-root]], [[sqrt]]."
+  ^Vec2 [^Vec2 z]
+  (let [h (abs z)]
+    (cond
+      (and (m/zero? (.y z)) (>= (.x z) 0.0)) (Vec2. (m/cbrt (.x z)) (.y z))
+      (or (zero? z) (m/inf? h) (m/nan? h)) (nth-root z 3)
+      :else (let [r (m/cbrt h)
+                  t (/ (m/atan2 (.y z) (.x z)) 3.0)]
+              (Vec2. (* r (m/cos t)) (* r (m/sin t)))))))
+
+;;;;;; trig
+
+(defn- scaled-exp
+  "0.5 exp(|t|) a, where the exponential is split in two factors: no spurious overflow for |t| up to about 1400."
+  ^double [^double a ^double t]
+  (let [h (m/exp (* 0.5 (m/abs t)))]
+    (* (* (* 0.5 h) a) h)))
+
+(defn sin
+  "Complex sine, `sin(a+bi) = sin(a) cosh(b) + i cos(a) sinh(b)`.
+
+  Entire function. A part overflows only when it is not representable (the other part can be finite).
+
+  Special values (C99): an infinite real part with a zero imaginary part gives `NaN` and the zero imaginary part, with two infinite parts `NaN+-Infinity*i`.
+
+  See also [[cos]], [[asin]], [[sinh]]."
+  ^Vec2 [^Vec2 z]
+  (let [x (.x z)
+        y (.y z)]
+    (cond
+      (m/zero? y) (Vec2. (m/sin x) (if (or (m/inf? x) (m/nan? x)) y (* y (m/cos x))))
       (m/zero? x) (Vec2. x (m/sinh y))
+      (and (or (m/inf? x) (m/nan? x)) (m/inf? y)) (Vec2. ##NaN y)
+      (> (m/abs y) 700.0) (Vec2. (scaled-exp (m/sin x) y)
+                                 (* (m/copy-sign 1.0 y) (scaled-exp (m/cos x) y)))
       :else (Vec2. (* (m/sin x) (m/cosh y))
                    (* (m/cos x) (m/sinh y))))))
 
 (defn cos
-  "cos(z)"
+  "Complex cosine, `cos(a+bi) = cos(a) cosh(b) - i sin(a) sinh(b)`.
+
+  Entire function. A part overflows only when it is not representable (the other part can be finite).
+
+  Special values (C99): an infinite real part with a zero imaginary part gives `NaN` and a zero imaginary part, with an infinite imaginary part `Infinity+NaN*i`.
+
+  See also [[sin]], [[acos]], [[cosh]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
     (cond
-      (m/zero? y) (Vec2. (m/cos x) (* -1.0 y (m/sin x)))
-      (m/zero? x) (Vec2. (m/cosh y) (* -1.0 y x))
+      (m/zero? y) (Vec2. (m/cos x) (if (or (m/inf? x) (m/nan? x))
+                                     (m/copy-sign 0.0 (* -1.0 (if (m/nan? x) 1.0 (m/copy-sign 1.0 x)) y))
+                                     (* -1.0 y (m/sin x))))
+      (and (or (m/inf? x) (m/nan? x)) (m/inf? y)) (Vec2. ##Inf ##NaN)
+      (m/zero? x) (Vec2. (m/cosh y)
+                         (m/copy-sign 0.0 (* -1.0 (m/copy-sign 1.0 x) y)))
+      (> (m/abs y) 700.0) (Vec2. (scaled-exp (m/cos x) y)
+                                 (* -1.0 (m/copy-sign 1.0 y) (scaled-exp (m/sin x) y)))
       :else (Vec2. (* (m/cos x) (m/cosh y))
                    (* -1.0 (m/sin x) (m/sinh y))))))
 
-
-(defn tan
-  "tan(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (Vec2. (m/tan x) y)
-      (m/zero? x) (Vec2. x (m/tanh y))
-      :else (let [cosx (m/cos x)
-                  sinhy (m/sinh y)
-                  denom (+ (* cosx cosx) (* sinhy sinhy))]
-              (Vec2. (/ (* (m/sin x) cosx) denom)
-                     (/ (* sinhy (m/cosh y)) denom))))))
-
-(defn sec
-  "sec(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (Vec2. (m/sec x) (- y))
-      (m/zero? x) (Vec2. (m/sech y) (* x (m/sgn y)))
-      :else (let [cosx (m/cos x)
-                  sinhy (m/sinh y)
-                  denom (+ (* cosx cosx) (* sinhy sinhy))]
-              (Vec2. (/ (* cosx (m/cosh y)) denom)
-                     (/ (* (m/sin x) sinhy) denom))))))
-
-(defn csc
-  "csc(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (Vec2. (m/csc x) (- y))
-      (m/zero? x) (Vec2. x (- (m/csch y)))
-      :else (let [sinx (m/sin x)
-                  sinhy (m/sinh y)
-                  denom (+ (* sinx sinx) (* sinhy sinhy))]
-              (Vec2. (/ (* sinx (m/cosh y)) denom)
-                     (/ (* (- (m/cos x)) sinhy) denom))))))
-
-(defn cot
-  "csc(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (Vec2. (m/cot x) y)
-      (m/zero? x) (Vec2. x (- (m/coth y)))
-      :else (let [sinx (m/sin x)
-                  sinhy (m/sinh y)
-                  denom (+ (* sinx sinx) (* sinhy sinhy))]
-              (Vec2. (/ (* sinx (m/cos x)) denom)
-                     (/ (* -1.0 sinhy (m/cosh y)) denom))))))
-
-;;
-
 (defn sinh
-  "sinh(z)"
+  "Complex hyperbolic sine, `sinh(a+bi) = sinh(a) cos(b) + i cosh(a) sin(b)`.
+
+  Entire function.
+
+  Special values (C99): `+-Infinity` real part with an infinite or `NaN` imaginary part gives `+-Infinity+NaN*i`, `+-0` with a `NaN` imaginary part gives `+-0+NaN*i`.
+
+  See also [[cosh]], [[asinh]], [[sin]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
     (cond
       (m/zero? y) (Vec2. (m/sinh x) y)
-      (m/zero? x) (Vec2. x (m/sin y))
+      (m/zero? x) (Vec2. (let [c (m/cos y)]
+                           (if (m/nan? c) x (m/copy-sign 0.0 (* (m/copy-sign 1.0 x) c))))
+                         (m/sin y))
+      (and (m/inf? x) (or (m/inf? y) (m/nan? y))) (Vec2. x ##NaN)
+      (> (m/abs x) 700.0) (Vec2. (* (m/copy-sign 1.0 x) (scaled-exp (m/cos y) x))
+                                 (scaled-exp (m/sin y) x))
       :else (Vec2. (* (m/sinh x) (m/cos y))
                    (* (m/cosh x) (m/sin y))))))
 
 (defn cosh
-  "cosh(z)"
+  "Complex hyperbolic cosine, `cosh(a+bi) = cosh(a) cos(b) + i sinh(a) sin(b)`.
+
+  Entire function. The zero parts have the signs as in C99.
+
+  Special values (C99): an infinite real part with an infinite or `NaN` imaginary part gives `Infinity+NaN*i`.
+
+  See also [[sinh]], [[acosh]], [[cos]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
     (cond
-      (m/zero? y) (Vec2. (m/cosh x) y)
-      (m/zero? x) (Vec2. (m/cos y) (- x))
+      (m/zero? y) (Vec2. (m/cosh x)
+                         (m/copy-sign 0.0 (* (m/copy-sign 1.0 x) (m/copy-sign 1.0 y))))
+      (m/zero? x) (Vec2. (m/cos y) (m/copy-sign 0.0 (* (m/copy-sign 1.0 x) (m/sin y))))
+      (and (m/inf? x) (or (m/inf? y) (m/nan? y))) (Vec2. ##Inf ##NaN)
+      (> (m/abs x) 700.0) (Vec2. (scaled-exp (m/cos y) x)
+                                 (* (m/copy-sign 1.0 x) (scaled-exp (m/sin y) x)))
       :else (Vec2. (* (m/cosh x) (m/cos y))
                    (* (m/sinh x) (m/sin y))))))
 
 (defn tanh
-  "tanh(z)"
+  "Complex hyperbolic tangent.
+
+  Computed with the formulas of Hull, Fairgrieve and Tang, which do not overflow for large `|a|` (for `|a|>=22` the real part is `+-1` up to rounding) and for `b` near `pi/2 + k pi`.
+
+  Special values (C99): an infinite real part with a non finite imaginary part gives `+-1` and a zero imaginary part.
+
+  See also [[tan]], [[coth]], [[atanh]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
     (cond
       (m/zero? y) (Vec2. (m/tanh x) y)
       (m/zero? x) (Vec2. x (m/tan y))
-      :else (let [sinhx (m/sinh x)
-                  cosy (m/cos y)
-                  denom (+ (* sinhx sinhx) (* cosy cosy))]
-              (Vec2. (/ (* sinhx (m/cosh x)) denom)
-                     (/ (* (m/sin y) cosy) denom))))))
+      (m/nan? x) (Vec2. ##NaN ##NaN)
+      (>= (m/abs x) 22.0) (let [em (m/exp (- (m/abs x)))]
+                            (Vec2. (m/copy-sign 1.0 x)
+                                   ;; C99: an infinite real part and a non finite imaginary part give a zero (numpy, Julia agree)
+                                   (if (and (m/inf? x) (or (m/inf? y) (m/nan? y)))
+                                     (m/copy-sign 0.0 y)
+                                     (* 4.0 (m/sin y) (m/cos y) em em))))
+      :else (let [t (m/tan y)
+                  beta (+ 1.0 (* t t))
+                  s (m/sinh x)
+                  rho (m/sqrt (+ 1.0 (* s s)))
+                  denom (+ 1.0 (* beta s s))]
+              (Vec2. (/ (* beta rho s) denom)
+                     (/ t denom))))))
 
-(defn sech
-  "sech(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (Vec2. (m/sech x) (- y))
-      (m/zero? x) (Vec2. (m/sec y) x)
-      :else (let [sinhx (m/sinh x)
-                  cosy (m/cos y)
-                  denom (+ (* sinhx sinhx) (* cosy cosy))]
-              (Vec2. (/ (* (m/cosh x) cosy) denom)
-                     (/ (* -1.0 sinhx (m/sin y)) denom))))))
+(defn tan
+  "Complex tangent, `tan(z) = -i tanh(iz)`.
 
-(defn csch
-  "csch(z)"
+  Does not overflow for large `|b|` (the imaginary part is `+-1` up to rounding). Poles at `pi/2 + k pi` give large values.
+
+  See also [[tanh]], [[cot]], [[atan]]."
   ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (Vec2. (m/csch x) (- y))
-      (m/zero? x) (Vec2. x (- (m/csc y)))
-      :else (let [sinhx (m/sinh x)
-                  siny (m/sin y)
-                  denom (+ (* sinhx sinhx) (* siny siny))]
-              (Vec2. (/ (* sinhx (m/cos y)) denom)
-                     (/ (* -1.0 (m/cosh x) siny) denom))))))
+  (let [w (tanh (Vec2. (- (.y z)) (.x z)))]
+    (Vec2. (.y w) (- (.x w)))))
 
 (defn coth
-  "coth(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (Vec2. (m/coth x) y)
-      (m/zero? x) (Vec2. x (- (m/cot y)))
-      :else (let [sinhx (m/sinh x)
-                  siny (m/sin y)
-                  denom (+ (* sinhx sinhx) (* siny siny))]
-              (Vec2. (/ (* sinhx (m/cosh x)) denom)
-                     (/ (* -1.0 (m/cos y) siny) denom))))))
+  "Complex hyperbolic cotangent, `1/tanh(z)`.
 
+  See also [[tanh]], [[acoth]]."
+  ^Vec2 [^Vec2 z]
+  (if (zero? z)
+    (Vec2. (m/coth (.x z)) (.y z))
+    (reciprocal (tanh z))))
+
+(defn cot
+  "Complex cotangent, `1/tan(z)`.
+
+  See also [[tan]], [[acot]]."
+  ^Vec2 [^Vec2 z]
+  (if (zero? z)
+    (Vec2. (m/cot (.x z)) (.y z))
+    (reciprocal (tan z))))
+
+(defn sec
+  "Complex secant, `1/cos(z)`.
+
+  See also [[cos]], [[asec]]."
+  ^Vec2 [^Vec2 z]
+  (reciprocal (cos z)))
+
+(defn csc
+  "Complex cosecant, `1/sin(z)`.
+
+  See also [[sin]], [[acsc]]."
+  ^Vec2 [^Vec2 z]
+  (if (zero? z)
+    (Vec2. (m/csc (.x z)) (- (.y z)))
+    (reciprocal (sin z))))
+
+(defn sech
+  "Complex hyperbolic secant, `1/cosh(z)`.
+
+  See also [[cosh]], [[asech]]."
+  ^Vec2 [^Vec2 z]
+  (reciprocal (cosh z)))
+
+(defn csch
+  "Complex hyperbolic cosecant, `1/sinh(z)`.
+
+  See also [[sinh]], [[acsch]]."
+  ^Vec2 [^Vec2 z]
+  (if (zero? z)
+    (Vec2. (m/csch (.x z)) (- (.y z)))
+    (reciprocal (sinh z))))
+
+;; inverse functions
 ;;
+;; core: asinh, acos and atanh, the others are derived from them by the identities
+;; asin(z) = -i asinh(iz), atan(z) = -i atanh(iz), acosh(z) = +-i acos(z)
 
-(defn asin
-  "asin(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (cond
-                    (m/between? -1.0 1.0 x) (Vec2. (m/asin x) y)
-                    (> x 1.0) (Vec2. m/HALF_PI (* (m/copy-sign 1.0 y)
-                                                  (m/log (+ (m/sqrt (dec (* x x))) x))))
-                    :else (Vec2. m/-HALF_PI (* (m/copy-sign 1.0 y)
-                                               (m/log (- (m/sqrt (dec (* x x))) x)))))
-      (m/zero? x) (Vec2. x (m/log (+ y (m/sqrt (inc (* y y))))))
-      :else (let [ss (inc (+ (* x x) (* y y)))
-                  r2 (* 2.0 x)
-                  ssp2r (m/sqrt (+ ss r2))
-                  ssm2r (m/sqrt (- ss r2))
-                  sum (* 0.5 (+ ssp2r ssm2r))]
-              (Vec2. (m/asin (* 0.5 (- ssp2r ssm2r)))
-                     (* (m/sgn y) (m/log (+ sum (m/sqrt (dec (* sum sum)))))))))))
+(defn- signbit?
+  [^double x]
+  (neg? (m/copy-sign 1.0 x)))
 
-(defn acos
-  "acos(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (if (m/zero? y)
-      (cond
-        (m/between? -1.0 1.0 x) (Vec2. (m/acos x) (- y))
-        (> x 1.0) (Vec2. 0.0 (* -1.0 (m/copy-sign 1.0 y)
-                                (m/log (+ (m/sqrt (dec (* x x))) x))))
-        :else (Vec2. m/PI (* -1.0 (m/copy-sign 1.0 y)
-                             (m/log (- (m/sqrt (dec (* x x))) x)))))
-      (let [ss (inc (+ (* x x) (* y y)))
-            r2 (* 2.0 x)
-            ssp2r (m/sqrt (+ ss r2))
-            ssm2r (m/sqrt (- ss r2))
-            sum (* 0.5 (+ ssp2r ssm2r))]
-        (Vec2. (m/acos (* 0.5 (- ssp2r ssm2r)))
-               (* -1.0 (m/sgn y) (m/log (+ sum (m/sqrt (dec (* sum sum)))))))))))
+(defn- nan-case
+  "Result for a NaN argument of asinh: an infinite real part gives `(+-Inf, NaN)` with the sign of the real part (C99), an infinite imaginary part `(Inf, NaN)`."
+  ^Vec2 [^double x ^double y]
+  (cond
+    (m/inf? x) (Vec2. x ##NaN)
+    (m/inf? y) (Vec2. ##Inf ##NaN)
+    :else (Vec2. ##NaN ##NaN)))
 
-(defn atan
-  "atan(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? x) (cond
-                    (or (< y -1.0)
-                        (> y 1.0)) (let [ip (inc y)
-                                         im (dec y)]
-                                     (Vec2. (m/copy-sign m/HALF_PI x)
-                                            (* 0.25 (m/log (/ (* ip ip) (* im im))))))
-                    (== y -1.0) (Vec2. 0.0 ##-Inf) ;; R and WolframAlpha result, was ##NaN as real part
-                    (m/zero? y) z
-                    (m/one? y) (Vec2. 0.0 ##Inf) ;; R and WolframAlpha result
-                    :else (let [ip (inc y)
-                                im (dec y)]
-                            (Vec2. x (* 0.25 (m/log (/ (* ip ip) (* im im)))))))
-      (m/zero? y) (Vec2. (m/atan x) y)
-      :else (let [opi (inc y)
-                  omi (- 1.0 y)
-                  rr (* x x)]
-              (Vec2. (* 0.5 (- (m/atan2 x omi)
-                               (m/atan2 (- x) opi)))
-                     (* 0.25 (m/log (/ (+ rr (* opi opi))
-                                       (+ rr (* omi omi))))))))))
+(defn- f-helper
+  "(hypot(a, b) - b) / 2 without cancellation"
+  ^double [^double a ^double b ^double h]
+  (cond
+    (neg? b) (* 0.5 (- h b))
+    (m/zero? b) (* 0.5 a)
+    :else (/ (/ (* a a) (+ h b)) 2.0)))
 
-(defn asec
-  "asec(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (if (m/zero? y)
-      (cond
-        (or (<= x -1.0)
-            (>= x 1.0)) (Vec2. (m/acos (/ x)) y)
-        (m/zero? x) (Vec2. ##Inf ##Inf)
-        (neg? x) (Vec2. m/PI (* (m/copy-sign 1.0 y) (m/log (+ (/ -1.0 x)
-                                                              (m/sqrt (dec (/ (* x x))))))))
-        :else (Vec2. 0.0 (* (m/copy-sign 1.0 y) (m/log (+ (/ x)
-                                                          (m/sqrt (dec (/ (* x x)))))))))
-      (let [ss (+ (* x x) (* y y))
-            p1 (/ x ss)
-            p1p1 (m/sq (inc p1))
-            p1m1 (m/sq (dec p1))
-            p2 (m/sq (/ y ss))
-            p1p1p2 (m/sqrt (+ p1p1 p2))
-            p1m1p2 (m/sqrt (+ p1m1 p2))
-            sum (* 0.5 (+ p1p1p2 p1m1p2))]
-        (Vec2. (m/acos (* 0.5 (- p1p1p2 p1m1p2)))
-               (* (m/sgn y) (m/log (+ sum (m/sqrt (dec (* sum sum)))))))))))
+(defn- hard-work
+  "Core of asinh and acos for non negative `x`, `y` (Hull, Fairgrieve, Tang).
 
+  With `A = (|z+i| + |z-i|)/2`, `B = y/A` returns `Vec4`:
+  * `x` - `acosh(A)`,
+  * `y` - `1.0` when `asin(B)` is accurate, `0.0` otherwise,
+  * `z` - `B` or `sqrt(A^2-y^2)`,
+  * `w` - the (scaled) `y`, used with `atan2` when `B` is not usable."
+  ^Vec4 [^double x ^double y]
+  (let [r (m/hypot x (+ y 1.0))
+        s (m/hypot x (- y 1.0))
+        a (m/max 1.0 (* 0.5 (+ r s)))
+        rx (if (< a a-crossover)
+             (cond
+               (and (== y 1.0) (< x (/ (* eps eps) 128.0))) (m/sqrt x)
+               (>= x (* eps (m/abs (- y 1.0)))) (let [am1 (+ (f-helper x (+ 1.0 y) r)
+                                                             (f-helper x (- 1.0 y) s))]
+                                                  (m/log1p (+ am1 (m/sqrt (* am1 (+ a 1.0))))))
+               (< y 1.0) (/ x (m/sqrt (* (- 1.0 y) (+ 1.0 y))))
+               :else (m/log1p (+ (- y 1.0) (m/sqrt (* (- y 1.0) (+ y 1.0))))))
+             (m/log (+ a (m/sqrt (- (* a a) 1.0)))))]
+    (if (< y four-sqrt-min)
+      (Vec4. rx 0.0 (* a (/ 2.0 eps)) (* y (/ 2.0 eps)))
+      (let [b (/ y a)]
+        (if (> b b-crossover)
+          (cond
+            (and (== y 1.0) (< x (/ eps 128.0)))
+            (Vec4. rx 0.0 (* (m/sqrt x) (m/sqrt (* 0.5 (+ a y)))) y)
 
-(defn acsc
-  "acsc(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y)  (cond
-                     (or (<= x -1.0)
-                         (>= x 1.0)) (Vec2. (m/asin (/ x)) (- y))
-                     (m/zero? x) (Vec2. ##Inf ##Inf)
-                     (neg? x) (Vec2. m/-HALF_PI (* -1.0 (m/copy-sign 1.0 y) (m/log (+ (/ -1.0 x)
-                                                                                      (m/sqrt (dec (/ (* x x))))))))
-                     :else (Vec2. m/HALF_PI (* -1.0 (m/copy-sign 1.0 y) (m/log (+ (/ x)
-                                                                                  (m/sqrt (dec (/ (* x x)))))))))
-      (m/zero? x) (Vec2. x (- (m/log (+ (/ y) (m/sqrt (inc (/ (* y y))))))))
-      :else (let [ss (+ (* x x) (* y y))
-                  p1 (/ x ss)
-                  p1p1 (m/sq (inc p1))
-                  p1m1 (m/sq (dec p1))
-                  p2 (m/sq (/ y ss))
-                  p1p1p2 (m/sqrt (+ p1p1 p2))
-                  p1m1p2 (m/sqrt (+ p1m1 p2))
-                  sum (* 0.5 (+ p1p1p2 p1m1p2))]
-              (Vec2. (m/asin (* 0.5 (- p1p1p2 p1m1p2)))
-                     (* -1.0 (m/sgn y) (m/log (+ sum (m/sqrt (dec (* sum sum)))))))))))
+            (>= x (* eps (m/abs (- y 1.0))))
+            (let [amy (+ (f-helper x (+ y 1.0) r)
+                         (f-helper x (- y 1.0) s))]
+              (Vec4. rx 0.0 (m/sqrt (* amy (+ a y))) y))
 
+            (> y 1.0)
+            (let [k (/ 4.0 (* eps eps))]
+              (Vec4. rx 0.0 (/ (* x k y) (m/sqrt (* (+ y 1.0) (- y 1.0)))) (* y k)))
 
-(defn acot
-  "acot(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (Vec2. (- (m/copy-sign m/HALF_PI x) (m/atan x)) (- y))
-      (m/zero? x) (cond
-                    (or (< y -1.0)
-                        (> y 1.0)) (Vec2. (if (m/negative-zero? x) m/PI 0.0)
-                                          (* 0.5 (m/log (/ (- 1.0 y)
-                                                           (- -1.0 y)))))
-                    (== y -1.0) (Vec2. 0.0 ##Inf)
-                    (== y 1.0) (Vec2. 0.0 ##-Inf)
-                    :else (Vec2. (m/copy-sign m/HALF_PI x) (* -0.25 (m/log (/ (m/sq (inc y))
-                                                                              (m/sq (dec y)))))))
-      :else (let [opi (+ 1.0 y)
-                  omi (- 1.0 y)
-                  rr (* x x)]
-              (Vec2. (+ (m/copy-sign m/HALF_PI x) (* 0.5 (- (m/atan2 (- x) opi) (m/atan2 x omi))))
-                     (* -0.25 (m/log (/ (+ rr (* opi opi))
-                                        (+ rr (* omi omi))))))))))
-
-;;
+            :else
+            (Vec4. rx 0.0 (m/sqrt (* (- 1.0 y) (+ 1.0 y))) y))
+          (Vec4. rx 1.0 b y))))))
 
 (defn asinh
-  "asinh(z)"
+  "Inverse hyperbolic sine, the principal value.
+
+  The real part has the sign of `a`, the imaginary part is in `[-pi/2, pi/2]` and has the sign of `b`. Branch cuts are the imaginary axis for `|b|>1`. The algorithm (Hull, Fairgrieve, Tang) is accurate near zero, near the branch points `+-i` and for arguments up to the maximum double.
+
+  Special values (C99): `asinh(NaN+0i)` keeps the zero imaginary part, `+-Infinity` with a `NaN` imaginary part gives `+-Infinity+NaN*i`.
+
+  See also [[sinh]], [[asin]], [[acosh]], [[atanh]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
-        y (.y z)]
+        y (.y z)
+        ax (m/abs x)
+        ay (m/abs y)]
     (cond
-      (m/zero? x) (cond
-                    (m/between? -1.0 1.0 y) (Vec2. x (m/asin y))
-                    (> y 1.0) (Vec2. (* (m/copy-sign 1.0 x)
-                                        (m/log (+ (m/sqrt (dec (* y y))) y)))
-                                     m/HALF_PI)
-                    :else (Vec2. (* (m/copy-sign 1.0 x)
-                                    (m/log (- (m/sqrt (dec (* y y))) y)))
-                                 m/-HALF_PI))
-      (m/zero? y) (Vec2. (m/log (+ x (m/sqrt (inc (* x x))))) y)
-      :else (let [ss (inc (+ (* x x) (* y y)))
-                  i2 (* 2.0 y)
-                  ssp2i (m/sqrt (+ ss i2))
-                  ssm2i (m/sqrt (- ss i2))
-                  sum (* 0.5 (+ ssp2i ssm2i))]
-              (Vec2. (* (m/sgn x) (m/log (+ sum (m/sqrt (dec (* sum sum))))))
-                     (m/asin (* 0.5 (- ssp2i ssm2i))))))))
+      ;; C99 G.6.2.2: casinh(NaN + 0i) is NaN + 0i; casin, cacos and catanh give NaN + NaN i (numpy and Julia agree)
+      (or (m/nan? x) (m/nan? y)) (if (m/zero? y)
+                                   (Vec2. ##NaN y)
+                                   (nan-case x y))
+      (or (> ax recip-eps) (> ay recip-eps))
+      (Vec2. (m/copy-sign (+ (log-abs x y) ln2) x)
+             (m/copy-sign (m/atan2 ay ax) y))
+      (or (and (m/zero? x) (m/zero? y))
+          (and (< ax sqrt-6-eps-4) (< ay sqrt-6-eps-4))) z
+      :else (let [^Vec4 w (hard-work ax ay)
+                  rx (.x w)
+                  ry (if (> (.y w) 0.5)
+                       (m/asin (.z w))
+                       (m/atan2 (.w w) (.z w)))]
+              (Vec2. (m/copy-sign rx x) (m/copy-sign ry y))))))
+
+(defn asin
+  "Inverse sine, the principal value, `asin(z) = -i asinh(iz)`.
+
+  The real part is in `[-pi/2, pi/2]`. Branch cuts are the real axis for `|a|>1`; the sign of a zero imaginary part selects the side (`asin(2+0i)` is `pi/2 + 1.317i`, `asin(2-0i)` is `pi/2 - 1.317i`). Accurate near zero, near `+-1` and for large arguments.
+
+  See also [[sin]], [[acos]], [[asinh]], [[sqrt1z]]."
+  ^Vec2 [^Vec2 z]
+  (let [w (asinh (Vec2. (.y z) (.x z)))]
+    (Vec2. (.y w) (.x w))))
+
+(defn acos
+  "Inverse cosine, the principal value.
+
+  The real part is in `[0, pi]`, the imaginary part has the sign opposite to `b`. Branch cuts are the real axis for `|a|>1`; the sign of a zero imaginary part selects the side. Accurate near `1`, `-1` and for large arguments (Hull, Fairgrieve, Tang).
+
+  See also [[cos]], [[asin]], [[acosh]]."
+  ^Vec2 [^Vec2 z]
+  (let [x (.x z)
+        y (.y z)
+        ax (m/abs x)
+        ay (m/abs y)]
+    (cond
+      (or (m/nan? x) (m/nan? y)) (cond
+                                   (and (m/zero? x) (m/nan? y)) (Vec2. m/HALF_PI ##NaN) ;; C99: cacos(+-0 + iNaN)
+                                   (m/inf? y) (Vec2. ##NaN (- y))
+                                   (m/inf? x) (Vec2. ##NaN (m/copy-sign ##Inf y))
+                                   :else (Vec2. ##NaN ##NaN))
+      (or (> ax recip-eps) (> ay recip-eps))
+      (let [ry (+ (log-abs x y) ln2)]
+        (Vec2. (m/abs (m/atan2 y x))
+               (if (signbit? y) ry (- ry))))
+      (and (== x 1.0) (m/zero? y)) (Vec2. 0.0 (- y))
+      (and (< ax sqrt-6-eps-4) (< ay sqrt-6-eps-4)) (Vec2. (- m/HALF_PI x) (- y))
+      :else (let [^Vec4 w (hard-work ay ax)
+                  ry (.x w)
+                  usable? (> (.y w) 0.5)
+                  neg-x? (signbit? x)
+                  rx (if usable?
+                       (if neg-x? (m/acos (- (.z w))) (m/acos (.z w)))
+                       (m/atan2 (.z w) (if neg-x? (- (.w w)) (.w w))))]
+              (Vec2. rx (if (signbit? y) ry (- ry)))))))
 
 (defn acosh
-  "acosh(z)"
+  "Inverse hyperbolic cosine, the principal value, `acosh(z) = +-i acos(z)`.
+
+  The real part is not negative, the imaginary part is in `[-pi, pi]` and has the sign of `b`. The branch cut is the real axis for `a<1`; the sign of a zero imaginary part selects the side.
+
+  See also [[cosh]], [[acos]], [[asinh]]."
   ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
+  (let [w (acos z)
+        rx (.x w)
+        ry (.y w)]
     (cond
-      (m/zero? y) (cond
-                    (> x 1.0) (Vec2. (* (m/copy-sign 1.0 y) (m/log (+ x (m/sqrt (* (dec x) (inc x)))))) y)
-                    (m/one? x) (Vec2. y 0.0)
-                    (m/zero? x) (Vec2. y m/HALF_PI)
-                    (> x -1.0) (Vec2. y (m/acos x))
-                    (== x -1.0) (Vec2. y m/PI)
-                    :else (Vec2. (* (m/copy-sign 1.0 y) (m/log (- (m/sqrt (* (- -1.0 x) (- 1.0 x))) x)))
-                                 m/PI))
-      (m/zero? x) (Vec2. (* (m/copy-sign 1.0 y)
-                            (m/log (+ (m/sqrt (inc (* y y))) (m/abs y))))
-                         m/HALF_PI)
-      :else (let [ss (inc (+ (* x x) (* y y)))
-                  r2 (* 2.0 x)
-                  ssp2r (m/sqrt (+ ss r2))
-                  ssm2r (m/sqrt (- ss r2))
-                  sum (* 0.5 (+ ssp2r ssm2r))]
-              (Vec2. (* (m/sgn y)
-                        (m/log (+ sum (m/sqrt (dec (* sum sum))))))
-                     (m/acos (* 0.5 (- ssp2r ssm2r))))))))
+      (and (m/nan? rx) (m/nan? ry)) (Vec2. ry rx)
+      (m/nan? rx) (Vec2. (m/abs ry) rx)
+      (m/nan? ry) (Vec2. ry ry)
+      :else (Vec2. (m/abs ry) (m/copy-sign rx (.y z))))))
+
+(defn- sum-squares
+  ^double [^double x ^double y]
+  (if (< y sqrt-min)
+    (* x x)
+    (+ (* x x) (* y y))))
+
+(defn- real-part-reciprocal
+  "Re(1/(x+iy)) = x/(x^2+y^2) without overflow."
+  ^double [^double x ^double y]
+  (cond
+    (m/inf? x) (/ 1.0 x)
+    (m/inf? y) (m/copy-sign 0.0 x)
+    :else
+    (let [mx (m/max (m/abs x) (m/abs y))
+          xs (/ x mx)
+          ys (/ y mx)]
+      (/ (/ xs (+ (* xs xs) (* ys ys))) mx))))
 
 (defn atanh
-  "atanh(z)"
+  "Inverse hyperbolic tangent, the principal value.
+
+  The imaginary part is in `[-pi/2, pi/2]`. Branch cuts are the real axis for `|a|>1`; the sign of a zero imaginary part selects the side. `atanh(+-1)` is `+-Infinity` with a zero imaginary part. Accurate near zero, near the branch points `+-1` and for large arguments.
+
+  Special values (C99): an infinite imaginary part gives `+-0` with the sign of the real part and `+-pi/2` (finite real part); `atanh(+-1)` is `+-Infinity`.
+
+  See also [[tanh]], [[atan]], [[asinh]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
-        y (.y z)]
+        y (.y z)
+        ax (m/abs x)
+        ay (m/abs y)]
     (cond
-      (m/zero? y) (cond
-                    (or (> x 1.0)
-                        (< x -1.0)) (let [rp (inc x)
-                                          rm (dec x)]
-                                      (Vec2. (* 0.25 (m/log (/ (* rp rp) (* rm rm))))
-                                             (m/copy-sign m/HALF_PI y)))
-                    (m/one? x) (Vec2. ##Inf ##NaN)
-                    (m/pos? x) (Vec2. (* 0.5 (m/log (/ (inc x) (- 1.0 x)))) y)
-                    (m/zero? x) z
-                    (> x -1.0) (Vec2. (* -0.5 (m/log (/ (- 1.0 x) (inc x)))) y)
-                    :else (Vec2. ##-Inf ##NaN))
+      (and (m/zero? y) (<= ax 1.0)) (Vec2. (if (m/one? ax)
+                                             (m/copy-sign ##Inf x)
+                                             (* 0.5 (m/log1p (/ (* 2.0 x) (- 1.0 x)))))
+                                           y)
       (m/zero? x) (Vec2. x (m/atan y))
-      :else (let [opr (inc x)
-                  omr (- 1.0 x)
-                  ii (* y y)]
-              (Vec2. (* 0.25 (m/log (/ (+ ii (* opr opr))
-                                       (+ ii (* omr omr)))))
-                     (* 0.5 (- (m/atan2 y opr) (m/atan2 (- y) omr))))))))
+      (or (m/nan? x) (m/nan? y)) (if (or (m/inf? x) (m/inf? y))
+                                   (Vec2. (m/copy-sign 0.0 x) (m/copy-sign m/HALF_PI y))
+                                   (Vec2. ##NaN ##NaN))
+      (or (> ax recip-eps) (> ay recip-eps)) (Vec2. (real-part-reciprocal x y)
+                                                    (m/copy-sign m/HALF_PI y))
+      (and (< ax sqrt-3-eps-2) (< ay sqrt-3-eps-2)) z
+      :else (let [rx (if (and (== ax 1.0) (< ay eps))
+                       (* 0.5 (- ln2 (m/log ay)))
+                       (* 0.25 (m/log1p (/ (* 4.0 ax) (sum-squares (- ax 1.0) ay)))))
+                  ry (cond
+                       (== ax 1.0) (* 0.5 (m/atan2 2.0 (- ay)))
+                       (< ay eps) (* 0.5 (m/atan2 (* 2.0 ay) (* (- 1.0 ax) (+ 1.0 ax))))
+                       :else (* 0.5 (m/atan2 (* 2.0 ay) (- (* (- 1.0 ax) (+ 1.0 ax)) (* ay ay)))))]
+              (Vec2. (m/copy-sign rx x) (m/copy-sign ry y))))))
 
+(defn atan
+  "Inverse tangent, the principal value, `atan(z) = -i atanh(iz)`.
+
+  The real part is in `[-pi/2, pi/2]`. Branch cuts are the imaginary axis for `|b|>1`; the sign of a zero real part selects the side. `atan(+-i)` has an infinite imaginary part. Accurate near zero, near `+-i` and for large arguments.
+
+  Special values (C99): an infinite real part gives `+-pi/2` with a zero imaginary part of the sign of the imaginary part.
+
+  See also [[tan]], [[atanh]], [[acot]]."
+  ^Vec2 [^Vec2 z]
+  (let [w (atanh (Vec2. (.y z) (.x z)))]
+    (Vec2. (.y w) (.x w))))
+
+(defn- inverse-argument
+  "1/z for the inverse functions of the reciprocal. At zero it is the limit along the real axis, an infinite real part with the sign of the real part of `z` and a zero imaginary part (the side of the cut is selected by the sign of the zero imaginary part of `z`)."
+  ^Vec2 [^Vec2 z]
+  (if (zero? z)
+    (Vec2. (m/copy-sign ##Inf (.x z)) (- (m/copy-sign 0.0 (.y z))))
+    (reciprocal z)))
+
+(defn asec
+  "Inverse secant, the principal value, `asec(z) = acos(1/z)`.
+
+  Branch cuts follow [[acos]]. Computed from `1/z`, which is rounded: close to the branch points `1` the relative error grows (about `eps/distance`; 8e-10 at the distance 1.4e-8). Away from them it is a few ulps. At zero the value is the limit along the real axis: `asec(0)` is `0+Infinity*i` (`pi` for `-0`), the sign of the infinite part follows the sign of the zero imaginary part.
+
+  See also [[sec]], [[acos]]."
+  ^Vec2 [^Vec2 z]
+  (acos (inverse-argument z)))
+
+(defn acsc
+  "Inverse cosecant, the principal value, `acsc(z) = asin(1/z)`.
+
+  Branch cuts follow [[asin]]. Computed from `1/z`, which is rounded: close to the branch points `+-1` the relative error grows (about `eps/sqrt(distance)`; 3e-11 at the distance 3e-12). Away from them it is a few ulps. At zero the value is the limit along the real axis: `acsc(0)` is `pi/2-Infinity*i`.
+
+  See also [[csc]], [[asin]]."
+  ^Vec2 [^Vec2 z]
+  (asin (inverse-argument z)))
+
+(defn acot
+  "Inverse cotangent, the principal value, `acot(z) = atan(1/z)`.
+
+  The real part is in `[-pi/2, pi/2]` and it is odd, `acot(-x) = -acot(x)` (the other common definition, `pi/2 - atan(z)`, differs on the negative real axis and on the cut). Branch cut: the segment of the imaginary axis between `-i` and `i`. Computed from `1/z`, which is rounded: close to the branch points `+-i` the relative error grows (about `eps/distance`; 3e-7 at the distance 2e-11). Away from them it is a few ulps.
+
+  See also [[cot]], [[atan]]."
+  ^Vec2 [^Vec2 z]
+  (atan (inverse-argument z)))
 
 (defn asech
-  "asech(z)"
+  "Inverse hyperbolic secant, the principal value, `asech(z) = acosh(1/z)`.
+
+  The real part is not negative. Branch cuts are the negative real axis and the real axis for `a>1`. Computed from `1/z`, which is rounded: close to the branch points `1` the relative error grows (about `eps/distance`; 8e-10 at the distance 1.4e-8). Away from them it is a few ulps. `asech(0)` is `Infinity-0i` (`Infinity-pi*i` for `-0`; the sign of the imaginary part is the opposite of the sign of the zero imaginary part of `z`).
+
+  See also [[sech]], [[acosh]]."
   ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (cond
-                    (or (< x -1.0)
-                        (> x 1.0)) (Vec2. 0.0 (m/acos (/ x)))
-                    (== x -1.0) (Vec2. y m/PI)
-                    (m/neg? x) (let [rr (/ x)]
-                                 (Vec2. (* -1.0 (m/copy-sign 1.0 y)
-                                           (m/log (- (m/sqrt (* (dec rr) (inc rr))) rr)))
-                                        m/PI))
-                    (m/zero? x) (Vec2. ##Inf ##NaN)
-                    :else (let [rr (/ x)]
-                            (Vec2. (* -1.0 (m/copy-sign 1.0 y)
-                                      (m/log (+ (m/sqrt (* (dec rr) (inc rr))) rr)))
-                                   0.0)))
-      (m/zero? x) (let [rr (/ y)
-                        srr (m/sqrt (inc (* rr rr)))]
-                    (Vec2. (if (m/pos? y)
-                             (- (m/log (+ srr rr)))
-                             (m/log (- srr rr))) m/HALF_PI))
-      :else (let [ss (+ (* x x) (* y y))
-                  Rr (/ x ss)
-                  Rrp1 (m/sq (inc Rr))
-                  Rrm1 (m/sq (dec Rr))
-                  Ri (m/sq (/ y ss))
-                  Rrp1pRi (m/sqrt (+ Rrp1 Ri))
-                  Rrm1pRi (m/sqrt (+ Rrm1 Ri))
-                  sum (* 0.5 (+ Rrp1pRi Rrm1pRi))]
-              (Vec2. (* (m/sgn (- y)) (m/log (+ sum (m/sqrt (dec (* sum sum))))))
-                     (m/acos (* 0.5 (- Rrp1pRi Rrm1pRi))))))))
+  (acosh (inverse-argument z)))
 
 (defn acsch
-  "acsch(z)"
-  ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? x) (cond
-                    (or (< y -1.0)
-                        (> y 1.0)) (Vec2. x (- (m/asin (/ y))))
-                    (== y -1.0) (Vec2. x m/HALF_PI)
-                    (m/neg? y) (let [ri (/ y)]
-                                 (Vec2. (* (m/copy-sign 1.0 x)
-                                           (m/log (- (m/sqrt (dec (* ri ri))) ri)))
-                                        m/HALF_PI))
-                    (m/zero? y) (Vec2. ##Inf ##-Inf)
-                    (m/one? y) (Vec2. x m/-HALF_PI)
-                    :else (let [ri (/ y)]
-                            (Vec2. (* (m/copy-sign 1.0 x)
-                                      (m/log (+ (m/sqrt (dec (* ri ri))) ri)))
-                                   m/-HALF_PI)))
-      (m/zero? y) (let [rr (/ x)]
-                    (Vec2. (m/log (+ rr (m/sqrt (inc (* rr rr))))) (- y)))
-      :else (let [ss (+ (* x x) (* y y))
-                  p1 (/ y ss)
-                  p1p1 (m/sq (inc p1))
-                  p1m1 (m/sq (dec p1))
-                  p2 (m/sq (/ x ss))
-                  p1p1p2 (m/sqrt (+ p1p1 p2))
-                  p1m1p2 (m/sqrt (+ p1m1 p2))
-                  sum (* 0.5 (+ p1p1p2 p1m1p2))]
-              (Vec2. (* (m/sgn x) (m/log (+ sum (m/sqrt (dec (* sum sum))))))
-                     (m/asin (* 0.5 (- p1m1p2 p1p1p2))))))))
+  "Inverse hyperbolic cosecant, the principal value, `acsch(z) = asinh(1/z)`.
 
+  Branch cut: the segment of the imaginary axis between `-i` and `i`. Computed from `1/z`, which is rounded: close to the branch points `+-i` the relative error grows (about `eps/sqrt(distance)`; 1e-11 at the distance 2e-11). Away from them it is a few ulps. `acsch(0)` is `Infinity-0i` (`-Infinity-0i` for `-0`; the sign of the zero is the opposite of the sign of the zero imaginary part of `z`).
+
+  See also [[csch]], [[asinh]]."
+  ^Vec2 [^Vec2 z]
+  (asinh (inverse-argument z)))
 
 (defn acoth
-  "acoth(z)"
+  "Inverse hyperbolic cotangent, the principal value, `acoth(z) = atanh(1/z)`.
+
+  Branch cut: the segment of the real axis between `-1` and `1`. `acoth(+-1)` is `+-Infinity`. Computed from `1/z`, which is rounded: close to the branch points `+-1` the relative error grows (about `eps/distance`; 1e-6 at the distance 3e-12). Away from them it is a few ulps.
+
+  See also [[coth]], [[atanh]]."
   ^Vec2 [^Vec2 z]
-  (let [x (.x z)
-        y (.y z)]
-    (cond
-      (m/zero? y) (cond
-                    (or (< x -1.0)
-                        (> x 1.0)) (Vec2. (* 0.5 (m/log (/ (inc x) (dec x))))
-                                          (- y))
-                    (== x -1.0) (Vec2. ##-Inf ##NaN)
-                    (m/neg? x) (Vec2. (* 0.5 (m/log (/ (inc x) (- 1.0 x))))
-                                      (- (m/copy-sign m/HALF_PI y)))
-                    (m/zero? x) (Vec2. x (- (m/copy-sign m/HALF_PI y)))
-                    (< x 1.0) (Vec2. (* 0.5 (m/log (/ (inc x) (- 1.0 x))))
-                                     (- (m/copy-sign m/HALF_PI y)))
-                    :else (Vec2. ##Inf ##NaN))
-      (m/zero? x) (if (m/pos? y)
-                    (Vec2. x (- (m/atan y) m/HALF_PI))
-                    (Vec2. x (+ (m/atan y) m/HALF_PI)))
-      :else (let [rp1 (inc x)
-                  rm1 (dec x)
-                  ii (* y y)]
-              (Vec2. (* 0.25 (m/log (/ (+ ii (* rp1 rp1))
-                                       (+ ii (* rm1 rm1)))))
-                     (* 0.5 (- (m/atan2 y rp1)
-                               (m/atan2 y rm1))))))))
+  (atanh (inverse-argument z)))
 
 (m/unuse-primitive-operators #{'abs 'zero?})

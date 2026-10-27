@@ -34,6 +34,35 @@
 (declare angle-between)
 (declare normalize)
 (declare div)
+(declare mag)
+
+;; Euclidean length without overflow and underflow: the plain sqrt of the sum of squares
+;; when the sum is in the safe range (identical result, fast), hypot otherwise.
+(defn- mag2
+  ^double [^double x ^double y]
+  (let [s (m/+ (m/* x x) (m/* y y))]
+    (if (and (m/> s 1.0e-290) (m/< s 1.0e300)) (m/sqrt s) (m/hypot x y))))
+
+(defn- mag3
+  ^double [^double x ^double y ^double z]
+  (let [s (m/+ (m/* x x) (m/* y y) (m/* z z))]
+    (if (and (m/> s 1.0e-290) (m/< s 1.0e300)) (m/sqrt s) (m/hypot x y z))))
+
+(defn- perpendicular3
+  "Unit vector perpendicular to `v1` and `v2`, the direction of their cross product.
+
+  The cross product overflows (elements above 1e154) or underflows (below 1e-154) before it is normalized: then the vectors are normalized first, which does not change the direction."
+  [v1 v2]
+  (let [c (prot/cross v1 v2)
+        mc (double (mag c))] ;; `mag` is only declared here, without its ^double hint
+    (if (and (m/> mc 1.0e-150) (m/< mc 1.0e300))
+      (div c mc)
+      (normalize (prot/cross (normalize v1) (normalize v2))))))
+
+(defn- mag4
+  ^double [^double x ^double y ^double z ^double w]
+  (let [s (m/+ (m/* x x) (m/* y y) (m/* z z) (m/* w w))]
+    (if (and (m/> s 1.0e-290) (m/< s 1.0e300)) (m/sqrt s) (m/hypot (m/hypot x y) (m/hypot z w)))))
 
 (defn- find-idx-reducer-fn 
   "Helper function for reduce to find index for maximum/minimum value in vector."
@@ -491,7 +520,7 @@
   (approx [_] (Vec4. (m/approx x) (m/approx y) (m/approx z) (m/approx w)))
   (approx [_ d] (Vec4. (m/approx x d) (m/approx y d) (m/approx z d) (m/approx w d)))
   (magsq [_] (m/+ (m/* x x) (m/* y y) (m/* z z) (m/* w w)))
-  (mag [v1] (m/sqrt (prot/magsq v1)))
+  (mag [_] (mag4 x y z w))
   (dot [_ v2]
     (let [^Vec4 v2 v2] (m/+ (m/* x (.x v2)) (m/* y (.y v2)) (m/* z (.z v2)) (m/* w (.w v2)))))
   (add [_ v2]
@@ -611,7 +640,7 @@
   (approx [_] (Vec3. (m/approx x) (m/approx y) (m/approx z)))
   (approx [_ d] (Vec3. (m/approx x d) (m/approx y d) (m/approx z d)))
   (magsq [_] (m/+ (m/* x x) (m/* y y) (m/* z z)))
-  (mag [_] (m/hypot-sqrt x y z))
+  (mag [_] (mag3 x y z))
   (dot [_ v2]
     (let [^Vec3 v2 v2] (m/+ (m/* x (.x v2)) (m/* y (.y v2)) (m/* z (.z v2)))))
   (add [_ v2] 
@@ -671,7 +700,7 @@
           cy (m/- (m/* z (.x v2)) (m/* (.z v2) x))
           cz (m/- (m/* x (.y v2)) (m/* (.x v2) y))]
       (Vec3. cx cy cz)))
-  (perpendicular [v1 v2] (normalize (prot/cross v1 v2)))
+  (perpendicular [v1 v2] (perpendicular3 v1 v2))
   (transform [_ o vx vy vz]
     (let [^Vec3 o o
           ^Vec3 vx vx
@@ -816,7 +845,7 @@
   (approx [_] (Vec2. (m/approx x) (m/approx y)))
   (approx [_ d] (Vec2. (m/approx x d) (m/approx y d)))
   (magsq [_] (m/+ (m/* x x) (m/* y y)))
-  (mag [_] (m/hypot-sqrt x y))
+  (mag [_] (mag2 x y))
   (dot [_ v2] 
     (let [^Vec2 v2 v2] (m/+ (m/* x (.x v2)) (m/* y (.y v2)))))
   (add [_ v2] 
@@ -953,7 +982,9 @@
   ^double [v] (prot/magsq v))
 
 (defn mag
-  "Returns length of the vector."
+  "Returns the length (Euclidean norm) of the vector.
+
+  For `Vec2`, `Vec3` and `Vec4` the length is correct over the whole range of doubles (no overflow or underflow of the squares, for example `1e200` components)."
   ^double [v] (prot/mag v))
 
 (defn approx
@@ -1300,8 +1331,14 @@
 ;; ## Common vector functions
 
 (defn div
-  "Vector division or reciprocal."
-  ([v1 ^double v] (prot/mult v1 (m// v)))
+  "Vector division by a number or the reciprocal of a vector.
+
+  The vector is multiplied by `1/v`. When `1/v` is not an accurate number, it overflows (`v` below 5.6e-309) or it is subnormal (`v` above 4.5e307), every element is divided by `v` instead, so the result is correct for the whole range of doubles."
+  ([v1 ^double v] (let [r (m// v)]
+                    (if (and (or (m/inf? r) (m/< (m/abs r) Double/MIN_NORMAL))
+                             (m/not-zero? v) (not (m/inf? v)))
+                      (prot/fmap v1 (fn ^double [^double x] (m// x v)))
+                      (prot/mult v1 r))))
   ([v1] (prot/reciprocal v1)))
 
 (defn ediv
@@ -1441,12 +1478,18 @@
 (defn normalize
   "Returns a new vector of the same direction as `v` and magnitude of 1.
 
-  If `v` is a zero vector (magnitude is zero), returns a zero vector of the same type."
+  If `v` is a zero vector (magnitude is zero), returns a zero vector of the same type. A vector with finite elements is normalized also when its length is not representable (above the largest double, for example `(1.7e308, 1.7e308)`)."
   [v]
   (let [m (mag v)]
-    (if (m/zero? m)
-      (as-vec v)
-      (div v m))))
+    (cond
+      (m/zero? m) (as-vec v)
+      ;; the length overflows: half of the vector is not longer than the largest double (4 elements at most)
+      (m/inf? m) (let [h (prot/mult v 0.5)
+                       mh (mag h)]
+                   (if (m/inf? mh)
+                     (div v m) ;; an infinite element
+                     (div h mh)))
+      :else (div v m))))
 
 (defn normalize-L2
   "Alias for [[normalize]]."

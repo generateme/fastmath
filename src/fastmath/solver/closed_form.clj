@@ -134,8 +134,8 @@
   `exps` is the vector of the exponents of the coefficients in the order of the power of `x`, `nil` for a zero coefficient."
   [exps]
   (let [n (count exps)
-        hk (double-array n)
-        he (double-array n)]
+        hk (int-array n)
+        he (int-array n)]
     (loop [i (long 0) top (long 0)]
       (if (m/< i n)
         (if-let [e (exps i)]
@@ -147,8 +147,8 @@
                                        (m/>= (m/- (m/* (m/- k2 k1) (m/- e e1)) (m/* (m/- e2 e1) (m/- i k1))) 0)))
                               (recur (m/dec top))
                               top)))]
-            (Array/set hk top (double i))
-            (Array/set he top (double e))
+            (Array/set hk top i)
+            (Array/set he top e)
             (recur (m/inc i) (m/inc top)))
           (recur (m/inc i) top))
         (vec (sort (distinct (map (fn [^long j]

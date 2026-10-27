@@ -1,5 +1,5 @@
 (ns hooks.quaternion)
 
 (defmacro gen-from-complex
-  [op]
+  [op _description]
   `(defn ~op [z#] z#))

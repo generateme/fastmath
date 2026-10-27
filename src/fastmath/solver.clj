@@ -215,7 +215,7 @@
                         (or (m/nan? y0) (m/nan? y1) (m/zero? y1)) nil
                         (not (m/== (m/signum y0) (m/signum y1)))
                         (let [r (double (solve f x0 x1 opts))
-                              yr (m/abs (value r))]
+                              yr (m/abs (double (value r)))]
                           (when-not (m/> yr (m/max (m/abs y0) (m/abs y1))) [r]))
                         :else nil))))
           vec))))
