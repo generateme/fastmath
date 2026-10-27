@@ -981,11 +981,9 @@
 (def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.91596559417721901505)
 (def ^{:const true :tag 'double :doc "Value of $\\pi^2$"} PI2 (* Math/PI Math/PI))
 
-(defonce ^{:const true :tag 'double :doc "ulp(1)/2"}
-  MACHINE-EPSILON (* 0.5 (FastMath/ulp 1.0)))
-
-(def ^{:const true :tag 'double :doc "5ulp(1)"}
-  MACHINE-EPSILON10 (* 10.0 MACHINE-EPSILON))
+(def ^{:const true :tag 'double :doc "ulp(1)/2"}  MACHINE-EPSILON (* 0.5 (FastMath/ulp 1.0)))
+(def ^{:const true :tag 'double :doc "ulp(1)"}    MACHINE-EPSILON2 (FastMath/ulp 1.0))
+(def ^{:const true :tag 'double :doc "5ulp(1)"}   MACHINE-EPSILON10 (* 10.0 MACHINE-EPSILON))
 
 (def ^{:const true :tag 'double :doc "Value of $\\frac{1}{3}$"} THIRD      0.333333333333333333333333)
 (def ^{:const true :tag 'double :doc "Value of $\\frac{1}{3}$"} ONE_THIRD  0.333333333333333333333333)

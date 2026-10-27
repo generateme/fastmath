@@ -2,7 +2,7 @@
   (:require [fastmath.complex :as c]
             [fastmath.core :as m]
             [fastmath.vector :as v]
-            [clojure.test :refer [deftest is are]]))
+            [clojure.test :refer [deftest is are testing]]))
 
 ;; expected reults verified with Wolfram Alpha and R
 
@@ -30,6 +30,66 @@
   (is (= (c/complex (m/sqrt 2.0) 0.0) (c/sqrt (c/complex 2.0 0.0))))
   (is (c/delta-eq (c/complex 1.0 2.0) (c/sqrt (c/complex -3.0 4.0))))
   (is (c/delta-eq (c/complex 4.08 -2.94) (c/sqrt1z (c/complex 3 4)) 1.0e-3)))
+
+(defn- rel-eq?
+  "Relative equality of two doubles (infinities and zeros must be equal)."
+  [^double expected ^double actual ^double tol]
+  (or (== expected actual)
+      (<= (m/abs (- expected actual)) (* tol (m/abs expected)))))
+
+(defn- c-rel-eq? [[er ei] ^fastmath.vector.Vec2 z tol]
+  (and (rel-eq? er (.x z) tol) (rel-eq? ei (.y z) tol)))
+
+;; reference values: mpmath (60 digits)
+(deftest robust-ranges
+  (testing "abs does not overflow or underflow"
+    (is (rel-eq? 5e200 (c/abs (c/complex 3e200 4e200)) 1e-15))
+    (is (rel-eq? 5e-200 (c/abs (c/complex 3e-200 4e-200)) 1e-15))
+    (is (rel-eq? 5e-310 (c/abs (c/complex 3e-310 4e-310)) 1e-3) "subnormal: the inputs have few significant bits")
+    (is (= 0.0 (c/abs c/ZERO)))
+    (is (= ##Inf (c/abs (c/complex ##Inf ##NaN))) "an infinite part wins over NaN")
+    (is (= ##Inf (c/abs (c/complex 1.0 ##-Inf))))
+    (is (m/nan? (c/abs (c/complex ##NaN 1.0)))))
+  (testing "division is exact for representable quotients far from the range limits"
+    (is (c-rel-eq? [0.44 0.08] (c/div (c/complex 1e200 2e200) (c/complex 3e200 4e200)) 1e-15))
+    (is (c-rel-eq? [-0.2 0.4] (c/div (c/complex 1e-200 2e-200) (c/complex 3e-200 -4e-200)) 1e-15))
+    (is (c-rel-eq? [0.0 1.0] (c/div (c/complex 1e200 1e200) (c/complex 1e200 -1e200)) 1e-15) "(1+i)/(1-i) = i at a huge scale")
+    (is (c-rel-eq? [0.0 1.0] (c/div (c/complex 1e-200 1e-200) (c/complex 1e-200 -1e-200)) 1e-15) "and at a tiny scale")
+    (is (c-rel-eq? [1.0 0.0] (c/div (c/complex 1e300 -2e300) (c/complex 1e300 -2e300)) 1e-15) "z / z")
+    (is (= (c/complex 0.44 0.08) (c/div (c/complex 1 2) (c/complex 3 4))) "the exact case of the first tests")
+    (is (c-rel-eq? [2.0 0.0] (c/div (c/complex 6.0 0.0) (c/complex 3.0 0.0)) 0.0) "real over real")
+    (is (c-rel-eq? [0.0 -2.0] (c/div (c/complex 6.0 0.0) (c/complex 0.0 3.0)) 1e-15) "real over imaginary")
+    (is (c/nan? (c/div (c/complex 1.0 1.0) c/ZERO)) "division by zero gives NaN parts")
+    (is (= [##Inf 0.0] ((juxt #(.x ^fastmath.vector.Vec2 %) #(.y ^fastmath.vector.Vec2 %)) (c/div (c/complex 1e300 1e300) (c/complex 1e-300 1e-300)))) "an unrepresentable quotient overflows to infinity"))
+  (testing "reciprocal"
+    (is (c-rel-eq? [5e-201 -5e-201] (c/reciprocal (c/complex 1e200 1e200)) 1e-15))
+    (is (c-rel-eq? [5e199 -5e199] (c/reciprocal (c/complex 1e-200 1e-200)) 1e-15))
+    (is (= (c/complex 0.12 -0.16) (c/reciprocal (c/complex 3 4))))
+    (is (= (c/complex 0.0 -0.25) (c/reciprocal (c/complex 0.0 4.0))) "pure imaginary")
+    (is (= (c/complex 0.25 0.0) (c/reciprocal (c/complex 4.0 0.0))) "real")
+    (is (= (c/complex ##Inf ##-Inf) (c/reciprocal c/ZERO)) "kept: zero gives infinity")
+    (is (= (c/complex 0.0 -0.0) (c/reciprocal (c/complex ##Inf 0.0))) "kept: infinity gives zero")
+    (is (c/nan? (c/reciprocal (c/complex ##NaN 1.0)))))
+  (testing "sqrt is accurate over the whole range"
+    (is (c-rel-eq? [1.09868411346781e+100 4.550898605622274e+99] (c/sqrt (c/complex 1e200 1e200)) 1e-15))
+    (is (c-rel-eq? [1.09868411346781e-100 4.550898605622273e-101] (c/sqrt (c/complex 1e-200 1e-200)) 1e-15))
+    (is (c-rel-eq? [1e150 2e150] (c/sqrt (c/complex -3e300 4e300)) 1e-15) "|z|^2 would overflow")
+    (is (c-rel-eq? [5e-26 1e-5] (c/sqrt (c/complex -1e-10 1e-30)) 1e-15) "no cancellation near the negative real axis")
+    (is (c-rel-eq? [1e-5 5e-26] (c/sqrt (c/complex 1e-10 1e-30)) 1e-15) "no cancellation near the positive real axis")
+    (is (c-rel-eq? [1.4325088230154573e154 5.933645827121221e153] (c/sqrt (c/complex 1.7e308 1.7e308)) 1e-14) "near the largest double: |z| itself overflows, reference mpmath")
+    (is (= (c/complex 0.0 2.0) (c/sqrt (c/complex -4.0 0.0))) "the negative real axis")
+    (is (= (c/complex 0.0 -2.0) (c/sqrt (c/complex -4.0 -0.0))) "the other side of the branch cut")
+    (is (= (c/complex 2.0 0.0) (c/sqrt (c/complex 4.0 0.0))))
+    (is (= (c/complex 0.0 0.0) (c/sqrt c/ZERO)))
+    (is (= (c/complex 1.0 2.0) (c/sqrt (c/complex -3.0 4.0))) "exact square")
+    (is (= (c/complex 1.0 -2.0) (c/sqrt (c/complex -3.0 -4.0))) "conjugate symmetry")
+    (is (= ##Inf (.x (c/sqrt (c/complex ##Inf 1.0)))))
+    (is (c/nan? (c/sqrt (c/complex ##NaN 1.0))))
+    (doseq [z [(c/complex 3.0 -4.0) (c/complex -0.3 7.0) (c/complex 1e-5 -1e5) (c/complex -1e150 1e-150)]
+            :let [r (c/sqrt z)]]
+      (is (>= (.x r) 0.0) "the real part is not negative")
+      ;; the square loses the small part by cancellation: compared to the size of z
+      (is (<= (c/abs (c/sub z (c/sq r))) (* 1e-14 (c/abs z))) "the square of the root"))))
 
 (deftest complex-trig
   (is (c/delta-eq (c/complex 2.03 -3.05) (c/cos  (c/complex 1 2)) 1.0e-2))

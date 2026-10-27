@@ -88,11 +88,13 @@
 (defn flip "Exchange imaginary and real parts" ^Vec2 [^Vec2 z] (Vec2. (.y z) (.x z)))
 
 (defn abs
-  "Calculates the magnitude (absolute value) of the complex number `z`."
+  "Calculates the magnitude (absolute value) of the complex number `z`.
+
+  The magnitude is computed without intermediate overflow or underflow, so it is correct for the whole range of doubles (for example `1e200+1e200i` or `1e-200+1e-200i`). It is `Infinity` when any part is infinite, also when the other one is `NaN`.
+
+  See also [[norm]] (the squared magnitude)."
   ^double [^Vec2 z]
-  (if (inf? z)
-    ##Inf
-    (m/sqrt (+ (m/sq (.x z)) (m/sq (.y z))))))
+  (m/hypot (.x z) (.y z)))
 
 (defn norm
   "Calculates the squared magnitude (norm) of the complex number `z`.
@@ -172,18 +174,30 @@
   (Vec2. (.x z) (- (.y z))))
 
 (defn div
-  "Division of two complex numbers."
+  "Division of two complex numbers, `z1 / z2`.
+
+  Smith's algorithm: the result does not overflow or underflow in the middle when the quotient is representable (for example `1e200/1e200` or `1e-200/1e-200` with complex parts). Division by zero gives `NaN` parts.
+
+  See also [[reciprocal]], [[mult]]."
   ^Vec2 [^Vec2 z1 ^Vec2 z2]
   (let [a (.x z1)
         b (.y z1)
         c (.x z2)
-        d (.y z2)
-        den (+ (* c c) (* d d))]
-    (Vec2. (/ (+ (* a c) (* b d)) den)
-           (/ (- (* b c) (* a d)) den))))
+        d (.y z2)]
+    (if (>= (m/abs c) (m/abs d))
+      (let [r (/ d c)
+            den (+ c (* d r))]
+        (Vec2. (/ (+ a (* b r)) den)
+               (/ (- b (* a r)) den)))
+      (let [r (/ c d)
+            den (+ d (* c r))]
+        (Vec2. (/ (+ (* a r) b) den)
+               (/ (- (* b r) a) den))))))
 
 (defn reciprocal
-  "Reciprocal, 1/z."
+  "Reciprocal, 1/z.
+
+  Computed without intermediate overflow or underflow, correct for the whole range of doubles."
   ^Vec2 [^Vec2 z]
   (let [a (.x z)
         b (.y z)]
@@ -193,25 +207,37 @@
       (inf? z) (Vec2. (m/copy-sign 0.0 a)
                       (- (m/copy-sign 0.0 b)))
       (nan? z) (Vec2. ##NaN ##NaN)
-      :else (let [den (+ (* a a) (* b b))]
-              (Vec2. (/ a den)
-                     (/ (- b) den))))))
+      :else (if (>= (m/abs a) (m/abs b))
+              (let [r (/ b a)
+                    den (+ a (* b r))]
+                (Vec2. (/ 1.0 den) (/ (- r) den)))
+              (let [r (/ a b)
+                    den (+ b (* a r))]
+                (Vec2. (/ r den) (/ -1.0 den)))))))
 (defn neg
   "Negation of the complex number, -z."
   ^Vec2 [^Vec2 z]
   (Vec2. (- (.x z)) (- (.y z))))
 
 (defn sqrt
-  "Sqrt of the complex number, sqrt(z)"
+  "Principal square root of the complex number, `sqrt(z)`.
+
+  The real part of the result is not negative; the imaginary part has the sign of the imaginary part of `z` (the sign of a zero imaginary part included). The root is computed without cancellation and without intermediate overflow or underflow, so it is accurate to a few ulps over the whole range of doubles (for example `1e200+1e200i`, `1e-200+1e-200i`, `-1e-10+1e-30i`). The zero is returned as it is.
+
+  See also [[sqrt1z]], [[abs]]."
   ^Vec2 [^Vec2 z]
   (if (zero? z)
     z
-    (let [a (.x z)
-          b (.y z)
-          l (m/sqrt (+ (* a a) (* b b)))
-          aa (m/sqrt (+ l a))
-          bb (* (m/sgn b) (m/sqrt (- l a)))]
-      (Vec2. (* m/SQRT2_2 aa) (* m/SQRT2_2 bb)))))
+    (let [big? (> (m/max (m/abs (.x z)) (m/abs (.y z))) 1.0e300)
+          ;; a quarter of a huge number keeps |a| + hypot(a, b) finite
+          k (if big? 0.25 1.0)
+          back (if big? 2.0 1.0)
+          a (* k (.x z))
+          b (* k (.y z))
+          t (m/sqrt (* 0.5 (+ (m/abs a) (m/hypot a b))))]
+      (if (>= a 0.0)
+        (Vec2. (* back t) (* back (/ b (* 2.0 t))))
+        (Vec2. (* back (/ (m/abs b) (* 2.0 t))) (* back (m/copy-sign t b)))))))
 
 (defn sqrt1z
   "sqrt(1-z^2)"

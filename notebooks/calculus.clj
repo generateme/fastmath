@@ -639,17 +639,21 @@
 ^{::clerk/visibility :hide}
 (u/table2
  [[find-root "Find zero of a function in given interval"]
-  [quadratic "Solve quadratic equation"]])
+  [find-roots "Find all zeros of a function in given interval"]
+  [find-bracket "Find an interval with a sign change around a point"]
+  [quadratic "Real roots of a quadratic equation"]
+  [cubic "Real roots of a cubic equation"]
+  [polyroot "All complex roots of a polynomial"]])
 
 ;; ### Solver
 
 ;; `find-root` function accepts a function and bounds. Additional options are:
 
 ;; * `:absolute-accuracy` - absolute tolerance
-;; * `:relative-accuracy` - relative tolerance
-;; * `:max-iters` - maximum number of iterations
-;; * `initial-value` - starting point
-;; * `solver` - algorithm used to find root of the function, one of: `:brent` (default), `:bisection`, `:illinois`, `:muller`, `:muller2`, `:pegasus`, `:regula-falsi`, `:ridders` and `:secant`
+;; * `:relative-accuracy` - relative tolerance (the root is found within `absolute + relative * |root|`)
+;; * `:max-iters` - maximum number of function evaluations
+;; * `:initial-value` - starting point
+;; * `:solver` - algorithm used to find root of the function, one of: `:brent` (default), `:bisection`, `:illinois`, `:muller`, `:muller2`, `:pegasus`, `:regula-falsi`, `:ridders`, `:secant`, `:toms748`, `:newton` and `:halley`
 
 ;; For given function:
 
@@ -658,7 +662,7 @@
 (defn solver-target ^double [^double x]
   (* (m/cos x) (m/fpow (dec x) 3)))
 
-;; we have a root for $x=1$ on a `[-1.1, 1.1]` range. As you can see, `:regula-falsi` fails to find a root for given absolute accuracy (`1.0e-10` in this case)
+;; we have a root for $x=1$ on a `[-1.1, 1.1]` range. The root is a triple root (the function is flat there); the methods without a bracket (`:muller2`, `:secant`) fail with a `:diverged` status when they do not converge to a root, and the linear `:regula-falsi` is slow on a flat root (absolute accuracy `1.0e-10` in this case)
 
 ^{::clerk/visibility :hide}
 (clerk/table
@@ -668,7 +672,7 @@
               [solver (try (solver/find-root solver-target -1.1 1.1 {:solver solver :absolute-accuracy 1.0e-10})
                            (catch Exception e (.getMessage e)))]))})
 
-;; `:regula-falsi` solver doesn't work well for above example but gives the result for below polynomial.
+;; `:regula-falsi` solver is slow for above example but gives the result for below polynomial.
 
 (solver/find-root (fn [x] (- (* x x) 0.1)) 0 1 {:solver :regula-falsi})
 
@@ -678,7 +682,7 @@
 
 ;; $$q(x) = ax^2+bx+c$$
 
-;; Returns a pair of doubles or `nil` when no solution is found
+;; Returns a pair of doubles in ascending order, `NaN` for a missing root (both when there is no real root)
 
 ^{::clerk/visibility :hide}
 (clerk/example

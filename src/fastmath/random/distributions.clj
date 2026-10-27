@@ -2815,8 +2815,8 @@
                  ;; the domain is already known to be exactly [0,1] (cdf(0)=0, cdf(1)=1),
                  ;; so root-finding can bracket directly on it, unlike icdf-solver's
                  ;; geometric bracket search (built for unbounded domains).
-                 :else (m/constrain (solver/find-root (fn ^double [^double q] (m/- (double (cdf q)) p))
-                                                       0.0 1.0 {:absolute-accuracy 1.0e-10})
+                 :else (m/constrain (double (solver/find-root (fn ^double [^double q] (m/- (double (cdf q)) p))
+                                                        0.0 1.0 {:absolute-accuracy 1.0e-10}))
                                     0.0 1.0)))
         ;; mean/variance are exact weighted sums of the mixture's own central-Beta
         ;; component moments (mean_k=alphak/(alphak+beta), var_k=alphak*beta/((alphak+beta)^2*(alphak+beta+1))),

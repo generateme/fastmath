@@ -1982,6 +1982,23 @@ matches auc-roc"
     (t/is (m/delta-eq 147.71615385 (sut/expectile ys 0.9) 1.0e-5)
           "R uniroot() tol vs. fastmath's own solver differ past ~1e-6, both converging to the same root")))
 
+;; positive homogeneity: expectile(s x) = s expectile(x). The solver used to stop at the absolute tolerance 1e-6,
+;; which gave a relative error of 3.1% for data of the size 1e-10.
+(t/deftest expectile-scale
+  (let [ys [-1 0.24 0.61 1 1.88 11.86 29.46 84.07 164.82 247.68]]
+    (doseq [tau [0.1 0.25 0.75 0.9]
+            s [1.0e-10 1.0e-8 1.0e-6 1.0e-3 1.0 1.0e3 1.0e6]
+            :let [e0 (sut/expectile ys tau)
+                  e (sut/expectile (map #(* s %) ys) tau)]]
+      ;; observed maximum relative difference 3.1e-16
+      (t/is (<= (m/abs (- e (* s e0))) (* 1.0e-14 s (m/abs e0))) (str "tau " tau " scale " s)))
+    ;; the solution of the defining equation, tau * sum(max(x - t, 0)) = (1 - tau) * sum(max(t - x, 0))
+    (doseq [tau [0.1 0.25 0.75 0.9]
+            :let [t (sut/expectile ys tau)
+                  up (reduce + (map #(max (- % t) 0.0) ys))
+                  down (reduce + (map #(max (- t %) 0.0) ys))]]
+      (t/is (<= (m/abs (- (* tau up) (* (- 1.0 tau) down))) (* 1.0e-12 (+ up down))) (str "tau " tau)))))
+
 ;; moment
 ;; reference values from R on mtcars$drat: order=2 default == population variance (already
 ;; verified, see Variance & Dispersion group); order=2 normalized == 1.0 (self-consistency:

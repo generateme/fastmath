@@ -31,7 +31,7 @@ Mathematics, statistics, machine learning, numerical methods/computing.
 | `fastmath.ml.clustering` | clust | kmeans++, fuzzy-kmeans, dbscan |
 | `fastmath.optimization` | opt | brent, bobyqa, powell, nelder-mead, simplex, cmaes, gradient, l-bfgs-b, bayesian optimisation, linear problem solver |
 | `fastmath.polynomials` | poly | real and complex polynomial evaluation and ops, orthogonal polynomials: bernstein, laguerre, chebyshev, legendre, gegenbauer, hermite, jacobi, bessel, meixner-pollaczek, ince beams |
-| `fastmath.solver` | solver | Root finder: brent, bisection, illinois, muller, muller2, pegasus, regula-falsi, ridders, secant, quatdratic, cubic |
+| `fastmath.solver` | solver | Root finders (each in `fastmath.solver.<name>`): brent, bisection, illinois, muller, muller2, pegasus, regula-falsi, ridders, secant, toms748, newton, halley, `fixed-point`; `find-root`, `find-roots`, `find-bracket`; closed forms: quadratic, cubic; `polyroot` (complex polynomial roots) |
 | `fastmath.signal` | signal processing, audio filters, convolution, correlation, iir/fir filters, smoothing, spectrum, stft, periodogram, waveforms, chirp, padding |
 | `fastmath.transform` | wavelets: dwt, wpt (`fastmath.transform.wavelets`); dft/fft, cosine, sine, hadamard, hartley |
 
