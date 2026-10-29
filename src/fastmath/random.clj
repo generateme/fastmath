@@ -2679,7 +2679,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (chi-squared-noncentral nil))
   ([{:keys [^double nu ^double lambda rng]
      :or {nu 1.0 lambda 1.0}}]
-   (distr/ssj-continuous :chi-squared-noncentral (ChiSquareNoncentralDist. nu lambda) rng [:nu :lambda :rng])))
+   (distr/ssj-continuous :chi-squared-noncentral (ChiSquareNoncentralDist. nu lambda) rng [:nu :lambda :rng] fit-specs/chi-squared-noncentral)))
 
 (add-distr-method chi-squared-noncentral)
 
@@ -2936,7 +2936,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
      (check-parameter! 'hypoexponential-equal :k k (m/>= k 1) "an integer >= 1")
      (check-parameter! 'hypoexponential-equal :n n (m/>= n k) "an integer >= k")
      (check-parameter! 'hypoexponential-equal :h h (and (finite-number? h) (m/pos? h)) "a finite number > 0")
-     (distr/ssj-continuous :hypoexponential-equal (HypoExponentialDistEqual. n k h) rng [:n :k :h :rng]))))
+     (distr/ssj-continuous :hypoexponential-equal (HypoExponentialDistEqual. n k h) rng [:n :k :h :rng] fit-specs/hypoexponential-equal))))
 
 (add-distr-method hypoexponential-equal)
 
@@ -4225,7 +4225,8 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
      :or {mu 5.0 sigma 0.1}}]
    (let [nmu (m// mu (m/- 1.0 sigma))]
      (distr/zero-inflated-poisson {:mu nmu :sigma sigma :rng rng :poisson poisson
-                                   :parameters [:mu :sigma :rng]}))))
+                                   :parameters [:mu :sigma :rng]
+                                   :fit-spec fit-specs/zero-inflated-poisson2}))))
 
 (add-distr-method zero-inflated-poisson2)
 (add-distr-method zero-inflated-poisson2 :zip2)
@@ -5054,7 +5055,7 @@ It is one shared mutable object created with an unseeded generator: sampling fro
   - `:initial` (function, optional): takes the sorted data as a `double[]` and returns a map of starting values of the parameters, or `nil`.
   - `:moments`, `:lmoments` (functions, optional): take a map of parameters and return the theoretical moments (L-moments).
 
-  Distributions with the same kind (aliases of a key, like `:gev` and `:generalized-extreme-value`) have the same specification. A key with other parameters than the distribution it is built from (the reparametrised `:nbi`, `:nbii` and `:bb`) has its own. `:bernoulli` is a binomial distribution with one trial and has the specification of `:binomial`: fit it with `{:fixed {:trials 1}}`.
+  Distributions with the same kind (aliases of a key, like `:gev` and `:generalized-extreme-value`) have the same specification. A key with other parameters than the distribution it is built from (the reparametrised `:nbi`, `:nbii`, `:bb` and `:zip2`) has its own. `:bernoulli` is a binomial distribution with one trial and has the specification of `:binomial`: fit it with `{:fixed {:trials 1}}`.
 
   See also [[distribution]], [[distribution-parameters]], [[distribution-id]]."
   [d]

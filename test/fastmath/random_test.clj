@@ -118,7 +118,8 @@
                   id (sut/distribution-id d)]
             :when (and (not= k id) (some #{id} sut/distributions-list)
                        (= (class d) (class (sut/distribution id)))
-                       ;; a reparametrised key (:nbi, :nbii, :bb) has its own parameters and specification
+                       ;; a reparametrised key (:nbi, :nbii, :bb, :zip2) has its own parameters or meaning of them, and its own specification
+                       (not (#{:zip2 :zero-inflated-poisson2} k))
                        (= (sut/distribution-parameters d) (sut/distribution-parameters id)))]
       (t/is (= (sut/fit-spec k) (sut/fit-spec id)) (str k " vs " id)))))
 

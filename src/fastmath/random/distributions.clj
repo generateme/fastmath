@@ -1627,6 +1627,7 @@
                      :continuous? false
                      :name :fishers-noncentral-hypergeometric
                      :parameters [:ns :nf :n :omega :rng]
+                     :fit-spec fit-specs/fishers-noncentral-hypergeometric
                      :mean (delay (prot/mean d))
                      :variance (delay (prot/variance d))
                      :lower-bound lower-bound
@@ -1692,6 +1693,7 @@
                      :continuous? false
                      :name :wallenius-noncentral-hypergeometric
                      :parameters [:ns :nf :n :omega :rng]
+                     :fit-spec fit-specs/wallenius-noncentral-hypergeometric
                      :mean (delay (prot/mean d))
                      :variance (delay (prot/variance d))
                      :lower-bound lower-bound
@@ -1874,6 +1876,7 @@
                      :continuous? false
                      :name :zero-inflated-beta-binomial
                      :parameters [:mu :sigma :bd :nu :rng]
+                     :fit-spec fit-specs/zero-inflated-beta-binomial
                      :lower-bound 0
                      :upper-bound bd})))
 
@@ -1912,6 +1915,7 @@
                      :continuous? false
                      :name :zero-adjusted-beta-binomial
                      :parameters [:mu :sigma :bd :nu :rng]
+                     :fit-spec fit-specs/zero-adjusted-beta-binomial
                      :lower-bound 0
                      :upper-bound bd})))
 
@@ -1949,6 +1953,7 @@
                      :continuous? false
                      :name :zero-inflated-binomial
                      :parameters [:mu :sigma :bd :rng]
+                     :fit-spec fit-specs/zero-inflated-binomial
                      :lower-bound 0
                      :upper-bound bd})))
 
@@ -1983,6 +1988,7 @@
                      :continuous? false
                      :name :zero-adjusted-binomial
                      :parameters [:mu :sigma :bd :rng]
+                     :fit-spec fit-specs/zero-adjusted-binomial
                      :lower-bound 0
                      :upper-bound bd})))
 
@@ -2020,6 +2026,7 @@
                      :continuous? false
                      :name :zero-inflated-negative-binomial
                      :parameters [:mu :sigma :nu :rng]
+                     :fit-spec fit-specs/zero-inflated-negative-binomial
                      :lower-bound 0
                      :upper-bound Integer/MAX_VALUE})))
 
@@ -2053,6 +2060,7 @@
                      :continuous? false
                      :name :zero-adjusted-negative-binomial
                      :parameters [:mu :sigma :nu :rng]
+                     :fit-spec fit-specs/zero-adjusted-negative-binomial
                      :lower-bound 0
                      :upper-bound Integer/MAX_VALUE})))
 
@@ -2060,8 +2068,8 @@
   "Zero-inflated Poisson distribution (gamlss `ZIP`): an extra zero with the probability `sigma`, otherwise a Poisson distribution with the rate `mu`. The mean is `(1 - sigma) mu`.
 
   Parameters (a map): `mu`, `sigma` (doubles), `rng` (`nil`: a fresh generator), `poisson` (the constructor of the Poisson distribution, a function of a map), `parameters` (vector reported by `distribution-parameters`, default `[:mu :sigma :rng]`). `icdf` is the smallest integer with `cdf >= p`. Returns a univariate discrete distribution on the non-negative integers."
-  [{:keys [^double mu ^double sigma rng poisson parameters]
-    :or {parameters [:mu :sigma :rng]}}]
+  [{:keys [^double mu ^double sigma rng poisson parameters fit-spec]
+    :or {parameters [:mu :sigma :rng] fit-spec fit-specs/zero-inflated-poisson}}]
   (let [rng (or rng (JDKRandomGenerator.))
         dist (poisson {:p mu :rng rng})
         p0 (double (prot/pdf dist 0))
@@ -2093,6 +2101,7 @@
                      :continuous? false
                      :name :zero-inflated-poisson
                      :parameters parameters
+                     :fit-spec fit-spec
                      :lower-bound 0
                      :upper-bound Integer/MAX_VALUE})))
 
@@ -2126,6 +2135,7 @@
                      :continuous? false
                      :name :zero-adjusted-poisson
                      :parameters [:mu :sigma :rng]
+                     :fit-spec fit-specs/zero-adjusted-poisson
                      :lower-bound 0
                      :upper-bound Integer/MAX_VALUE})))
 
@@ -2167,6 +2177,7 @@
                      :continuous? true
                      :name :zero-adjusted-gamma
                      :parameters [:mu :sigma :nu :rng]
+                     :fit-spec fit-specs/zero-adjusted-gamma
                      :lower-bound 0
                      :upper-bound ##Inf})))
 
@@ -2205,6 +2216,7 @@
                      :continuous? true
                      :name :zero-adjusted-inverse-gaussian
                      :parameters [:mu :sigma :nu :rng]
+                     :fit-spec fit-specs/zero-adjusted-inverse-gaussian
                      :lower-bound 0
                      :upper-bound ##Inf})))
 
@@ -2268,6 +2280,7 @@
                      :continuous? true
                      :name :generalized-extreme-value
                      :parameters [:mu :sigma :xi :rng]
+                     :fit-spec fit-specs/generalized-extreme-value
                      :lower-bound (if (m/not-pos? xi) ##-Inf boundary)
                      :upper-bound (if (m/not-neg? xi) ##Inf  boundary)})))
 
@@ -2291,6 +2304,7 @@
                      :continuous? true
                      :name :generalized-logistic
                      :parameters [:mu :sigma :alpha :rng]
+                     :fit-spec fit-specs/generalized-logistic
                      :lower-bound ##-Inf
                      :upper-bound ##Inf})))
 
@@ -2350,6 +2364,7 @@
                      :continuous? true
                      :name :generalized-pareto
                      :parameters [:mu :sigma :xi :rng]
+                     :fit-spec fit-specs/generalized-pareto
                      :lower-bound mu
                      :upper-bound (if (m/neg? xi) boundary ##Inf)})))
 
@@ -2382,6 +2397,7 @@
                      :continuous? true
                      :name :generalized-exponential
                      :parameters [:alpha :lambda :rng]
+                     :fit-spec fit-specs/generalized-exponential
                      :lower-bound 0
                      :upper-bound ##Inf})))
 
@@ -2438,6 +2454,7 @@
                          :continuous? true
                          :name :generalized-gamma
                          :parameters [:mu :sigma :nu :rng]
+                     :fit-spec fit-specs/generalized-gamma
                          :lower-bound 0
                          :upper-bound ##Inf})))))
 
@@ -2478,6 +2495,7 @@
       :continuous? true
       :name :generalized-normal
       :parameters [:mu :alpha :beta :rng]
+                     :fit-spec fit-specs/generalized-normal
       :lower-bound ##-Inf
       :upper-bound ##Inf})))
 
@@ -2528,6 +2546,7 @@
       :continuous? true
       :name :generalized-inverse-gaussian
       :parameters [:chi :psi :lambda :rng]
+                     :fit-spec fit-specs/generalized-inverse-gaussian
       :lower-bound 0
       :upper-bound ##Inf})))
 
@@ -2610,7 +2629,8 @@
   [opts]
   (->distribution (assoc (generalized-hyperbolic-core opts)
                          :name :generalized-hyperbolic
-                         :parameters [:mu :delta :alpha :beta :lambda :rng])))
+                         :parameters [:mu :delta :alpha :beta :lambda :rng]
+                         :fit-spec fit-specs/generalized-hyperbolic)))
 
 (defn normal-inverse-gaussian
   "Normal-inverse Gaussian distribution, in its own `(alpha, beta, mu, delta)`
@@ -2623,7 +2643,8 @@
   [{:keys [alpha beta mu delta rng]}]
   (->distribution (assoc (generalized-hyperbolic-core {:mu mu :delta delta :alpha alpha :beta beta :lambda -0.5 :rng rng})
                          :name :normal-inverse-gaussian
-                         :parameters [:alpha :beta :mu :delta :rng])))
+                         :parameters [:alpha :beta :mu :delta :rng]
+                         :fit-spec fit-specs/normal-inverse-gaussian)))
 
 (defn half-logistic
   "Half-logistic distribution with the `scale`: the absolute value of a logistic variable, `cdf(x) = (1 - exp(-x / scale)) / (1 + exp(-x / scale))` for `x >= 0`.
@@ -2699,6 +2720,7 @@
                      :continuous? true
                      :name :generalized-half-logistic
                      :parameters [:alpha :lambda :rng]
+                     :fit-spec fit-specs/generalized-half-logistic
                      :lower-bound 0
                      :upper-bound ##Inf})))
 
@@ -2765,6 +2787,7 @@
       :continuous? true
       :name :f-noncentral
       :parameters [:df1 :df2 :ncp :rng]
+                     :fit-spec fit-specs/f-noncentral
       :lower-bound 0
       :upper-bound ##Inf})))
 
@@ -2834,6 +2857,7 @@
       :continuous? true
       :name :t-noncentral
       :parameters [:df :ncp :rng]
+                     :fit-spec fit-specs/t-noncentral
       :lower-bound ##-Inf
       :upper-bound ##Inf})))
 
@@ -2922,6 +2946,7 @@
       :continuous? true
       :name :beta-noncentral
       :parameters [:alpha :beta :ncp :rng]
+                     :fit-spec fit-specs/beta-noncentral
       :lower-bound 0
       :upper-bound 1})))
 

@@ -710,3 +710,330 @@
             {:name :alpha2 :domain :positive :role :shape}
             {:name :beta :domain :positive :role :scale}]
    :valid? #(positive-data-error % 3)})
+
+;; generalized, noncentral and zero-inflated or adjusted distributions
+
+(defn- l-moments-of
+  "First three L-moments `[l1 l2 l3]` of the sorted `double[]` from the probability weighted moments."
+  [^doubles xs]
+  (let [n (alength xs)
+        ;; probability weighted moment b_r: the mean of x_(i) times (i - 1)...(i - r) / ((n - 1)...(n - r))
+        weight (fn ^double [^long i ^long r]
+                 (case r
+                   0 1.0
+                   1 (m// (double i) (m/dec n))
+                   2 (m// (m/* (double i) (m/dec i)) (m/* (double (m/dec n)) (m/- n 2)))))
+        b (fn ^double [^long r]
+            (m// (double (loop [i (long 0)
+                                sum 0.0]
+                           (if (m/< i n)
+                             (recur (m/inc i)
+                                    (m/+ sum (m/* (double (weight i r)) (Array/aget xs i))))
+                             sum)))
+                 n))
+        b0 (double (b 0))
+        b1 (double (b 1))
+        b2 (double (b 2))]
+    [b0 (m/- (m/* 2.0 b1) b0) (m/+ (m/- (m/* 6.0 b2) (m/* 6.0 b1)) b0)]))
+
+(def generalized-extreme-value
+  "Specification of the generalized extreme value distribution (`:mu`, `:sigma`, `:xi`): the starting values are the L-moment estimates of Hosking, Wallis and Wood. The support has a bound on one side, depending on the sign of `xi`: the sample has to stay inside it."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :sigma :domain :positive :role :scale}
+            {:name :xi :domain :real :role :shape}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [^doubles data]
+              (let [[^double l1 ^double l2 ^double l3] (l-moments-of data)
+                    t3 (m// l3 l2)
+                    c (m/- (m// 2.0 (m/+ 3.0 t3)) (m// (m/log 2.0) (m/log 3.0)))
+                    k (m/+ (m/* 7.8590 c) (m/* 2.9554 c c))]
+                (if (m/< (m/abs k) 1.0e-6)
+                  (let [sigma (m// l2 (m/log 2.0))]
+                    {:mu (m/- l1 (m/* m/GAMMA sigma)) :sigma sigma :xi 0.0})
+                  (let [g (special/gamma (m/inc k))
+                        sigma (m// (m/* l2 k) (m/* (m/- 1.0 (m/pow 2.0 (m/- k))) g))]
+                    (when (and (m/pos? sigma) (m/valid-double? sigma))
+                      {:mu (m/+ l1 (m// (m/* sigma (m/dec g)) k)) :sigma sigma :xi (m/- k)})))))})
+
+(def generalized-pareto
+  "Specification of the generalized Pareto distribution (`:mu` the lower end of the support, `:sigma`, `:xi`): the starting values put `mu` a little below the minimum and use the method of moments for the excesses."
+  {:params [{:name :mu :domain :real :role :lower-bound}
+            {:name :sigma :domain :positive :role :scale}
+            {:name :xi :domain :real :role :shape}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [^doubles data]
+              (let [mu (below-minimum data)
+                    shifted (map (fn [^double x] (m/- x mu)) data)
+                    mean (mean-of shifted)
+                    ratio (m// (m/sq mean) (central-moment-of shifted 2))]
+                {:mu mu :sigma (m/* 0.5 mean (m/inc ratio)) :xi (m/* 0.5 (m/- 1.0 ratio))}))})
+
+(def generalized-logistic
+  "Specification of the generalized logistic distribution (`:mu`, `:sigma`, `:alpha`): the starting values are the logistic ones with `alpha` 1."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :sigma :domain :positive :role :scale}
+            {:name :alpha :domain :positive :role :shape}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [data] {:mu (mean-of data) :sigma (m// (m/* (sd-of data) (m/sqrt 3.0)) m/PI) :alpha 1.0})})
+
+(def generalized-exponential
+  "Specification of the generalized exponential distribution (`:alpha` the shape, `:lambda` the rate): the starting values are the exponential ones."
+  {:params [{:name :alpha :domain :positive :role :shape}
+            {:name :lambda :domain :positive :role :other}]
+   :valid? #(positive-data-error % 2)
+   :initial (fn [data] {:alpha 1.0 :lambda (m// (mean-of data))})})
+
+(def generalized-gamma
+  "Specification of the generalized gamma distribution (`:mu` the scale, `:sigma` the dispersion, `:nu` the shape): the starting values are the gamma ones, `nu` 1."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :positive :role :shape}
+            {:name :nu :domain :real :role :shape}]
+   :valid? #(positive-data-error % 3)
+   :initial (fn [data]
+              (let [mean (mean-of data)]
+                {:mu mean :sigma (m// (sd-of data) mean) :nu 1.0}))})
+
+(def generalized-normal
+  "Specification of the generalized normal distribution (`:mu` the location, `:alpha` the scale, `:beta` the shape): the starting values are the normal ones, `beta` 2."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :alpha :domain :positive :role :scale}
+            {:name :beta :domain :positive :role :shape}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [data] {:mu (mean-of data) :alpha (m/* (sd-of data) (m/sqrt 2.0)) :beta 2.0})})
+
+(def generalized-inverse-gaussian
+  "Specification of the generalized inverse Gaussian distribution (`:chi`, `:psi`, `:lambda`): the starting values are the ones of the inverse Gaussian distribution of the same mean and variance (`lambda` -1/2). Slow: every evaluation creates a distribution with a numerical quantile function."
+  {:params [{:name :chi :domain :positive :role :scale}
+            {:name :psi :domain :positive :role :scale}
+            {:name :lambda :domain :real :role :shape}]
+   :valid? #(positive-data-error % 3)
+   :initial (fn [data]
+              (let [mean (mean-of data)
+                    lambda (m// (m/fpow mean 3) (central-moment-of data 2))]
+                {:chi lambda :psi (m// lambda (m/sq mean)) :lambda -0.5}))})
+
+(defn- symmetrical-nig-moments
+  "Starting values of the normal inverse Gaussian distribution: the symmetrical one (`beta` 0) with the variance `delta / alpha` and the excess kurtosis `3 / (delta alpha)` of the sample."
+  [data]
+  (let [variance (central-moment-of data 2)
+        excess (m/- (m// (central-moment-of data 4) (m/sq variance)) 3.0)
+        a (m// 3.0 (m/max excess 0.1))]
+    {:alpha (m/sqrt (m// a variance)) :beta 0.0 :mu (mean-of data) :delta (m/sqrt (m/* a variance))}))
+
+(def generalized-hyperbolic
+  "Specification of the generalized hyperbolic distribution (`:mu`, `:delta`, `:alpha` and `:beta`, with `|beta| < alpha`, and `:lambda`): the starting values are those of the symmetrical normal inverse Gaussian distribution (`lambda` -1/2). Slow: every evaluation creates a distribution with a numerical quantile function."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :delta :domain :positive :role :scale}
+            {:name :alpha :domain :positive :role :shape}
+            {:name :beta :domain :real :role :shape}
+            {:name :lambda :domain :real :role :shape}]
+   :valid? #(real-data-error % 5)
+   :initial (fn [data] (assoc (symmetrical-nig-moments data) :lambda -0.5))})
+
+(def normal-inverse-gaussian
+  "Specification of the normal inverse Gaussian distribution (`:alpha`, `:beta` with `|beta| < alpha`, `:mu`, `:delta`): the starting values are those of the symmetrical distribution with the variance and the kurtosis of the sample. Slow: every evaluation creates a distribution with a numerical quantile function."
+  {:params [{:name :alpha :domain :positive :role :shape}
+            {:name :beta :domain :real :role :shape}
+            {:name :mu :domain :real :role :location}
+            {:name :delta :domain :positive :role :scale}]
+   :valid? #(real-data-error % 4)
+   :initial symmetrical-nig-moments})
+
+(def generalized-half-logistic
+  "Specification of the generalized half-logistic distribution (`:alpha` the shape, `:lambda` the rate): the starting values are 1 and the reciprocal of the mean."
+  {:params [{:name :alpha :domain :positive :role :shape}
+            {:name :lambda :domain :positive :role :other}]
+   :valid? #(non-negative-data-error % 2)
+   :initial (fn [data] {:alpha 1.0 :lambda (m// (mean-of data))})})
+
+;; noncentral distributions
+
+(def chi-squared-noncentral
+  "Specification of the noncentral chi-squared distribution (`:nu` the degrees of freedom, `:lambda` the noncentrality): the starting values come from the method of moments (mean `nu + lambda`, variance `2 (nu + 2 lambda)`)."
+  {:params [{:name :nu :domain :positive :role :shape}
+            {:name :lambda :domain :non-negative :role :shape}]
+   :valid? #(non-negative-data-error % 2)
+   :initial (fn [data]
+              (let [mean (mean-of data)
+                    lambda (m/* 0.5 (m/- (central-moment-of data 2) (m/* 2.0 mean)))
+                    nu (m/- mean lambda)]
+                (if (and (m/pos? lambda) (m/pos? nu))
+                  {:nu nu :lambda lambda}
+                  {:nu mean :lambda (m/* 0.1 mean)})))})
+
+(def f-noncentral
+  "Specification of the noncentral F distribution (`:df1` and `:df2` degrees of freedom, `:ncp` the noncentrality): the starting values are the `df2` from the mean when it is above 1 (or 10), `df1` 5 and `ncp` 1. Slow: every evaluation creates a distribution as a mixture."
+  {:params [{:name :df1 :domain :positive :role :shape}
+            {:name :df2 :domain :positive :role :shape}
+            {:name :ncp :domain :non-negative :role :shape}]
+   :valid? #(positive-data-error % 3)
+   :initial (fn [data]
+              (let [mean (mean-of data)]
+                {:df1 5.0 :df2 (if (m/> mean 1.0) (m/max 4.5 (m// (m/* 2.0 mean) (m/dec mean))) 10.0) :ncp 1.0}))})
+
+(def t-noncentral
+  "Specification of the noncentral Student t distribution (`:df` the degrees of freedom, `:ncp` the noncentrality): the starting values are 10 and the sample mean. Slow: every evaluation creates a distribution as a mixture."
+  {:params [{:name :df :domain :positive :role :shape}
+            {:name :ncp :domain :real :role :shape}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [data] {:df 10.0 :ncp (mean-of data)})})
+
+(def beta-noncentral
+  "Specification of the noncentral beta distribution (`:alpha` and `:beta` shapes, `:ncp` the noncentrality): the starting values are the method of moments estimates of the beta distribution and `ncp` 1. Slow: every evaluation creates a distribution as a mixture."
+  {:params [{:name :alpha :domain :positive :role :shape}
+            {:name :beta :domain :positive :role :shape}
+            {:name :ncp :domain :non-negative :role :shape}]
+   :valid? #(unit-data-error % 3)
+   :initial (fn [data] (when-let [moments (beta-moments data)] (assoc moments :ncp 1.0)))})
+
+(defn- noncentral-hypergeometric
+  "Specification of a noncentral hypergeometric distribution: the integers (`:ns` the number of successes, `:nf` of failures, `:n` of draws) have to be fixed, `:omega` the odds ratio is fitted."
+  []
+  {:params [{:name :ns :domain :non-negative :role :integer}
+            {:name :nf :domain :non-negative :role :integer}
+            {:name :n :domain :non-negative :role :integer}
+            {:name :omega :domain :positive :role :scale}]
+   :valid? #(count-data-error % 1 0)})
+
+(def fishers-noncentral-hypergeometric
+  "Specification of Fisher's noncentral hypergeometric distribution (`:ns`, `:nf` and `:n` integers which have to be fixed, `:omega` the odds ratio)."
+  (noncentral-hypergeometric))
+
+(def wallenius-noncentral-hypergeometric
+  "Specification of Wallenius' noncentral hypergeometric distribution (`:ns`, `:nf` and `:n` integers which have to be fixed, `:omega` the odds ratio)."
+  (noncentral-hypergeometric))
+
+(def hypoexponential-equal
+  "Specification of the hypoexponential distribution with equally spaced rates (`:n` and `:k` integers which have to be fixed, `:h` the spacing)."
+  {:params [{:name :n :domain :positive :role :integer}
+            {:name :k :domain :positive :role :integer}
+            {:name :h :domain :positive :role :scale}]
+   :valid? #(positive-data-error % 1)})
+
+;; zero-inflated and zero-adjusted distributions (gamlss)
+
+(defn- zero-fraction
+  "Share of zeros of the sorted `double[]`."
+  ^double [^doubles xs]
+  (m// (double (count (take-while m/zero? xs))) (alength xs)))
+
+(defn- solve-increasing
+  "Root of the increasing `f` between `lo` and `hi` by bisection (an end when there is no root inside)."
+  ^double [f ^double lo ^double hi]
+  (loop [i (long 0)
+         lo lo
+         hi hi]
+    (if (m/< i 80)
+      (let [mid (m/* 0.5 (m/+ lo hi))]
+        (if (m/neg? (double (f mid)))
+          (recur (m/inc i) mid hi)
+          (recur (m/inc i) lo mid)))
+      (m/* 0.5 (m/+ lo hi)))))
+
+(def zero-inflated-poisson
+  "Specification of the zero-inflated Poisson distribution (gamlss `ZIP`: `:mu` the Poisson mean, `:sigma` the probability of an extra zero): the starting values solve the equations of the zero fraction and the mean."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :unit :role :probability}]
+   :valid? #(count-data-error % 2 0)
+   :initial (fn [^doubles data]
+              (let [p0 (zero-fraction data)
+                    mean (mean-of data)]
+                (when (and (m/pos? mean) (m/< p0 1.0))
+                  ;; (1 - p0) / mean = (1 - exp(-mu)) / mu
+                  (let [mu (solve-increasing (fn [^double mu] (m/- (m// (m/- 1.0 p0) mean) (m// (m/- 1.0 (m/exp (m/- mu))) mu)))
+                                             1.0e-6 1000.0)
+                        mu (m/max mu mean)]
+                    {:mu mu :sigma (m/constrain (m/- 1.0 (m// mean mu)) 0.001 0.999)}))))})
+
+(def zero-inflated-poisson2
+  "Specification of the zero-inflated Poisson distribution with the mean as a parameter (gamlss `ZIP2`: `:mu` the mean of the distribution, `:sigma` the probability of an extra zero): the starting values solve the equations of the zero fraction and the mean."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :unit :role :probability}]
+   :valid? #(count-data-error % 2 0)
+   :initial (fn [^doubles data]
+              (let [{:keys [mu sigma]} ((:initial zero-inflated-poisson) data)]
+                (when mu {:mu (m/* (double mu) (m/- 1.0 (double sigma))) :sigma sigma})))})
+
+(def zero-adjusted-poisson
+  "Specification of the zero-adjusted Poisson distribution (gamlss `ZAP`: `:mu` the rate of the zero-truncated Poisson distribution, `:sigma` the probability of a zero): `sigma` is the share of zeros, `mu` solves the equation of the mean of the positive part."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :unit :role :probability}]
+   :valid? #(count-data-error % 2 0)
+   :initial (fn [^doubles data]
+              (let [p0 (zero-fraction data)
+                    positives (filter m/pos? data)]
+                (when (and (seq positives) (m/pos? p0))
+                  (let [mean (mean-of positives)]
+                    {:mu (solve-increasing (fn [^double mu] (m/- (m// mu (m/- 1.0 (m/exp (m/- mu)))) mean)) 1.0e-6 1000.0)
+                     :sigma (m/constrain p0 0.001 0.999)}))))})
+
+(def zero-inflated-binomial
+  "Specification of the zero-inflated binomial distribution (gamlss `ZIBI`: `:mu` the probability of a success, `:sigma` the probability of an extra zero, `:bd` the integer number of trials, which has to be fixed)."
+  {:params [{:name :mu :domain :unit :role :probability}
+            {:name :sigma :domain :unit :role :probability}
+            {:name :bd :domain :positive :role :integer}]
+   :valid? #(count-data-error % 2 0)})
+
+(def zero-adjusted-binomial
+  "Specification of the zero-adjusted binomial distribution (gamlss `ZABI`: `:mu` the probability of a success, `:sigma` the probability of a zero, `:bd` the integer number of trials, which has to be fixed)."
+  {:params [{:name :mu :domain :unit :role :probability}
+            {:name :sigma :domain :unit :role :probability}
+            {:name :bd :domain :positive :role :integer}]
+   :valid? #(count-data-error % 2 0)})
+
+(def zero-inflated-negative-binomial
+  "Specification of the zero-inflated negative binomial distribution (gamlss `ZINBI`: `:mu` the mean and `:sigma` the dispersion of the negative binomial distribution type I, `:nu` the probability of an extra zero)."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :positive :role :shape}
+            {:name :nu :domain :unit :role :probability}]
+   :valid? #(count-data-error % 3 0)})
+
+(def zero-adjusted-negative-binomial
+  "Specification of the zero-adjusted negative binomial distribution (gamlss `ZANBI`: `:mu` the mean and `:sigma` the dispersion of the negative binomial distribution type I, `:nu` the probability of a zero)."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :positive :role :shape}
+            {:name :nu :domain :unit :role :probability}]
+   :valid? #(count-data-error % 3 0)})
+
+(def zero-inflated-beta-binomial
+  "Specification of the zero-inflated beta-binomial distribution (gamlss `ZIBB`: `:mu` and `:sigma` of the beta-binomial distribution, `:bd` the integer number of trials, which has to be fixed, `:nu` the probability of an extra zero)."
+  {:params [{:name :mu :domain :unit :role :probability}
+            {:name :sigma :domain :positive :role :shape}
+            {:name :bd :domain :positive :role :integer}
+            {:name :nu :domain :unit :role :probability}]
+   :valid? #(count-data-error % 3 0)})
+
+(def zero-adjusted-beta-binomial
+  "Specification of the zero-adjusted beta-binomial distribution (gamlss `ZABB`: `:mu` and `:sigma` of the beta-binomial distribution, `:bd` the integer number of trials, which has to be fixed, `:nu` the probability of a zero)."
+  {:params [{:name :mu :domain :unit :role :probability}
+            {:name :sigma :domain :positive :role :shape}
+            {:name :bd :domain :positive :role :integer}
+            {:name :nu :domain :unit :role :probability}]
+   :valid? #(count-data-error % 3 0)})
+
+(def zero-adjusted-gamma
+  "Specification of the zero-adjusted gamma distribution (gamlss `ZAGA`: `:mu` the mean and `:sigma` the coefficient of variation of the gamma distribution, `:nu` the probability of a zero): `nu` is the share of zeros, the other starting values are the mean and the coefficient of variation of the positive observations."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :positive :role :shape}
+            {:name :nu :domain :unit :role :probability}]
+   :valid? #(non-negative-data-error % 3)
+   :initial (fn [^doubles data]
+              (let [positives (filter m/pos? data)]
+                (when (m/> (count positives) 1)
+                  (let [mean (mean-of positives)]
+                    {:mu mean :sigma (m// (sd-of positives) mean) :nu (m/constrain (zero-fraction data) 0.001 0.999)}))))})
+
+(def zero-adjusted-inverse-gaussian
+  "Specification of the zero-adjusted inverse Gaussian distribution (gamlss `ZAIG`: `:mu` the mean and `:sigma` of the inverse Gaussian distribution, `lambda = 1 / sigma^2`, `:nu` the probability of a zero): the maximum likelihood estimate is the share of zeros and the estimate of the inverse Gaussian distribution for the positive observations."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :positive :role :shape}
+            {:name :nu :domain :unit :role :probability}]
+   :valid? #(non-negative-data-error % 3)
+   :estimators {:mle {:exact? true
+                      :estimate (fn [^doubles data]
+                                  (let [positives (filter m/pos? data)
+                                        p0 (zero-fraction data)]
+                                    (when (and (m/> (count positives) 1) (m/pos? p0) (m/< p0 1.0))
+                                      (let [mu (mean-of positives)
+                                            s (m/- (mean-of (map m// positives)) (m// mu))]
+                                        (when (m/pos? s) {:mu mu :sigma (m/sqrt s) :nu p0})))))}}})
