@@ -13,6 +13,7 @@
             [fastmath.solver :as solver]
             
             [fastmath.protocols :as prot]
+            [fastmath.random.fit-specs :as fit-specs]
 
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.interpolation.cubic :as cubic-interp]
@@ -62,98 +63,31 @@
   prot/FittingProto
   {:fit-spec (constantly nil)})
 
-(defn real-data-error
-  "Message when `data` is not a sequence of at least `min-count` finite numbers, otherwise `nil`."
-  [data ^long min-count]
-  (cond
-    (not (every? (fn [x] (and (number? x) (m/valid-double? x))) data)) "data must be finite numbers"
-    (m/< (count data) min-count) (str "data must have at least " min-count " observations")))
-
-(defn positive-data-error
-  "Message when `data` is not a sequence of at least `min-count` finite numbers above `0`, otherwise `nil`."
-  [data ^long min-count]
-  (or (real-data-error data min-count)
-      (when-not (every? m/pos? data) "data must be positive")))
-
-(defn non-negative-data-error
-  "Message when `data` is not a sequence of at least `min-count` finite numbers not below `0`, otherwise `nil`."
-  [data ^long min-count]
-  (or (real-data-error data min-count)
-      (when-not (every? m/not-neg? data) "data must be non-negative")))
-
-(defn unit-data-error
-  "Message when `data` is not a sequence of at least `min-count` numbers inside the open interval from `0` to `1`, otherwise `nil`."
-  [data ^long min-count]
-  (or (real-data-error data min-count)
-      (when-not (every? (fn [^double x] (m/< 0.0 x 1.0)) data) "data must be inside the interval (0, 1)")))
-
-(defn- mean-of
-  ^double [data]
-  (m// (double (reduce m/+ 0.0 data)) (count data)))
-
-(defn- population-sd-of
-  ^double [data]
-  (let [mean (mean-of data)]
-    (m/sqrt (m// (double (reduce (fn [^double s ^double x] (m/+ s (m/sq (m/- x mean)))) 0.0 data))
-                 (count data)))))
-
-(def ^:private normal-fit-spec
-  {:params [{:name :mu :domain :real :role :location}
-            {:name :sd :domain :positive :role :scale}]
-   :valid? #(real-data-error % 2)
-   :estimators {:mle {:exact? true
-                      :estimate (fn [data] {:mu (mean-of data) :sd (population-sd-of data)})}}})
-
-(def ^:private exponential-fit-spec
-  {:params [{:name :mean :domain :positive :role :scale}]
-   :valid? #(non-negative-data-error % 1)
-   :estimators {:mle {:exact? true
-                      :estimate (fn [data] {:mean (mean-of data)})}}})
-
-(def ^:private gamma-fit-spec
-  {:params [{:name :shape :domain :positive :role :shape}
-            {:name :scale :domain :positive :role :scale}]
-   :valid? #(positive-data-error % 2)})
-
-(def ^:private weibull-fit-spec
-  {:params [{:name :alpha :domain :positive :role :shape}
-            {:name :beta :domain :positive :role :scale}]
-   :valid? #(positive-data-error % 2)})
-
-(def ^:private beta-fit-spec
-  {:params [{:name :alpha :domain :positive :role :shape}
-            {:name :beta :domain :positive :role :shape}]
-   :valid? #(unit-data-error % 2)})
-
-(def ^:private log-normal-fit-spec
-  {:params [{:name :scale :domain :real :role :other}
-            {:name :shape :domain :positive :role :other}]
-   :valid? #(positive-data-error % 2)
-   :estimators {:mle {:exact? true
-                      :estimate (fn [data]
-                                  (let [logs (map m/log data)]
-                                    {:scale (mean-of logs) :shape (population-sd-of logs)}))}}})
-
-(def ^:private cauchy-fit-spec
-  {:params [{:name :median :domain :real :role :location}
-            {:name :scale :domain :positive :role :scale}]
-   :valid? #(real-data-error % 2)})
-
 (extend-protocol prot/FittingProto
   NormalDistribution
-  (fit-spec [_] normal-fit-spec)
+  (fit-spec [_] fit-specs/normal)
   ExponentialDistribution
-  (fit-spec [_] exponential-fit-spec)
+  (fit-spec [_] fit-specs/exponential)
   GammaDistribution
-  (fit-spec [_] gamma-fit-spec)
+  (fit-spec [_] fit-specs/gamma)
   WeibullDistribution
-  (fit-spec [_] weibull-fit-spec)
+  (fit-spec [_] fit-specs/weibull)
   BetaDistribution
-  (fit-spec [_] beta-fit-spec)
+  (fit-spec [_] fit-specs/beta)
   LogNormalDistribution
-  (fit-spec [_] log-normal-fit-spec)
+  (fit-spec [_] fit-specs/log-normal)
   CauchyDistribution
-  (fit-spec [_] cauchy-fit-spec))
+  (fit-spec [_] fit-specs/cauchy)
+  UniformRealDistribution
+  (fit-spec [_] fit-specs/uniform-real)
+  ChiSquaredDistribution
+  (fit-spec [_] fit-specs/chi-squared)
+  FDistribution
+  (fit-spec [_] fit-specs/f)
+  TDistribution
+  (fit-spec [_] fit-specs/t)
+  NakagamiDistribution
+  (fit-spec [_] fit-specs/nakagami))
 
 (extend RealDistribution
   prot/DistributionProto
@@ -682,8 +616,10 @@
         d (InverseGaussianDist. mu lambda)
         params [:mu :lambda :rng]]
     (if (m/<= (m// lambda mu) 100.0)
-      (ssj-continuous :inverse-gaussian d rng params)
+      (ssj-continuous :inverse-gaussian d rng params fit-specs/inverse-gaussian)
       (reify
+        prot/FittingProto
+        (fit-spec [_] fit-specs/inverse-gaussian)
         prot/DistributionProto
         (pdf [_ v] (.density d v))
         (lpdf [_ v] (m/log (.density d v)))

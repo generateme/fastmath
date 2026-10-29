@@ -342,19 +342,19 @@
              (invalid-input! :fixed "at least one parameter has to stay free" fixed "fewer fixed parameters"))
          xs (double-array (sort data))
          estimators (when closed-form? (:estimators spec))
-         closed-form (get estimators method)]
-     (if (and (:exact? closed-form) (empty? fixed))
-       (build-result dist-key spec fixed method ((:estimate closed-form) xs) :closed-form true 0 xs)
+         closed-form (get estimators method)
+         estimate (when closed-form ((:estimate closed-form) xs))]
+     (if (and (:exact? closed-form) estimate (empty? fixed))
+       (build-result dist-key spec fixed method estimate :closed-form true 0 xs)
        (let [free-names (mapv :name free)
              bounds (mapv (comp domain-bounds :domain) free)
              scale (robust-scale xs)
              rng (or rng (r/rng :jdk))
              objective (objective-function dist-key fixed free-names
                                            (method-objective method xs spec (count free) opts))
-             seed (cond
-                    closed-form ((:estimate closed-form) xs)
-                    (:initial spec) ((:initial spec) xs)
-                    (:estimate (:mle estimators)) ((:estimate (:mle estimators)) xs))
+             seed (or estimate
+                      (when-let [initial (:initial spec)] (initial xs))
+                      (when-let [mle (:estimate (:mle estimators))] (mle xs)))
              starts (if seed
                       [(mapv seed free-names)]
                       (scanned-starts dist-key fixed free xs scale restarts rng))

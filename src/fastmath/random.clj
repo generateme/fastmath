@@ -112,6 +112,7 @@
             [fastmath.vector :as v]
             [fastmath.protocols :as prot]
             [fastmath.random.distributions :as distr]
+            [fastmath.random.fit-specs :as fit-specs]
             [fastmath.special :as special]
             [fastmath.stats.bins :as bins])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
@@ -2785,7 +2786,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (erlang nil))
   ([{:keys [k ^double lambda rng]
      :or {lambda 1.0}}]
-   (distr/ssj-continuous :erlang (ErlangDist. (int-parameter 'erlang :k k 2) lambda) rng [:k :lambda :rng])))
+   (distr/ssj-continuous :erlang (ErlangDist. (int-parameter 'erlang :k k 2) lambda) rng [:k :lambda :rng] fit-specs/erlang)))
 
 (add-distr-method erlang)
 
@@ -2860,11 +2861,6 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
 (add-distr-method frechet)
 
-(def ^:private half-normal-fit-spec
-  {:params [{:name :mu :domain :real :role :location}
-            {:name :sigma :domain :positive :role :scale}]
-   :valid? #(distr/real-data-error % 2)})
-
 (defn half-normal
   "Creates a half-normal distribution object.
 
@@ -2884,7 +2880,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (half-normal nil))
   ([{:keys [^double mu ^double sigma rng]
      :or {mu 0.0 sigma 1.0}}]
-   (distr/ssj-continuous :half-normal (HalfNormalDist. mu sigma) rng [:mu :sigma :rng] half-normal-fit-spec)))
+   (distr/ssj-continuous :half-normal (HalfNormalDist. mu sigma) rng [:mu :sigma :rng] fit-specs/half-normal)))
 
 (add-distr-method half-normal)
 
@@ -2993,7 +2989,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (inverse-gamma nil))
   ([{:keys [^double alpha ^double beta rng]
      :or {alpha 1.0 beta 1.0}}]
-   (distr/ssj-continuous :inverse-gamma (InverseGammaDist. alpha beta) rng [:alpha :beta :rng])))
+   (distr/ssj-continuous :inverse-gamma (InverseGammaDist. alpha beta) rng [:alpha :beta :rng] fit-specs/inverse-gamma)))
 
 (add-distr-method inverse-gamma)
 
@@ -3313,7 +3309,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([{:keys [^double a ^double beta rng]
      :or {a 0.0 beta 1.0}}]
    (distr/ssj-continuous :rayleigh (RayleighDist. a beta) rng
-                         [:a :beta :rng])))
+                         [:a :beta :rng] fit-specs/rayleigh)))
 
 (add-distr-method rayleigh)
 
@@ -5055,8 +5051,8 @@ It is one shared mutable object created with an unseeded generator: sampling fro
   - `:valid?` (function): takes the data and returns `nil` when the data can be fitted, otherwise a message (a string).
   - `:feasible?` (function, optional): takes a map of parameters and returns a truthy value when the combination is allowed by the constraints between parameters.
   - `:transform` (map, optional): an unconstrained reparametrisation of the parameters.
-  - `:estimators` (map, optional): closed form estimators by method (for example `:mle`), each a map with the key `:estimate` (a function of the data, returning a map of parameters) and `:exact?` (`true` when the estimate is the exact result of the method, `false` when it is only a starting point for a numerical fit).
-  - `:initial` (function, optional): takes the data and returns a map of starting values of the parameters.
+  - `:estimators` (map, optional): closed form estimators by method (for example `:mle`), each a map with the key `:estimate` (a function of the sorted data as a `double[]`, returning a map of parameters, or `nil` when the data have no estimate) and `:exact?` (`true` when the estimate is the exact result of the method, `false` when it is only a starting point for a numerical fit).
+  - `:initial` (function, optional): takes the sorted data as a `double[]` and returns a map of starting values of the parameters, or `nil`.
   - `:moments`, `:lmoments` (functions, optional): take a map of parameters and return the theoretical moments (L-moments).
 
   Distributions with the same kind (aliases of a key, like `:gev` and `:generalized-extreme-value`) have the same specification.
