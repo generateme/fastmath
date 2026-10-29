@@ -27,6 +27,12 @@
        (str k " must be a function"))
      (for [k [:transform :estimators] :when (and (contains? spec k) (not (map? (get spec k))))]
        (str k " must be a map"))
+     (for [[method {:keys [estimate exact?] :as est}] (:estimators spec)
+           e [(when-not (keyword? method) "estimator method must be a keyword")
+              (when-not (fn? estimate) (str method " estimator must have a function under :estimate"))
+              (when-not (boolean? exact?) (str method " estimator must have a boolean :exact?"))
+              (when-not (and (map? est) (= #{:estimate :exact?} (set (keys est)))) (str method " estimator has wrong keys"))]
+           :when e] e)
      (for [{:keys [name domain role] :as prm} (:params spec)
            e [(when-not (keyword? name) "name must be a keyword")
               (when-not (some #{name} ctor-keys) (str name " is not a constructor parameter"))
@@ -92,7 +98,10 @@
       (t/is (seq (fit-spec-errors d (assoc-in ok [:params 0 :role] :centre))))
       (t/is (seq (fit-spec-errors d (assoc ok :params []))))
       (t/is (seq (fit-spec-errors d (dissoc ok :valid?))))
-      (t/is (seq (fit-spec-errors d (assoc ok :unknown 1))))))
+      (t/is (seq (fit-spec-errors d (assoc ok :unknown 1))))
+      (t/is (empty? (fit-spec-errors d (assoc ok :estimators {:mle {:estimate identity :exact? true}}))))
+      (t/is (seq (fit-spec-errors d (assoc ok :estimators {:mle identity}))))
+      (t/is (seq (fit-spec-errors d (assoc ok :estimators {:mle {:estimate identity}}))))))
   (t/testing "aliases and the id of an object give the same specification"
     (doseq [k sut/distributions-list
             :let [d (sut/distribution k)

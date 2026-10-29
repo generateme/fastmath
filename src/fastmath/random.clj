@@ -5055,7 +5055,7 @@ It is one shared mutable object created with an unseeded generator: sampling fro
   - `:valid?` (function): takes the data and returns `nil` when the data can be fitted, otherwise a message (a string).
   - `:feasible?` (function, optional): takes a map of parameters and returns a truthy value when the combination is allowed by the constraints between parameters.
   - `:transform` (map, optional): an unconstrained reparametrisation of the parameters.
-  - `:estimators` (map, optional): closed form estimators by method.
+  - `:estimators` (map, optional): closed form estimators by method (for example `:mle`), each a map with the key `:estimate` (a function of the data, returning a map of parameters) and `:exact?` (`true` when the estimate is the exact result of the method, `false` when it is only a starting point for a numerical fit).
   - `:initial` (function, optional): takes the data and returns a map of starting values of the parameters.
   - `:moments`, `:lmoments` (functions, optional): take a map of parameters and return the theoretical moments (L-moments).
 
