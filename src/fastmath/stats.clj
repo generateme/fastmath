@@ -36,7 +36,7 @@
       -   Binomial tests and confidence intervals.
       -   Location tests (one-sample and two-sample T/Z tests, paired/unpaired).
       -   Variance tests (F-test, Levene's, Brown-Forsythe, Fligner-Killeen).
-      -   Goodness-of-Fit and Independence tests (Power Divergence family including Chi-squared, G-test; AD/KS tests).
+      -   Goodness-of-Fit and Independence tests (Power Divergence family including Chi-squared, G-test; AD/KS/CvM tests and their statistics).
       -   ANOVA and Rank Sum tests (One-way ANOVA, Kruskal-Wallis).
       -   Autocorrelation tests (Durbin-Watson).
   *   **Time Series Analysis**: Functions for analyzing the dependence structure of
@@ -5632,7 +5632,7 @@
     at lags from 0 up to `lags` (calculated using [[pacf]]).
 
   See also [[pacf]], [[acf]], [[acf-ci]]."
-  ([data] (pacf-ci data (m/dec (count data))))
+  ([data] (pacf-ci data (m/long-dec (count data))))
   ([data lags] (pacf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
    (let [pacf-data (pacf data lags)
@@ -5670,7 +5670,7 @@
     variance of the sum of squared sample autocorrelations up to each lag.
 
   See also [[acf]], [[pacf]], [[pacf-ci]]."
-  ([data] (acf-ci data (m/dec (count data))))
+  ([data] (acf-ci data (m/long-dec (count data))))
   ([data lags] (acf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
    (let [acf-data (acf data lags)
@@ -5679,7 +5679,7 @@
       :acf acf-data
       :cis (map (fn [^double r]
                   (m/* ci (m/sqrt (m/dec (m/+ r r))))) (reductions (fn [^double acc ^double s]
-                                                               (m/+ acc (m/* s s))) acf-data))})))
+                                                                     (m/+ acc (m/* s s))) acf-data))})))
 
 ;;
 
@@ -7012,13 +7012,116 @@
 
 ;; ad/ks tests
 
-(defn- a2-stat
-  ^double [^doubles xs d]
-  (let [n (alength xs)]
-    (reduce m/- (m/- n) (map (fn [^long idx]
-                               (m/* (m// (m/+ idx idx 1.0) n)
-                                    (m/+ (m/log (r/cdf d (Array/aget xs idx)))
-                                         (m/log (r/ccdf d (Array/aget xs (m/- n idx 1))))))) (range n)))))
+(def ^:private ad-variants #{:ad :adr :adl :ad2r :ad2l :ad2})
+
+(defn- gof-sample
+  "Observations of `xs` in ascending order (`sorted?` skips sorting); throws for empty data."
+  [xs sorted?]
+  (let [sxs (if sorted? xs (sort xs))]
+    (when (empty? sxs)
+      (throw (ex-info "Goodness-of-fit statistic requires at least one observation." {:option :xs :value xs :expected "non-empty data"})))
+    sxs))
+
+(defn ks-statistic
+  "Calculates the Kolmogorov-Smirnov statistic of a sample against a distribution.
+
+  The statistic is the largest absolute difference between the empirical cumulative distribution function of `xs` and the cumulative distribution function of `distribution`. Unlike [[ks-test-one-sample]] it returns the statistic only, keeps all observations (ties included) and does not compute a p-value, so it is suitable as an objective for fitting a distribution or for ranking candidate distributions.
+
+  Parameters:
+
+  - `xs` (sequence of numbers): The sample.
+  - `distribution`: A `fastmath.random` distribution.
+  - `opts` (map, optional):
+    - `:sorted?` (boolean, default `false`): Set to `true` when `xs` is already sorted ascending, to skip sorting.
+
+  Returns the statistic as a double, in `[0, 1]`. Throws `ex-info` for empty `xs`. The result is `NaN` when the cumulative distribution function returns `NaN`.
+
+  For discrete and mixed distributions the statistic is still computed from the cumulative distribution function, but it is only descriptive: its null distribution is not the one used by [[ks-test-one-sample]].
+
+  See also [[ks-test-one-sample]], [[cvm-statistic]], [[ad-statistic]]."
+  (^double [xs distribution] (ks-statistic xs distribution nil))
+  (^double [xs distribution {:keys [sorted?]}]
+   (let [sxs (gof-sample xs sorted?)
+         n (double (count sxs))]
+     (reduce m/max (map-indexed (fn [^long i ^double x]
+                                  (let [f (r/cdf distribution x)]
+                                    (m/max (m/- (m// (m/inc i) n) f)
+                                           (m/- f (m// i n)))))
+                                sxs)))))
+
+(defn cvm-statistic
+  "Calculates the Cramer-von Mises statistic of a sample against a distribution.
+
+  The statistic `W2` measures the squared distance between the empirical cumulative distribution function of `xs` and the cumulative distribution function of `distribution`: `W2 = 1 / (12 n) + sum_i (F(x_(i)) - (2 i - 1) / (2 n))^2` over the sorted observations. It returns the statistic only, without a p-value, so it is suitable as an objective for fitting a distribution or for ranking candidate distributions.
+
+  Parameters:
+
+  - `xs` (sequence of numbers): The sample.
+  - `distribution`: A `fastmath.random` distribution.
+  - `opts` (map, optional):
+    - `:sorted?` (boolean, default `false`): Set to `true` when `xs` is already sorted ascending, to skip sorting.
+
+  Returns the statistic as a double, non-negative. Throws `ex-info` for empty `xs`. The result is `NaN` when the cumulative distribution function returns `NaN`.
+
+  For discrete and mixed distributions the statistic is still computed from the cumulative distribution function, but it is only descriptive.
+
+  See also [[ks-statistic]], [[ad-statistic]], [[cvm-test-one-sample]]."
+  (^double [xs distribution] (cvm-statistic xs distribution nil))
+  (^double [xs distribution {:keys [sorted?]}]
+   (let [sxs (gof-sample xs sorted?)
+         n (count sxs)
+         n2 (m/* 2.0 n)]
+     (m/+ (m// (m/* 12.0 n))
+          (v/sum (map-indexed (fn [^long i ^double x]
+                                (m/sq (m/- (r/cdf distribution x)
+                                           (m// (m/inc (m/* 2.0 i)) n2))))
+                              sxs))))))
+
+(defn ad-statistic
+  "Calculates the Anderson-Darling statistic, or one of its variants, of a sample against a distribution.
+
+  The statistic gives more weight to the tails of the distribution than [[cvm-statistic]]. The default `:ad` is the classic `A2`, the one returned by [[ad-test-one-sample]]. The variants put the weight on one tail only (`:adr` right, `:adl` left) or use second-order weights (`:ad2r`, `:ad2l`, `:ad2`), as used for the minimum goodness-of-fit estimation of distribution parameters. The upper tail probabilities are taken from `ccdf`, which keeps the precision in the right tail.
+
+  Parameters:
+
+  - `xs` (sequence of numbers): The sample.
+  - `distribution`: A `fastmath.random` distribution.
+  - `opts` (map, optional):
+    - `:variant` (keyword, default `:ad`): One of `:ad`, `:adr`, `:adl`, `:ad2r`, `:ad2l`, `:ad2`.
+    - `:sorted?` (boolean, default `false`): Set to `true` when `xs` is already sorted ascending, to skip sorting.
+
+  Returns the statistic as a double. A `NaN` result, which comes from a distribution whose cumulative distribution function is `0` or `1` at observations, is returned as `##Inf`, so the value can be minimized. Throws `ex-info` for empty `xs` or an unknown `:variant`.
+
+  For discrete and mixed distributions the statistic is still computed from the cumulative distribution function, but it is only descriptive.
+
+  See also [[ad-test-one-sample]], [[ks-statistic]], [[cvm-statistic]]."
+  (^double [xs distribution] (ad-statistic xs distribution nil))
+  (^double [xs distribution {:keys [variant sorted?] :or {variant :ad}}]
+   (when-not (ad-variants variant)
+     (throw (ex-info "Unknown Anderson-Darling variant." {:option :variant :value variant :expected ad-variants})))
+   (let [sxs (gof-sample xs sorted?)
+         n (double (count sxs))
+         fs (mapv (fn [^double x] (r/cdf distribution x)) sxs)
+         ;; upper tail probabilities, in the reversed order of the observations
+         gs (when-not (#{:adl :ad2l} variant)
+              (mapv (fn [^double x] (r/ccdf distribution x)) sxs))
+         rgs (when gs (rseq gs))
+         ws (iterate (fn [^double w] (m/+ w 2.0)) 1.0)
+         res (case variant
+               :ad (m/- (m/- n)
+                        (m// (v/sum (map (fn [^double w ^double f ^double rg]
+                                           (m/* w (m/+ (m/log f) (m/log rg)))) ws fs rgs)) n))
+               :adr (m/- (m/- (m/* 0.5 n) (m/* 2.0 (v/sum fs)))
+                         (m// (v/sum (map (fn [^double w ^double rg] (m/* w (m/log rg))) ws rgs)) n))
+               :adl (m/- (m/- (m/* 2.0 (v/sum fs)) (m/* 1.5 n))
+                         (m// (v/sum (map (fn [^double w ^double f] (m/* w (m/log f))) ws fs)) n))
+               :ad2r (m/+ (m/* 2.0 (v/sum (map m/log gs)))
+                          (m// (v/sum (map (fn [^double w ^double rg] (m// w rg)) ws rgs)) n))
+               :ad2l (m/+ (m/* 2.0 (v/sum (map m/log fs)))
+                          (m// (v/sum (map (fn [^double w ^double f] (m// w f)) ws fs)) n))
+               :ad2 (m/+ (m/* 2.0 (v/sum (map (fn [^double f ^double g] (m/+ (m/log f) (m/log g))) fs gs)))
+                         (m// (v/sum (map (fn [^double w ^double f ^double rg] (m/* w (m/+ (m// f) (m// rg)))) ws fs rgs)) n)))]
+     (if (m/nan? res) ##Inf res))))
 
 (defn ad-test-one-sample
   "Performs the Anderson-Darling (AD) test for goodness-of-fit.
@@ -7067,10 +7170,57 @@
              :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel
                                                              :bandwidth bandwidth}))
          axs (m/seq->double-array (sort xs))
-         stat (a2-stat axs d)
+         stat (ad-statistic axs d {:sorted? true})
          n (alength axs)
          distr (r/distribution :anderson-darling {:n n})]
      {:stat stat :A2 stat :mean (mean axs) :stddev (stddev axs) :n n :sides sides
+      :p-value (p-value distr stat sides)})))
+
+(defn cvm-test-one-sample
+  "Performs the Cramer-von Mises (CvM) test for goodness-of-fit.
+
+  This test assesses the null hypothesis that a sample `xs` comes from a specified theoretical distribution or another empirical distribution. It uses the squared distance between the empirical and the theoretical cumulative distribution functions, which makes it more sensitive to differences along the whole range than the Kolmogorov-Smirnov test, and less focused on the tails than the Anderson-Darling test.
+
+  Parameters:
+
+  - `xs` (seq of numbers): The sample data to be tested.
+  - `distribution-or-ys` (optional):
+    - A `fastmath.random` distribution object to test against. If omitted, defaults to the standard normal distribution (`fastmath.random/default-normal`).
+    - A sequence of numbers (`ys`). In this case, an empirical distribution is estimated from `ys` using Kernel Density Estimation (KDE) or an enumerated distribution (see `:kernel` option).
+  - `opts` (map, optional): Options map:
+    - `:sides` (keyword, default `:right`): Specifies the side(s) of the statistic's distribution used for the p-value.
+      - `:right` (default): Tests if the observed statistic is significantly large (indicating poor fit).
+      - `:left`: Tests if the observed statistic is significantly small.
+      - `:two-sided`: Tests if the observed statistic is extreme in either tail.
+    - `:kernel` (keyword, default `:gaussian`): Used only when `distribution-or-ys` is a sequence. `:gaussian` (or other KDE kernels) uses Kernel Density Estimation, `:enumerated` creates a discrete empirical distribution from `ys`.
+    - `:bandwidth` (double, optional): Bandwidth for KDE (if applicable).
+
+  Returns a map containing:
+
+  - `:W2`: The Cramer-von Mises statistic, see [[cvm-statistic]].
+  - `:stat`: Alias for `:W2`.
+  - `:p-value`: The p-value associated with the statistic and the specified `:sides`.
+  - `:n`: Sample size of `xs`.
+  - `:mean`: Mean of the sample `xs` (for context).
+  - `:stddev`: Standard deviation of the sample `xs` (for context).
+  - `:sides`: The alternative hypothesis side used for the p-value.
+
+  The p-value uses the finite-sample distribution of the statistic for the sample size `n`, so it differs slightly from the asymptotic p-value (for example by about `1e-3` at `n` equal to 5 against the value of R `goftest::cvm.test`, and by about `1e-5` at `n` equal to 30). The parameters of the tested distribution are treated as known: when they are estimated from `xs`, the p-value is too large.
+
+  See also [[cvm-statistic]], [[ad-test-one-sample]], [[ks-test-one-sample]]."
+  ([xs] (cvm-test-one-sample xs r/default-normal))
+  ([xs distribution-or-ys] (cvm-test-one-sample xs distribution-or-ys {}))
+  ([xs distribution-or-ys {:keys [sides kernel bandwidth] :or {sides :right kernel :gaussian}}]
+   (let [d (cond
+             (r/distribution? distribution-or-ys) distribution-or-ys
+             (= kernel :enumerated) (r/distribution :enumerated-real {:data distribution-or-ys})
+             :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel
+                                                             :bandwidth bandwidth}))
+         axs (m/seq->double-array (sort xs))
+         stat (cvm-statistic axs d {:sorted? true})
+         n (alength axs)
+         distr (r/distribution :cramer-von-mises {:n n})]
+     {:stat stat :W2 stat :mean (mean axs) :stddev (stddev axs) :n n :sides sides
       :p-value (p-value distr stat sides)})))
 
 (defn- ks-jitter-range
