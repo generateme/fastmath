@@ -186,10 +186,6 @@
    ["gain Inf" {:gain ##Inf} :gain]
    ["gain -Inf" {:gain ##-Inf} :gain]
    ["gain string" {:gain "0.5"} :gain]
-   ["normalize? 0" {:normalize? 0} :normalize?]
-   ["normalize? 1" {:normalize? 1} :normalize?]
-   ["normalize? keyword" {:normalize? :yes} :normalize?]
-   ["normalize? string" {:normalize? "true"} :normalize?]
    ["seed double" {:seed 1.5} :seed]
    ["seed string" {:seed "a"} :seed]
    ["seed NaN" {:seed ##NaN} :seed]
@@ -251,6 +247,13 @@
       (is (same-bits? (v (assoc base :octaves 6 :lacunarity 2.0 :gain 0.5 :normalize? true :interpolation :hermite))
                       (v (assoc base :octaves nil :lacunarity nil :gain nil :normalize? nil :interpolation nil)))
           (str gen " all defaults")))
+    (testing "`:normalize?` follows Clojure truthiness: only `false` turns the normalization off"
+      (doseq [gen generators
+              :let [base {:seed 99 :noise-type :value}
+                    v (fn [cfg] (value (noise-fn gen cfg) [0.3 0.4 0.5]))]]
+        (doseq [truthy [0 1 :yes "true" []]]
+          (is (same-bits? (v base) (v (assoc base :normalize? truthy))) (str gen " " (pr-str truthy))))
+        (is (not (same-bits? (v base) (v (assoc base :normalize? false)))) (str gen " false"))))
     (testing "a nil seed means a random seed"
       (let [fs (repeatedly 5 #(r/fbm-noise {:seed nil}))
             vs (map #(value % [0.3 0.4 0.5]) fs)]

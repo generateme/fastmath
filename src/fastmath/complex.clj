@@ -65,13 +65,16 @@
 ;; constants for the algorithms below
 
 (def ^{:private true :const true :tag 'double} eps m/MACHINE-EPSILON2)
-(def ^{:private true :const true :tag 'double} recip-eps 4.503599627370496E15)
-(def ^{:private true :const true :tag 'double} sqrt-6-eps-4 9.125060374972143E-9) ;; sqrt(6 eps) / 4
-(def ^{:private true :const true :tag 'double} sqrt-3-eps-2 1.2904784139758925E-8) ;; sqrt(3 eps) / 2
-(def ^{:private true :const true :tag 'double} four-sqrt-min 5.966672584960166E-154) ;; 4 sqrt(Double/MIN_NORMAL)
-(def ^{:private true :const true :tag 'double} sqrt-min 1.4916681462400413E-154)
+(def ^{:private true :const true :tag 'double} recip-eps (m// eps))
+(def ^{:private true :const true :tag 'double} sqrt-6-eps-4 (m/* 0.25 (m/sqrt (m/* 6.0 eps))))
+(def ^{:private true :const true :tag 'double} sqrt-3-eps-2 (m/* 0.5 (m/sqrt (m/* 3.0 eps))))
+(def ^{:private true :const true :tag 'double} sqrt-min (m/sqrt Double/MIN_NORMAL))
+(def ^{:private true :const true :tag 'double} four-sqrt-min (m/* 4.0 sqrt-min))
 (def ^{:private true :const true :tag 'double} a-crossover 10.0)
 (def ^{:private true :const true :tag 'double} b-crossover 0.6417)
+(def ^{:private true :const true :tag 'double} eps2-128 (m// (m/* eps eps) 128.0))
+(def ^{:private true :const true :tag 'double} two-over-eps (m// 2.0 eps))
+(def ^{:private true :const true :tag 'double} four-over-eps2 (m// 4.0 (m/* eps eps)))
 
 (defn complex
   "Creates a complex number represented as a [[Vec2]].
@@ -785,11 +788,6 @@
     (m/neg? b) (m/* 0.5 (m/- h b))
     (m/zero? b) (m/* 0.5 a)
     :else (m// (m// (m/* a a) (m/+ h b)) 2.0)))
-
-(def ^{:private true :const true :tag 'double} eps2-128 (m// (m/* eps eps) 128.0))
-(def ^{:private true :const true :tag 'double} two-over-eps (m// 2.0 eps))
-(def ^{:private true :const true :tag 'double} four-over-eps2 (m// 4.0 (m/* eps eps)))
-
 
 (defn- hard-work
   "Core of asinh and acos for non negative `x`, `y` (Hull, Fairgrieve, Tang).

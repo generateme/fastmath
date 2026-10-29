@@ -128,7 +128,6 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
-(m/use-primitive-operators)
 
 (defn- invalid-input
   "Returns `ex-info` with `:type :invalid-input`, the name of the failing function, the property, the offending value and the description of expected values."
@@ -146,7 +145,7 @@
       (instance? Integer x)
       (instance? Short x)
       (instance? Byte x)
-      (and (integer? x) (< (.bitLength (biginteger x)) 64))))
+      (and (integer? x) (m/< (.bitLength (biginteger x)) 64))))
 
 (defn- check-seed
   "Returns the seed as a long or throws `ex-info` when `seed` is not an integer within the long range. `function` names the public function for the error."
@@ -444,7 +443,7 @@ The sequence is a snapshot taken when the namespace is loaded, in no particular 
    (let [rng (ensure-rng rng)]
      (repeatedly #(child-rng rng))))
   ([rng ^long n]
-   (when (neg? n) (throw (ex-info "The number of children must not be negative" {:n n})))
+   (when (m/neg? n) (throw (ex-info "The number of children must not be negative" {:n n})))
    (let [rng (ensure-rng rng)]
      (vec (repeatedly n #(child-rng rng))))))
 
@@ -459,25 +458,25 @@ The sequence is a snapshot taken when the namespace is loaded, in no particular 
   For a positive bound the draws `x` above `Long/MAX_VALUE - (2^64 mod mx)` are rejected, what leaves a block of `2^64 - (2^64 mod mx)` consecutive values, a whole number of residue cycles. The value is `(mod x mx)`, as without rejection. The exact test needs a division, the cheap sufficient one `x <= Long/MAX_VALUE - mx` does not."
   (^long [^RandomGenerator r] (.nextLong r))
   (^long [^RandomGenerator r ^long mx]
-   (if (< 0 mx)
-     (let [fast-limit (- Long/MAX_VALUE mx)]
+   (if (m/< 0 mx)
+     (let [fast-limit (m/- Long/MAX_VALUE mx)]
        (loop [x (.nextLong r)]
-         (if (or (<= x fast-limit)
-                 (<= x (- Long/MAX_VALUE (Long/remainderUnsigned (- mx) mx))))
-           (mod x mx)
+         (if (or (m/<= x fast-limit)
+                 (m/<= x (m/- Long/MAX_VALUE (Long/remainderUnsigned (m/- mx) mx))))
+           (m/long-mod x mx)
            (recur (.nextLong r)))))
-     (mod (.nextLong r) mx)))
+     (m/long-mod (.nextLong r) mx)))
   (^long [^RandomGenerator r ^long mn ^long mx]
-   (let [diff (- mx mn)]
+   (let [diff (m/long-sub mx mn)]
      (cond
-       (zero? diff) mn
-       (< 0 diff) (+ mn (next-random-value-long r diff))
+       (m/zero? diff) mn
+       (m/< 0 diff) (m/long-add mn (next-random-value-long r diff))
        ;; span of 2^63 or more: diff wrapped to negative, it is the unsigned span
-       (< mn mx) (loop [x (.nextLong r)]
-                   (if (< (Long/compareUnsigned x diff) 0)
-                     (+ mn x)
+       (m/< mn mx) (loop [x (.nextLong r)]
+                   (if (m/< (Long/compareUnsigned x diff) 0)
+                     (m/long-add mn x)
                      (recur (.nextLong r))))
-       :else (+ mn (next-random-value-long r diff))))))
+       :else (m/long-add mn (next-random-value-long r diff))))))
 
 (defn- next-random-value-int
   "Generate next int.
@@ -487,16 +486,16 @@ The sequence is a snapshot taken when the namespace is loaded, in no particular 
   * arity 2 - from the provided range (included, excluded), spans above `Integer/MAX_VALUE` use the long generator"
   (^long [^RandomGenerator r] (.nextInt r))
   (^long [^RandomGenerator r ^long mx]
-   (if (<= mx Integer/MAX_VALUE)
+   (if (m/<= mx Integer/MAX_VALUE)
      (.nextInt r mx)
      (next-random-value-long r mx)))
   (^long [^RandomGenerator r ^long mn ^long mx]
-   (let [diff (- mx mn)]
+   (let [diff (m/- mx mn)]
      (cond
-       (zero? diff) mn
-       (and (<= 0 diff) (<= diff Integer/MAX_VALUE)) (+ mn (.nextInt r diff))
-       (< mn mx) (next-random-value-long r mn mx)
-       :else (+ mn (.nextInt r diff))))))
+       (m/zero? diff) mn
+       (and (m/<= 0 diff) (m/<= diff Integer/MAX_VALUE)) (m/+ mn (.nextInt r diff))
+       (m/< mn mx) (next-random-value-long r mn mx)
+       :else (m/+ mn (.nextInt r diff))))))
 
 (defn- next-random-value-double
   "Generate next double.
@@ -505,11 +504,11 @@ The sequence is a snapshot taken when the namespace is loaded, in no particular 
   * arity 1 - from 0 to provided double (excluded)
   * arity 2 - from the provided range (included, excluded)"
   (^double [^RandomGenerator r] (.nextDouble r))
-  (^double [^RandomGenerator r ^double mx] (* (.nextDouble r) mx))
+  (^double [^RandomGenerator r ^double mx] (m/* (.nextDouble r) mx))
   (^double [r ^double mn ^double mx]
-   (let [diff (- mx mn)]
-     (if (zero? diff) mn
-         (+ mn (next-random-value-double r diff))))))
+   (let [diff (m/- mx mn)]
+     (if (m/zero? diff) mn
+         (m/+ mn (next-random-value-double r diff))))))
 
 (defn- next-random-value-float
   "Generate next float.
@@ -518,11 +517,11 @@ The sequence is a snapshot taken when the namespace is loaded, in no particular 
   * arity 1 - from 0 to provided float (excluded)
   * arity 2 - from the provided range (included, excluded)"
   ([^RandomGenerator r] (.nextFloat r))
-  ([^RandomGenerator r ^double mx] (unchecked-float (* (.nextFloat r) mx)))
+  ([^RandomGenerator r ^double mx] (unchecked-float (m/* (.nextFloat r) mx)))
   ([r ^double mn ^double mx]
-   (let [diff (- mx mn)]
-     (unchecked-float (if (zero? diff) mn
-                          (+ mn ^float (next-random-value-float r diff)))))))
+   (let [diff (m/- mx mn)]
+     (unchecked-float (if (m/zero? diff) mn
+                          (m/+ mn ^float (next-random-value-float r diff)))))))
 
 (defn- next-random-value-gaussian
   "Generate next random value from normal distribution.
@@ -531,9 +530,9 @@ The sequence is a snapshot taken when the namespace is loaded, in no particular 
   * arity 1 - N(0,par)
   * arity 2 - N(mean,std), computed as `mean + std * g`"
   (^double [^RandomGenerator r] (.nextGaussian r))
-  (^double [^RandomGenerator r ^double mx] (* (.nextGaussian r) mx))
+  (^double [^RandomGenerator r ^double mx] (m/* (.nextGaussian r) mx))
   (^double [^RandomGenerator r ^double mean ^double std]
-   (+ mean (* std (.nextGaussian r)))))
+   (m/+ mean (m/* std (.nextGaussian r)))))
 
 ;; Extend RandomGenerator interface with functions created by macro `next-random-value-fn`. This way all RNG classes are enriched with new, more convenient functions.
 ;;
@@ -548,7 +547,7 @@ The sequence is a snapshot taken when the namespace is loaded, in no particular 
    :grandom next-random-value-gaussian
    :brandom (fn
               ([^RandomGenerator t] (.nextBoolean t))
-              ([t ^double thr] (< (next-random-value-double t) thr)))
+              ([t ^double thr] (m/< (next-random-value-double t) thr)))
    :set-seed! (fn [^RandomGenerator t ^long seed]
                 (.setSeed t seed)
                 t)
@@ -732,9 +731,9 @@ The functions read the var at call time, so `with-redefs` replaces the generator
 
   See also [[roll-a-dice-rng]], [[irand]]."
   (^long [sides]
-   (inc (irand sides)))
+   (m/inc (irand sides)))
   (^long [dices sides]
-   (reduce m/+ (repeatedly dices #(inc (irand sides)))))  )
+   (reduce m/+ (repeatedly dices #(m/inc (irand sides)))))  )
 
 ;; rng versions
 
@@ -803,9 +802,9 @@ The functions read the var at call time, so `with-redefs` replaces the generator
 
   See also [[roll-a-dice]], [[irandom]]."
   (^long [rng sides]
-   (inc (irandom rng sides)))
+   (m/inc (irandom rng sides)))
   (^long [rng dices sides]
-   (reduce m/+ (repeatedly dices #(inc (irandom rng sides))))))
+   (reduce m/+ (repeatedly dices #(m/inc (irandom rng sides))))))
 
 ;; generators
 
@@ -814,9 +813,9 @@ The functions read the var at call time, so `with-redefs` replaces the generator
   ^long [function seq-generator dimensions]
   (let [limit (case seq-generator :halton 40 :sobol 1000 :r2 15 Long/MAX_VALUE)]
     (if (and (long-integer? dimensions)
-             (<= 1 (.longValue ^Number dimensions) limit))
+             (m/<= 1 (.longValue ^Number dimensions) limit))
       (.longValue ^Number dimensions)
-      (let [expected (if (== limit Long/MAX_VALUE)
+      (let [expected (if (m/== limit Long/MAX_VALUE)
                        "an integer >= 1"
                        (str "an integer from 1 to " limit))]
         (throw (invalid-input function :dimensions dimensions expected
@@ -828,7 +827,7 @@ The functions read the var at call time, so `with-redefs` replaces the generator
   ^double [jitter]
   (if (and (number? jitter)
            (Double/isFinite (double jitter))
-           (>= (double jitter) 0.0))
+           (m/>= (double jitter) 0.0))
     (double jitter)
     (throw (invalid-input 'jittered-sequence-generator :jitter jitter "a finite number >= 0"
                           (str "Jitter must be a finite number >= 0, got " (pr-str jitter))))))
@@ -836,7 +835,7 @@ The functions read the var at call time, so `with-redefs` replaces the generator
 (defn- ball-point
   "Draws a point from the interior of the unit ball of `dims` dimensions (already validated) using `rng` (already checked)."
   [rng ^long dims]
-  (let [u (double-array (repeatedly (+ dims 2) #(grandom rng)))
+  (let [u (double-array (repeatedly (m/long-add dims 2) #(grandom rng)))
         ^doubles n (v/div u (v/mag u))]
     (case dims
       1 (aget n 0)
@@ -919,7 +918,7 @@ The functions read the var at call time, so `with-redefs` replaces the generator
 (defn- wrap-ball
   "Wraps `x` periodically into `[-1,1)`: `((x + 1) mod 2) - 1`."
   ^double [^double x]
-  (m/- (mod (m/+ x 1.0) 2.0) 1.0))
+  (m/- (m/mod (m/+ x 1.0) 2.0) 1.0))
 
 (defn- add-jitter
   "Adds the `jitter` array to the point `v` (a vector) coordinate by coordinate, wraps the sums into [0,1) with `frac` (into [-1,1) when `ball?`) and returns a plain vector."
@@ -941,8 +940,8 @@ The functions read the var at call time, so `with-redefs` replaces the generator
                                                       :halton [0.9 0.7 0.25 -0.5]
                                                       :sobol [0.16 0.58 0.4 -0.2]
                                                       [0.5 0.5 0.25 -0.5])
-        c (* jitter m/SQRTPI d0 f)
-        scale (fn ^double [^long i] (* c (m/pow (- (inc i) i0) p)))]
+        c (m/* jitter m/SQRTPI d0 f)
+        scale (fn ^double [^long i] (m/* c (m/pow (m/- (m/inc i) i0) p)))]
     (if (m/>= dimensions plain-vector-dimensions)
       (map-indexed (fn [^long i _] (jitter-array dimensions (scale i) rng)) (repeat nil))
       (map-indexed (fn [^long i v] (v/mult v (scale i))) (random-generators :default dimensions rng)))))
@@ -1031,15 +1030,15 @@ The functions read the var at call time, so `with-redefs` replaces the generator
              (sequence-generator seq-generator dimensions))
          [j mod-fn] (if (#{:sphere :gaussian} seq-generator)
                       (let [j (sequence-generator :gaussian dimensions rng)
-                            jitter-low (* m/SQRTPI 0.5 0.25 jitter)]
+                            jitter-low (m/* m/SQRTPI 0.5 0.25 jitter)]
                         [j (if (m/one? dimensions)
-                             (fn [^double v ^double vj] (+ v (* jitter-low vj)))
+                             (fn [^double v ^double vj] (m/+ v (m/* jitter-low vj)))
                              (fn [v vj] (v/add v (v/mult vj jitter-low))))])
                       (let [j (jitter-generator seq-generator dimensions jitter rng)]
                         [j (cond
                              (m/one? dimensions) (if ball?
-                                                   (fn [^double v ^double vj] (wrap-ball (+ v vj)))
-                                                   (fn [^double v ^double vj] (m/frac (+ v vj))))
+                                                   (fn [^double v ^double vj] (wrap-ball (m/+ v vj)))
+                                                   (fn [^double v ^double vj] (m/frac (m/+ v vj))))
                              (m/>= dimensions plain-vector-dimensions) (fn [v vj] (add-jitter v vj ball?))
                              ball? (fn [v vj] (v/fmap (v/add v vj) wrap-ball))
                              :else (fn [v vj] (v/fmap (v/add v vj) m/frac)))]))]
@@ -1092,13 +1091,13 @@ The sequence is a snapshot taken when the namespace is loaded: generators added 
                                  (str "one of " (pr-str (keys noise-types))))
         interpolation (noise-option function cfg :interpolation :hermite #(contains? noise-interpolations %)
                                     (str "one of " (pr-str (keys noise-interpolations))))
-        octaves (noise-option function cfg :octaves 6 #(and (long-integer? %) (<= 1 (long %) 64))
+        octaves (noise-option function cfg :octaves 6 #(and (long-integer? %) (m/<= 1 (long %) 64))
                               "an integer from 1 to 64")
-        lacunarity (noise-option function cfg :lacunarity 2.0 #(and (finite-number? %) (> (double %) 0.0))
+        lacunarity (noise-option function cfg :lacunarity 2.0 #(and (finite-number? %) (m/pos? (double %)))
                                  "a finite number > 0")
-        gain (noise-option function cfg :gain 0.5 #(and (finite-number? %) (>= (double %) 0.0))
+        gain (noise-option function cfg :gain 0.5 #(and (finite-number? %) (m/not-neg? (double %)))
                            "a finite number >= 0")
-        normalize? (noise-option function cfg :normalize? true #(instance? Boolean %) "a boolean")]
+        normalize? (let [v (get cfg :normalize?)] (or (nil? v) v))]
     (NoiseConfig. (unchecked-int (long (if (nil? seed) (irand) (.longValue ^Number seed))))
                   (int (noise-types noise-type))
                   (int (noise-interpolations interpolation))
@@ -1172,7 +1171,7 @@ The sequence is a snapshot taken when the namespace is loaded: generators added 
       - `:seed` - integer seed, default: a random integer drawn from the shared [[default-rng]] (so `(set-seed! n)` makes it reproducible). The noise uses the low 32 bits of the seed: an integer outside of the 32-bit range is accepted and truncated, `1` and `4294967297` give the same noise.
       - `:noise-type` - a key of [[noise-types]]: `:value`, `:gradient` or `:simplex`, default: `:gradient`.
       - `:interpolation` - a key of [[noise-interpolations]]: `:none`, `:linear`, `:hermite` or `:quintic`, used only by `:value` and `:gradient` noise types, default: `:hermite`.
-      - `:normalize?` - a boolean, normalize result to `[0,1]` range (`true`, default) or leave it in `[-1,1]` (`false`).
+      - `:normalize?` - normalize result to `[0,1]` range (truthy, default) or leave it in `[-1,1]` (`false`); `nil` is the default.
       - `:octaves`, `:lacunarity`, `:gain` - validated as in [[fbm-noise]] but have no effect on the values, since only a single octave is evaluated. `:octaves` and `:lacunarity` still set the limit of the coordinates below (as for [[fbm-noise]]), with the default `6` and `2.0` it is `3.36e7`.
 
   Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`), returning a double. The result lies in `[0,1]` when `:normalize?` is true (the default), or `[-1,1]` otherwise (gradient noise of 3 dimensions can exceed the range by about 0.6%, 1.0061 was observed). The noise of 1, 2 and 3 dimensions are unrelated functions, and the 1-D noise repeats with the period 256. Evaluation never throws: a coordinate which is `NaN`, infinite or has an absolute value above the limit `2^30 / lacunarity^(octaves-1)` (for `:lacunarity` below 1 the limit is `2^30`) gives `NaN`.
@@ -1202,13 +1201,13 @@ The sequence is a snapshot taken when the namespace is loaded: generators added 
       - `:octaves` - number of octaves summed together, an integer from `1` to `64`, default: `6`.
       - `:lacunarity` - frequency multiplier applied to each successive octave, a finite number `> 0`, default: `2.0`.
       - `:gain` - amplitude multiplier applied to each successive octave, a finite number `>= 0`, default: `0.5`.
-      - `:normalize?` - a boolean, normalize result to `[0,1]` range (`true`, default) or leave it in `[-1,1]` (`false`).
+      - `:normalize?` - normalize result to `[0,1]` range (truthy, default) or leave it in `[-1,1]` (`false`); `nil` is the default.
 
   Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`), returning a double. The result lies in `[0,1]` when `:normalize?` is true (the default), or `[-1,1]` otherwise, but the realised range is narrower, because the octaves rarely reach their extremes together (the default gradient noise in 2-D, see [[noise]], covers about `[0.16, 0.84]`). The noise of 1, 2 and 3 dimensions are unrelated functions (`(f x)`, `(f x 0.0)` and `(f x 0.0 0.0)` differ), and the 1-D noise repeats with the period 256.
 
   Evaluation never throws: a coordinate which is `NaN`, infinite or has an absolute value above the limit `2^30 / lacunarity^(octaves-1)` (for `:lacunarity` below 1 the limit is `2^30`) gives `NaN`, because the lattice index of the last octave would overflow. For 6 octaves and lacunarity 2 the limit is `3.36e7`.
 
-  Throws `ex-info` (`:type :invalid-input`, `:property` the option, `:value`, `:expected`) when `cfg` is not a map or `nil` or an option is invalid: an unknown `:noise-type` or `:interpolation`, `:octaves` outside `1..64` or not an integer, `:lacunarity` not a finite number `> 0`, `:gain` not a finite number `>= 0`, `:normalize?` not a boolean, `:seed` not an integer.
+  Throws `ex-info` (`:type :invalid-input`, `:property` the option, `:value`, `:expected`) when `cfg` is not a map or `nil` or an option is invalid: an unknown `:noise-type` or `:interpolation`, `:octaves` outside `1..64` or not an integer, `:lacunarity` not a finite number `> 0`, `:gain` not a finite number `>= 0`, `:seed` not an integer.
 
   See also [[single-noise]], [[billow-noise]], [[ridgedmulti-noise]], [[noise]], [[vnoise]], [[simplex]], [[random-noise-cfg]], [[random-noise]]."
   ([] (fbm-noise nil))
@@ -1260,7 +1259,7 @@ The sequence is a snapshot taken when the namespace is loaded: generators added 
   ([] (ridgedmulti-noise nil))
   ([cfg]
    (let [ncfg (noise-config 'ridgedmulti-noise cfg)]
-     (when-not (> (.gain ncfg) 0.0)
+     (when-not (m/> (.gain ncfg) 0.0)
        (throw (invalid-input 'ridgedmulti-noise :gain (.gain ncfg) "a finite number > 0"
                              (str "The gain of ridged multifractal noise must be a finite number > 0, got " (.gain ncfg)))))
      (fn
@@ -1272,33 +1271,33 @@ The sequence is a snapshot taken when the namespace is loaded: generators added 
   [n ^double scale ^long depth]
   (let [warp-noise-1d-proto (fn warp-noise-1d
                               (^double [^double x ^long depth]
-                               (if (zero? depth)
+                               (if (m/zero? depth)
                                  (n x)
-                                 (let [q1 (* scale ^double (warp-noise-1d (+ x depth 0.321) (dec depth)))]
-                                   (n (+ x q1))))))]
+                                 (let [q1 (m/* scale ^double (warp-noise-1d (m/+ x depth 0.321) (m/dec depth)))]
+                                   (n (m/+ x q1))))))]
     (fn [^double x] (warp-noise-1d-proto x depth))))
 
 (defn- make-warp-2d
   [n ^double scale ^long depth]
   (let [warp-noise-2d-proto (fn warp-noise-2d
                               (^double [^double x ^double y ^long depth]
-                               (if (zero? depth)
+                               (if (m/zero? depth)
                                  (n x y)
-                                 (let [q1 (* scale ^double (warp-noise-2d (+ x depth 0.321) (+ y depth 4.987) (dec depth)))
-                                       q2 (* scale ^double (warp-noise-2d (+ x depth 3.591) (+ y depth -2.711) (dec depth)))]
-                                   (n (+ x q1) (+ y q2))))))]
+                                 (let [q1 (m/* scale ^double (warp-noise-2d (m/+ x depth 0.321) (m/+ y depth 4.987) (m/dec depth)))
+                                       q2 (m/* scale ^double (warp-noise-2d (m/+ x depth 3.591) (m/+ y depth -2.711) (m/dec depth)))]
+                                   (n (m/+ x q1) (m/+ y q2))))))]
     (fn [^double x ^double y] (warp-noise-2d-proto x y depth))))
 
 (defn- make-warp-3d
   [n ^double scale ^long depth]
   (let [warp-noise-3d-proto (fn warp-noise-3d
                               (^double [^double x ^double y ^double z ^long depth]
-                               (if (zero? depth)
+                               (if (m/zero? depth)
                                  (n x y z)
-                                 (let [q1 (* scale ^double (warp-noise-3d (+ x depth 0.321) (+ y depth 4.987) (+ z depth 2.12) (dec depth)))
-                                       q2 (* scale ^double (warp-noise-3d (+ x depth 3.591) (+ y depth -2.711) (+ z depth -5.4321) (dec depth)))
-                                       q3 (* scale ^double (warp-noise-3d (+ x depth -1.591) (+ y depth 12.1711) (+ z depth 3.1) (dec depth)))]
-                                   (n (+ x q1) (+ y q2) (+ z q3))))))]
+                                 (let [q1 (m/* scale ^double (warp-noise-3d (m/+ x depth 0.321) (m/+ y depth 4.987) (m/+ z depth 2.12) (m/dec depth)))
+                                       q2 (m/* scale ^double (warp-noise-3d (m/+ x depth 3.591) (m/+ y depth -2.711) (m/+ z depth -5.4321) (m/dec depth)))
+                                       q3 (m/* scale ^double (warp-noise-3d (m/+ x depth -1.591) (m/+ y depth 12.1711) (m/+ z depth 3.1) (m/dec depth)))]
+                                   (n (m/+ x q1) (m/+ y q2) (m/+ z q3))))))]
     (fn [^double x ^double y ^double z] (warp-noise-3d-proto x y z depth))))
 
 (defn- noise-function?
@@ -1315,7 +1314,7 @@ The sequence is a snapshot taken when the namespace is loaded: generators added 
   (when-not (finite-number? scale)
     (throw (invalid-input function :scale scale "a finite number"
                           (str "The warp scale must be a finite number, got " (pr-str scale)))))
-  (when-not (and (long-integer? depth) (>= (long depth) 0))
+  (when-not (and (long-integer? depth) (m/>= (long depth) 0))
     (throw (invalid-input function :depth depth "an integer >= 0"
                           (str "The warp depth must be an integer >= 0, got " (pr-str depth)))))
   [noise (double scale) (long depth)])
@@ -1462,7 +1461,7 @@ The sequence is a snapshot taken when the namespace is loaded: generators added 
     (when-not (finite-number? warp-scale)
       (throw (invalid-input 'random-noise :warp-scale warp-scale "a finite number"
                             (str "The warp scale must be a finite number, got " (pr-str warp-scale)))))
-    (if (pos? (double warp-scale))
+    (if (m/pos? (double warp-scale))
       (warp-noise noise warp-scale (:warp-depth cfg))
       noise)))
 
@@ -2247,7 +2246,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
                    (check-parameter! function :probabilities probabilities (sequence-like? probabilities) "a sequence of numbers or nil")
                    (vec probabilities))]
       (when probs'
-        (check-parameter! function :probabilities probabilities (== (count probs') (count data'))
+        (check-parameter! function :probabilities probabilities (m/== (count probs') (count data'))
                           (str "a sequence with the same count as data (" (count data') ")"))
         (check-parameter! function :probabilities probabilities (every? (fn [p] (and (finite-number? p) (m/not-neg? (double p)))) probs')
                           "finite numbers >= 0")
@@ -4747,7 +4746,7 @@ It is one shared mutable object created with an unseeded generator: sampling fro
         (m/pos-inf? x) 0.0
         (m/neg-inf? x) 1.0
         :else (distr/ccdf d x)))
-    (- 1.0 (double (prot/cdf d v)))))
+    (m/- 1.0 (double (prot/cdf d v)))))
 
 (defn pdf
   "Probability density function; for a discrete distribution the probability mass function, the probability of the value `v`.
@@ -4910,7 +4909,7 @@ It is one shared mutable object created with an unseeded generator: sampling fro
   ^double [d vs]
   (reduce (fn [^double s ^double v] (if (m/invalid-double? s)
                                      (reduced s)
-                                     (+ s v))) 0.0 (map #(prot/lpdf d %) vs)))
+                                     (m/+ s v))) 0.0 (map #(prot/lpdf d %) vs)))
 
 (defn observe
   "Log likelihood of a sample. Alias for [[log-likelihood]].
@@ -5092,25 +5091,25 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
 
 (defn- uniform-spacings
   [rng ^long n]
-  (let [xs (reductions m/+ (repeatedly (inc n) #(- (m/log (drandom rng)))))
-        l (/ ^double (last xs))]
-    (map (fn [^double x] (* x l)) (butlast xs))))
+  (let [xs (reductions m/+ (repeatedly (m/long-inc n) #(m/- (m/log (drandom rng)))))
+        l (m// ^double (last xs))]
+    (map (fn [^double x] (m/* x l)) (butlast xs))))
 
 (defn- systematic-spacings
   [rng ^long n]
-  (let [l (/ 1.0 n)
+  (let [l (m// 1.0 n)
         d (drandom rng)]
-    (map (fn [^long x] (* (+ x d) l)) (range n))))
+    (map (fn [^long x] (m/* (m/+ x d) l)) (range n))))
 
 (defn- stratified-spacings
   [rng ^long n]
-  (let [l (/ 1.0 n)]
-    (map (fn [^long x] (* (+ x (drandom rng)) l)) (range n))))
+  (let [l (m// 1.0 n)]
+    (map (fn [^long x] (m/* (m/+ x (drandom rng)) l)) (range n))))
 
 (defn- antithetic-sampling
   [rng ^long n]
   (->> (repeatedly (fn [] (let [r1 (drandom rng)]
-                           [r1 (- 1.0 r1)])))
+                           [r1 (m/- 1.0 r1)])))
        (mapcat identity)
        (take n)))
 
@@ -5167,7 +5166,7 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
    (if (nil? n)
      (prot/->seq source)
      (let [n (check-n n)]
-       (if (neg? n)
+       (if (m/neg? n)
          ()
          (prot/->seq source n)))))
   ([source n sampling-method] (->seq source n sampling-method nil))
@@ -5183,7 +5182,7 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
        :else (if-let [sampling-fn (get spacings sampling-method)]
                (let [n (check-n n)]
                  (cond
-                   (neg? n) ()
+                   (m/neg? n) ()
                    distribution-source? (map (partial icdf source) (sampling-fn (ensure-rng rng) n))
                    :else (sampling-fn source n)))
                (throw (ex-info (str "Wrong sampling method " (pr-str sampling-method) ", expected one of " (pr-str sampling-methods))
@@ -5216,7 +5215,7 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
   ([x] (if (number? x) (white-noise nil x) (white-noise x 1.0)))
   ([rng sigma]
    (let [g (ensure-rng rng)]
-     (when-not (and (finite-number? sigma) (>= (double sigma) 0.0))
+     (when-not (and (finite-number? sigma) (m/>= (double sigma) 0.0))
        (throw (invalid-input 'white-noise :sigma sigma "a finite number >= 0"
                              (str "The standard deviation must be a finite number >= 0, got " (pr-str sigma)))))
      (let [sigma (double sigma)]
@@ -5239,7 +5238,7 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
   (let [k (get opts :burn-in)]
     (cond
       (nil? k) nil
-      (and (long-integer? k) (>= (long k) 0)) (long k)
+      (and (long-integer? k) (m/>= (long k) 0)) (long k)
       :else (throw (invalid-input function :burn-in k "an integer >= 0"
                                   (str "The burn-in must be an integer >= 0, got " (pr-str k)))))))
 
@@ -5284,9 +5283,9 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
   ^double [^doubles history ^doubles coeffs]
   (let [n (alength coeffs)]
     (loop [i 1
-           acc (* (Array/aget history 0) (Array/aget coeffs 0))]
-      (if (< i n)
-        (recur (inc i) (+ acc (* (Array/aget history i) (Array/aget coeffs i))))
+           acc (m/* (Array/aget history 0) (Array/aget coeffs 0))]
+      (if (m/< i n)
+        (recur (m/inc i) (m/+ acc (m/* (Array/aget history i) (Array/aget coeffs i))))
         acc))))
 
 (defn- push-history
@@ -5294,8 +5293,8 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
   ^doubles [^doubles history ^double x]
   (let [n (alength history)
         nh (double-array n)]
-    (System/arraycopy history 1 nh 0 (dec n))
-    (Array/aset nh (dec n) x)
+    (System/arraycopy history 1 nh 0 (m/dec n))
+    (Array/aset nh (m/dec n) x)
     nh))
 
 (defn- ma-or-ar
@@ -5305,24 +5304,24 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
         cnt (long (alength user))
         burn (if (nil? burn-in) cnt (long burn-in))
         signal (check-signal function signal)]
-    (if (every? zero? user)
-      (drop (+ cnt burn) signal)
+    (if (every? m/zero? user)
+      (drop (m/long-add cnt burn) signal)
       (let [^doubles cs (double-array (reverse user))
             ;; cs[j] multiplies the history element j, the newest (index cnt-1) is multiplied by the first coefficient
             step (fn step [sig ^doubles history]
                    (when-let [s (seq sig)]
                      (let [e (double (first s))
-                           a (+ (history-dot history cs) e)]
+                           a (m/+ (history-dot history cs) e)]
                        (cons a (lazy-seq (step (rest s) (push-history history (if ma? e a))))))))]
         (drop burn
               (lazy-seq
                (let [history (double-array cnt)]
                  (loop [i 0
                         s (seq signal)]
-                   (if (< i cnt)
+                   (if (m/< i cnt)
                      (when s
                        (Array/aset history i (double (first s)))
-                       (recur (inc i) (next s)))
+                       (recur (m/inc i) (next s)))
                      (step s history))))))))))
 
 (defn ma
@@ -5427,12 +5426,12 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
 (defn- cumulative-sum
   "Cumulative sums of the signal with the zero initial condition, as a lazy sequence of doubles."
   [signal]
-  (rest (reductions (fn [acc e] (+ (double acc) (double e))) 0.0 signal)))
+  (rest (reductions (fn [acc e] (m/+ (double acc) (double e))) 0.0 signal)))
 
 (defn- differences
   "First differences `e[t] - e[t-1]` of the signal with `e[-1] = 0` (the first element is `e[0]`), as a lazy sequence of doubles."
   [signal]
-  (map (fn [a b] (- (double a) (double b))) signal (cons 0.0 signal)))
+  (map (fn [a b] (m/- (double a) (double b))) signal (cons 0.0 signal)))
 
 (defn- check-fi-order
   "Returns `d` as a double or throws `ex-info` (`:property :d`) naming `function` when it is not a finite number."
@@ -5445,7 +5444,7 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
 (defn- check-dlimit
   "Returns `dlimit` as a long or throws `ex-info` (`:property :dlimit`) naming `function` when it is not an integer `>= 0`."
   ^long [function dlimit]
-  (if (and (long-integer? dlimit) (>= (long dlimit) 0))
+  (if (and (long-integer? dlimit) (m/>= (long dlimit) 0))
     (long dlimit)
     (throw (invalid-input function :dlimit dlimit "an integer >= 0"
                           (str "The dlimit must be an integer >= 0, got " (pr-str dlimit))))))
@@ -5459,14 +5458,14 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
     (cond
       (m/zero? d) signal
       (m/integer? d) (do
-                       (when (> (Math/abs d) 100.0)
+                       (when (m/> (Math/abs d) 100.0)
                          (throw (invalid-input function :d d "an integer with an absolute value <= 100 or a non-integer"
                                                (str "An integer fractional differencing order must have an absolute value <= 100, got " (pr-str d)))))
                        (let [k (Math/abs (long d))
-                             f (if (pos? d) cumulative-sum differences)]
-                         (drop (+ k (if (nil? burn-in) k (long burn-in)))
+                             f (if (m/pos? d) cumulative-sum differences)]
+                         (drop (m/long-add k (if (nil? burn-in) k (long burn-in)))
                                (nth (iterate f signal) k))))
-      (pos? dlimit) (ma-or-ar function false (fi-diffs d dlimit) signal burn-in)
+      (m/pos? dlimit) (ma-or-ar function false (fi-diffs d dlimit) signal burn-in)
       (some? burn-in) (throw (invalid-input function :burn-in burn-in "nil (the exact fractional integration, non-integer d with dlimit 0, has no burn-in)"
                                             "The :burn-in option does not apply to the exact fractional integration (non-integer d, dlimit 0); use a positive dlimit"))
       :else (letfn [(step [sig history coeffs ^long k]
@@ -5569,4 +5568,3 @@ It is a snapshot taken when the namespace is loaded: a method added to [[distrib
                (fi-stage 'arfima d dlimit (ma-or-ar 'arfima true theta signal burn-in) burn-in)
                burn-in))))
 
-(m/unuse-primitive-operators)

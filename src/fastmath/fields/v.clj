@@ -6,12 +6,12 @@
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defn- v-modulate 
   "Modulate"
   ^double [^double amp ^double freq ^double x]
-  (* amp (m/cos (* x freq m/TWO_PI))))
+  (m/* amp (m/cos (m/* x freq m/TWO_PI))))
 
 (defn vibration2
   "Vibration 2 http://fractal-resources.deviantart.com/art/Apo-Plugins-Vibration-1-and-2-252001851"
@@ -57,45 +57,45 @@
          cdir2 (m/cos dir2)
          sdir2 (m/sin dir2)]
      (fn [^Vec2 v]
-       (let [d-along-dir (+ (* (.x v) cdir)
-                            (* (.y v) sdir))
-             dir-l (+ dir (v-modulate dm dmfreq d-along-dir))
-             angle-l (+ angle (v-modulate tm tmfreq d-along-dir))
-             freq-l (/ (v-modulate fm fmfreq d-along-dir) freq)
-             amp-l (+ amp (* amp (v-modulate am amfreq d-along-dir)))
-             total-angle (+ angle-l dir-l)
+       (let [d-along-dir (m/+ (m/* (.x v) cdir)
+                            (m/* (.y v) sdir))
+             dir-l (m/+ dir (v-modulate dm dmfreq d-along-dir))
+             angle-l (m/+ angle (v-modulate tm tmfreq d-along-dir))
+             freq-l (m// (v-modulate fm fmfreq d-along-dir) freq)
+             amp-l (m/+ amp (m/* amp (v-modulate am amfreq d-along-dir)))
+             total-angle (m/+ angle-l dir-l)
              cos-dir (m/cos dir-l)
              sin-dir (m/sin dir-l)
              cos-tot (m/cos total-angle)
              sin-tot (m/sin total-angle)
-             scaled-freq (* m/TWO_PI freq)
-             phase-shift (/ (* m/TWO_PI phase) freq)
-             d-along-dir (+ (* (.x v) cos-dir)
-                            (* (.y v) sin-dir))
-             local-amp (* amp-l (m/sin (+ (* d-along-dir scaled-freq) freq-l phase-shift)))
-             x (+ (.x v) (* local-amp cos-tot))
-             y (+ (.y v) (* local-amp sin-tot))
+             scaled-freq (m/* m/TWO_PI freq)
+             phase-shift (m// (m/* m/TWO_PI phase) freq)
+             d-along-dir (m/+ (m/* (.x v) cos-dir)
+                            (m/* (.y v) sin-dir))
+             local-amp (m/* amp-l (m/sin (m/+ (m/* d-along-dir scaled-freq) freq-l phase-shift)))
+             x (m/+ (.x v) (m/* local-amp cos-tot))
+             y (m/+ (.y v) (m/* local-amp sin-tot))
 
-             d-along-dir (+ (* (.x v) cdir2)
-                            (* (.y v) sdir2))
-             dir-l (+ dir2 (v-modulate d2m d2mfreq d-along-dir))
-             angle-l (+ angle2 (v-modulate t2m t2mfreq d-along-dir))
-             freq-l (/ (v-modulate f2m f2mfreq d-along-dir) freq2)
-             amp-l (+ amp2 (* amp2 (v-modulate a2m a2mfreq d-along-dir)))
-             total-angle (+ angle-l dir-l)
+             d-along-dir (m/+ (m/* (.x v) cdir2)
+                            (m/* (.y v) sdir2))
+             dir-l (m/+ dir2 (v-modulate d2m d2mfreq d-along-dir))
+             angle-l (m/+ angle2 (v-modulate t2m t2mfreq d-along-dir))
+             freq-l (m// (v-modulate f2m f2mfreq d-along-dir) freq2)
+             amp-l (m/+ amp2 (m/* amp2 (v-modulate a2m a2mfreq d-along-dir)))
+             total-angle (m/+ angle-l dir-l)
              cos-dir (m/cos dir-l)
              sin-dir (m/sin dir-l)
              cos-tot (m/cos total-angle)
              sin-tot (m/sin total-angle)
-             scaled-freq (* m/TWO_PI freq2)
-             phase-shift (/ (* m/TWO_PI phase2) freq2)
-             d-along-dir (+ (* (.x v) cos-dir)
-                            (* (.y v) sin-dir))
-             local-amp (* amp-l (m/sin (+ (* d-along-dir scaled-freq) freq-l phase-shift)))
-             x (+ x (* local-amp cos-tot))
-             y (+ y (* local-amp sin-tot))]
-         (Vec2. (* amount x)
-                (* amount y)))))))
+             scaled-freq (m/* m/TWO_PI freq2)
+             phase-shift (m// (m/* m/TWO_PI phase2) freq2)
+             d-along-dir (m/+ (m/* (.x v) cos-dir)
+                            (m/* (.y v) sin-dir))
+             local-amp (m/* amp-l (m/sin (m/+ (m/* d-along-dir scaled-freq) freq-l phase-shift)))
+             x (m/+ x (m/* local-amp cos-tot))
+             y (m/+ y (m/* local-amp sin-tot))]
+         (Vec2. (m/* amount x)
+                (m/* amount y)))))))
 
 
 (defn vogel
@@ -104,13 +104,13 @@
                       :n (u/sdrand 0.01 5.0)})})
   ([^double amount {:keys [^double scale ^double n]}]
    (fn [^Vec2 v]
-     (let [i (int (inc (r/drand n)))
-           a (* i 2.399963229728653)
+     (let [i (int (m/inc (r/drand n)))
+           a (m/* i 2.399963229728653)
            sina (m/sin a)
            cosa (m/cos a)
-           r (* amount (+ (v/mag v) (m/sqrt i)))]
-       (Vec2. (* r (+ cosa (* scale (.x v))))
-              (* r (+ sina (* scale (.y v)))))))))
+           r (m/* amount (m/+ (v/mag v) (m/sqrt i)))]
+       (Vec2. (m/* r (m/+ cosa (m/* scale (.x v))))
+              (m/* r (m/+ sina (m/* scale (.y v)))))))))
 
 
 (deftype VoronResType [^double R ^double X0 ^double Y0])
@@ -128,34 +128,34 @@
    (fn [^Vec2 v]
      (let [fk (fn ^VoronCalcType [^long M1 ^long N1]
                 (VoronCalcType. M1 N1
-                                (long (inc (m/floor (* (r/discrete-noise (+ (+ (* M1 19) (* N1 257)) xseed) 0) num))))))
-           m (long (m/floor (/ (.x v) step)))
-           n (long (m/floor (/ (.y v) step)))
-           m- (dec m)
-           m+ (inc m)
-           n- (dec n)
-           n+ (inc n)
+                                (long (m/inc (m/floor (m/* (r/discrete-noise (m/long-add (m/long-add (m/long-mult M1 19) (m/long-mult N1 257)) xseed) 0) num))))))
+           m (long (m/floor (m// (.x v) step)))
+           n (long (m/floor (m// (.y v) step)))
+           m- (m/dec m)
+           m+ (m/inc m)
+           n- (m/dec n)
+           n+ (m/inc n)
            Ks (mapv fk [m- m- m- m m m m+ m+ m+] [n- n n+ n- n n+ n- n n+])
            ^VoronResType res (reduce (fn [^VoronResType curr ^VoronCalcType calc]
                                        (loop [i (long 0)
                                               ^VoronResType currl curr]
-                                         (if (< i (.k calc))
-                                           (let [X (* step (+ (.M1 calc)
-                                                              (r/discrete-noise (+
-                                                                                 (+ i (* 64 (.M1 calc)))
-                                                                                 (+ xseed (* 15 (.N1 calc)))) 0)))
-                                                 Y (* step (+ (.N1 calc)
-                                                              (r/discrete-noise (+
-                                                                                 (+ i (* 21 (.M1 calc)))
-                                                                                 (+ yseed (* 33 (.N1 calc)))) 0)))
-                                                 R (m/hypot-sqrt (- (.x v) X) (- (.y v) Y))]
+                                         (if (m/< i (.k calc))
+                                           (let [X (m/* step (m/+ (.M1 calc)
+                                                              (r/discrete-noise (m/long-add
+                                                                                 (m/long-add i (m/long-mult 64 (.M1 calc)))
+                                                                                 (m/long-add xseed (m/long-mult 15 (.N1 calc)))) 0)))
+                                                 Y (m/* step (m/+ (.N1 calc)
+                                                              (r/discrete-noise (m/long-add
+                                                                                 (m/long-add i (m/long-mult 21 (.M1 calc)))
+                                                                                 (m/long-add yseed (m/long-mult 33 (.N1 calc)))) 0)))
+                                                 R (m/hypot-sqrt (m/- (.x v) X) (m/- (.y v) Y))]
                                              (recur (unchecked-inc i)
-                                                    (if (< R (.R currl))
+                                                    (if (m/< R (.R currl))
                                                       (VoronResType. R X Y)
                                                       currl)))
                                            currl))) (VoronResType. 20.0 0.0 0.0) Ks)]
-       (Vec2. (* amount (+ (.X0 res) (* k (- (.x v) (.X0 res)))))
-              (* amount (+ (.Y0 res) (* k (- (.y v) (.Y0 res))))))))))
+       (Vec2. (m/* amount (m/+ (.X0 res) (m/* k (m/- (.x v) (.X0 res)))))
+              (m/* amount (m/+ (.Y0 res) (m/* k (m/- (.y v) (.Y0 res))))))))))
 
 ;;
 
@@ -174,31 +174,30 @@
                       :phase2 (r/drand)})})
   ([^double amount {:keys [^double dir ^double angle ^double freq ^double amp ^double phase
                            ^double dir2 ^double angle2 ^double freq2 ^double amp2 ^double phase2]}]
-   (let [total-angle (+ angle dir)
+   (let [total-angle (m/+ angle dir)
          cos-dir (m/cos dir)
          sin-dir (m/sin dir)
          cos-tot (m/cos total-angle)
          sin-tot (m/sin total-angle)
-         scaled-freq (* m/TWO_PI freq)
-         phase-shift (/ (* m/TWO_PI phase) freq)
-         total-angle2 (+ angle2 dir2)
+         scaled-freq (m/* m/TWO_PI freq)
+         phase-shift (m// (m/* m/TWO_PI phase) freq)
+         total-angle2 (m/+ angle2 dir2)
          cos-dir2 (m/cos dir2)
          sin-dir2 (m/sin dir2)
          cos-tot2 (m/cos total-angle2)
          sin-tot2 (m/sin total-angle2)
-         scaled-freq2 (* m/TWO_PI freq2)
-         phase-shift2 (/ (* m/TWO_PI phase2) freq2)]
+         scaled-freq2 (m/* m/TWO_PI freq2)
+         phase-shift2 (m// (m/* m/TWO_PI phase2) freq2)]
      (fn [^Vec2 v]
-       (let [d-along-dir (+ (* (.x v) cos-dir)
-                            (* (.y v) sin-dir))
-             local-amp (* amp (m/sin (+ (* d-along-dir scaled-freq) phase-shift)))
-             x (+ (.x v) (* local-amp cos-tot))
-             y (+ (.y v) (* local-amp sin-tot))
-             d-along-dir (+ (* (.x v) cos-dir2)
-                            (* (.y v) sin-dir2))
-             local-amp (* amp2 (m/sin (+ (* d-along-dir scaled-freq2) phase-shift2)))
-             x (+ x (* local-amp cos-tot2))
-             y (+ y (* local-amp sin-tot2))]
-         (Vec2. (* amount x) (* amount y)))))))
+       (let [d-along-dir (m/+ (m/* (.x v) cos-dir)
+                            (m/* (.y v) sin-dir))
+             local-amp (m/* amp (m/sin (m/+ (m/* d-along-dir scaled-freq) phase-shift)))
+             x (m/+ (.x v) (m/* local-amp cos-tot))
+             y (m/+ (.y v) (m/* local-amp sin-tot))
+             d-along-dir (m/+ (m/* (.x v) cos-dir2)
+                            (m/* (.y v) sin-dir2))
+             local-amp (m/* amp2 (m/sin (m/+ (m/* d-along-dir scaled-freq2) phase-shift2)))
+             x (m/+ x (m/* local-amp cos-tot2))
+             y (m/+ y (m/* local-amp sin-tot2))]
+         (Vec2. (m/* amount x) (m/* amount y)))))))
 
-(m/unuse-primitive-operators)

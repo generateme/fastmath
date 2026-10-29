@@ -77,7 +77,7 @@
 
 ;; cubic
 
-(def ^{:private true :const true :tag 'double} NOISE (* 64.0 m/MACHINE-EPSILON2))
+(def ^{:private true :const true :tag 'double} NOISE (m/* 64.0 m/MACHINE-EPSILON2))
 (def ^{:private true :const true :tag 'double} WINDOW 1.125899906842624E15)
 (def ^{:private true :const true :tag 'double} -WINDOW -1.125899906842624E15)
 
@@ -159,7 +159,7 @@
 (defn- roots-at-scale
   "The real roots of the cubic `cf = [d c b a]` whose magnitude is nearest to the scale `sigma` among `scales`, as numbers."
   [^Vec4 cf exps scales ^long sigma]
-  (let [m (long (apply max (keep-indexed (fn [^long k e] (when e (m/+ (long e) (m/* k sigma)))) exps)))
+  (let [m (long (apply m/max (keep-indexed (fn [^long k e] (when e (m/+ (long e) (m/* k sigma)))) exps)))
         cz (v/vec4 (map-indexed (fn [^long k ^double c] (m/scalb c (m/long-sub (m/long-mult k sigma) m))) cf))
         nearest (fn [^long ex] (first (sort-by (fn [^long sg] (m/abs (m/- ex sg))) scales)))]
     (keep (fn [^double z]

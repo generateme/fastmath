@@ -132,7 +132,7 @@
         P (mat/rows->RealMatrix pterms)
         pos (count xss)
         ptsize (count (first pterms))
-        size (+ ptsize pos)
+        size (m/+ ptsize pos)
         ^RealMatrix target (MatrixUtils/createRealMatrix size size)]
     (.setSubMatrix target (mat/mat->array2d Phi) 0 0)
     (.setSubMatrix target (mat/mat->array2d P) 0 pos)

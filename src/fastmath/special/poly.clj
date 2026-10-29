@@ -13,7 +13,7 @@
   "Clenshaw evaluation of the Chebyshev series `c[0] T0(x) + c[1] T1(x) + ...` at `x` in [-1, 1] (`c[0]` is not halved)."
   ^double [^double x ^doubles c]
   (let [x2 (m/* 2.0 x)
-        N (dec (alength c))]
+        N (m/dec (alength c))]
     (loop [i (m/- N 2)
            c0 (Array/aget c (m/dec N))
            c1 (Array/aget c N)]
@@ -24,7 +24,7 @@
 (defn split-poly
   "Evaluates the polynomial with the coefficients `P` (low to high) at `x` as the two combinations `[even - odd, even + odd]` of its even and odd parts, i.e. the values at `-x` and `x` (a [[Vec2]])."
   ^Vec2 [^double x ^doubles P]
-  (let [N (dec (alength P))
+  (let [N (m/dec (alength P))
         xx (m/* x x)]
     (loop [i (m/- N 2)
            out (Array/aget P N)
@@ -43,7 +43,7 @@
 (defn split-poly-c
   "As [[split-poly]] for a complex argument."
   [^Vec2 x ^doubles P]
-  (let [N (dec (alength P))
+  (let [N (m/dec (alength P))
         xx (cplx/sq x)]
     (loop [i (m/- N 2)
            out (Vec2. (Array/aget P N) 0.0)
@@ -62,7 +62,7 @@
 (defn split-phase-poly
   "Integrates the series `P[0] + P[1] x^2 + ... ` term by term and returns the pair `[phase, derivative]` used for the Hankel phase `theta(x)` and `theta'(x)` ([[a-ap-poly-10]])."
   ^Vec2 [^double x ^doubles P]
-  (let [N (dec (alength P))
+  (let [N (m/dec (alength P))
         xx (m/* x x)
         ap1 (Array/aget P N)
         ap2 (Array/aget P (m/dec N))
@@ -94,7 +94,7 @@
 (defn even-odd-poly-add
   "Evaluates the polynomial with the coefficients `P` (low to high) at `x` with separate Horner recurrences for the even and odd terms."
   ^double [^double x ^doubles P]
-  (let [N (dec (alength P))
+  (let [N (m/dec (alength P))
         xx (m/* x x)]
     (loop [i (m/- N 2)
            out (Array/aget P N)

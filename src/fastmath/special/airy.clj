@@ -3,6 +3,9 @@
             [fastmath.core :as m]
             [fastmath.special.poly :as spoly]))
 
+(set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
+
 (def ^{:private true :const true :tag 'double} PIPOW32 5.568327996831708)
 (def ^{:private true :const true :tag 'double} INVPIPOW32 0.17958712212516656)
 (def ^{:private true :const true :tag 'double} HINVSQRTPI 0.28209479177387814)

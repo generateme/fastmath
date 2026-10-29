@@ -226,12 +226,12 @@
          degree (or degree default-degree)]
      (when-not (and (number? degree)
                     (m/valid-double? (double degree))
-                    (== (double degree) (Math/rint (double degree)))
-                    (>= (double degree) 1.0))
+                    (m/== (double degree) (Math/rint (double degree)))
+                    (m/>= (double degree) 1.0))
        (ic/invalid-input! :b-spline :degree
                           (str ":degree has to be an integer >= 1, got " degree)
                           {:option :degree :value degree :expected "integer >= 1"}))
-     (let [k (long (min (double degree) 1.0e9))]
+     (let [k (long (m/min (double degree) 1.0e9))]
        (ic/validate-xy! :b-spline xs ys {:min-points (m/inc k) :sorted? true})
        (let [t (if knots
                  (let [t (m/seq->double-array knots)]

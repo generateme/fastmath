@@ -77,7 +77,7 @@
   s1 ... s1 | s1 ... sn | sn ... sn"
   [^doubles signal ^long N side]
   (let [[^doubles out ^long len ^long start ^long end] (out-len-pos signal N side)]
-    (when (< end N) (Arrays/fill out end N (Array/aget signal (m/dec len))))
+    (when (m/< end N) (Arrays/fill out end N (Array/aget signal (m/dec len))))
     (when-not (m/zero? start) (Arrays/fill out 0 start (Array/aget signal 0)))
     out))
 
@@ -87,16 +87,16 @@
   ... sn s1 ... sn | s1 ... sn | s1 ... sn s1 ..."
   [^doubles signal ^long N side]
   (let [[^doubles out ^long len ^long start ^long end] (out-len-pos signal N side)]
-    (when (< end N) (let [diff (m/long-sub N end)
-                          copies (m/long-quot diff len)
-                          remainder (m/long-mod diff len)]
-                      (dotimes [id copies]
-                        (System/arraycopy signal 0 out (m/+ end (m/* id len)) len))
-                      (System/arraycopy signal 0 out (m/+ end (m/* copies len)) remainder)))
+    (when (m/< end N) (let [diff (m/long-sub N end)
+                            copies (m/long-quot diff len)
+                            remainder (m/long-mod diff len)]
+                        (dotimes [id copies]
+                          (System/arraycopy signal 0 out (m/+ end (m/* id len)) len))
+                        (System/arraycopy signal 0 out (m/+ end (m/* copies len)) remainder)))
     (when-not (m/zero? start) (let [copies (m/long-quot start len)
                                     remainder (m/long-mod start len)]
                                 (dotimes [id copies]                                  
-                                  (System/arraycopy signal 0 out (m/- start (m/* (inc id) len)) len))
+                                  (System/arraycopy signal 0 out (m/- start (m/* (m/inc id) len)) len))
                                 (System/arraycopy signal (m/- len remainder) out 0 remainder)))
     out))
 
@@ -117,18 +117,18 @@
         ^doubles mirror (reverse-signal signal)]
 
     ;; right end
-    (when (< end N) (let [diff (m/long-sub N end)
-                          copies (m/long-quot diff len)
-                          remainder (m/long-mod diff len)]
-                      (dotimes [id copies]
-                        (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/+ end (m/* id len)) len))
-                      (System/arraycopy (if (m/even? copies) mirror signal) 0 out (m/+ end (m/* copies len)) remainder)))
+    (when (m/< end N) (let [diff (m/long-sub N end)
+                            copies (m/long-quot diff len)
+                            remainder (m/long-mod diff len)]
+                        (dotimes [id copies]
+                          (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/+ end (m/* id len)) len))
+                        (System/arraycopy (if (m/even? copies) mirror signal) 0 out (m/+ end (m/* copies len)) remainder)))
 
     ;; left end
     (when-not (m/zero? start) (let [copies (m/long-quot start len)
                                     remainder (m/long-mod start len)]
                                 (dotimes [id copies]
-                                  (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/- start (m/* (inc id) len)) len))
+                                  (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/- start (m/* (m/inc id) len)) len))
                                 (System/arraycopy (if (m/even? copies) mirror signal) (m/- len remainder) out 0 remainder)))
     out))
 
@@ -145,20 +145,20 @@
           ^doubles mirror (reverse-signal signal)
           len- (m/long-dec len)]
 
-    ;; right end
-    (when (< end N) (let [diff (m/long-sub N end)
-                          copies (m/long-quot diff len-)
-                          remainder (m/long-mod diff len-)]
-                      (dotimes [id copies]
-                        (System/arraycopy (if (m/even? id) mirror signal) 1 out (m/+ end (m/* id len-)) len-))
-                      (System/arraycopy (if (m/even? copies) mirror signal) 1 out (m/+ end (m/* copies len-)) remainder)))
+      ;; right end
+      (when (m/< end N) (let [diff (m/long-sub N end)
+                              copies (m/long-quot diff len-)
+                              remainder (m/long-mod diff len-)]
+                          (dotimes [id copies]
+                            (System/arraycopy (if (m/even? id) mirror signal) 1 out (m/+ end (m/* id len-)) len-))
+                          (System/arraycopy (if (m/even? copies) mirror signal) 1 out (m/+ end (m/* copies len-)) remainder)))
 
-    ;; left end
-    (when-not (m/zero? start) (let [copies (m/long-quot start len-)
-                                    remainder (m/long-mod start len-)]
-                                (dotimes [id copies]
-                                  (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/- start (m/* (inc id) len-)) len-))
-                                (System/arraycopy (if (m/even? copies) mirror signal) (m/- len- remainder) out 0 remainder)))
+      ;; left end
+      (when-not (m/zero? start) (let [copies (m/long-quot start len-)
+                                      remainder (m/long-mod start len-)]
+                                  (dotimes [id copies]
+                                    (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/- start (m/* (m/inc id) len-)) len-))
+                                  (System/arraycopy (if (m/even? copies) mirror signal) (m/- len- remainder) out 0 remainder)))
       out)))
 
 (defn- negate-signal
@@ -178,18 +178,18 @@
         ^doubles mirror (negate-signal (reverse-signal signal))]
 
     ;; right end
-    (when (< end N) (let [diff (m/long-sub N end)
-                          copies (m/long-quot diff len)
-                          remainder (m/long-mod diff len)]
-                      (dotimes [id copies]
-                        (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/+ end (m/* id len)) len))
-                      (System/arraycopy (if (m/even? copies) mirror signal) 0 out (m/+ end (m/* copies len)) remainder)))
+    (when (m/< end N) (let [diff (m/long-sub N end)
+                            copies (m/long-quot diff len)
+                            remainder (m/long-mod diff len)]
+                        (dotimes [id copies]
+                          (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/+ end (m/* id len)) len))
+                        (System/arraycopy (if (m/even? copies) mirror signal) 0 out (m/+ end (m/* copies len)) remainder)))
 
     ;; left end
     (when-not (m/zero? start) (let [copies (m/long-quot start len)
                                     remainder (m/long-mod start len)]
                                 (dotimes [id copies]
-                                  (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/- start (m/* (inc id) len)) len))
+                                  (System/arraycopy (if (m/even? id) mirror signal) 0 out (m/- start (m/* (m/inc id) len)) len))
                                 (System/arraycopy (if (m/even? copies) mirror signal) (m/- len remainder) out 0 remainder)))
     
     out))
@@ -205,18 +205,18 @@
     (edge signal N side)
     (let [[^doubles out ^long len ^long start ^long end] (out-len-pos signal N side)]
 
-    ;; right end
-    (when (< end N) (let [lst (Array/aget signal (m/dec len))
-                          diff (m/- lst (Array/aget signal (m/- len 2)))]
-                      (dotimes [id (m/long-sub N end)]
-                        (Array/aset out (m/+ end id) (m/+ lst (m/* (m/inc id) diff))))))
+      ;; right end
+      (when (m/< end N) (let [lst (Array/aget signal (m/dec len))
+                              diff (m/- lst (Array/aget signal (m/- len 2)))]
+                          (dotimes [id (m/long-sub N end)]
+                            (Array/aset out (m/+ end id) (m/+ lst (m/* (m/inc id) diff))))))
 
-    ;; left end
-    (when-not (m/zero? start) (let [frst (Array/aget signal 0)
-                                    diff (m/- (Array/aget signal 1) frst)]
-                                (dotimes [id start]
-                                  (Array/aset out (m/- start id 1) (m/- frst (m/* (m/inc id) diff))))))
-    
+      ;; left end
+      (when-not (m/zero? start) (let [frst (Array/aget signal 0)
+                                      diff (m/- (Array/aget signal 1) frst)]
+                                  (dotimes [id start]
+                                    (Array/aset out (m/- start id 1) (m/- frst (m/* (m/inc id) diff))))))
+      
       out)))
 
 (defn antireflect
@@ -230,29 +230,29 @@
     (edge signal N side)
     (let [[^doubles out ^long len ^long start ^long end] (out-len-pos signal N side)]
 
-    ;; right end
-    (when (< end N) (let [end- (m/dec end)]
-                      (loop [pos end-
-                             id (long 1)
-                             curr (m/* 2.0 (Array/aget out end-))]
-                        (let [npos (m/inc pos)]
-                          (when (m/< npos N)
-                            (if (m/== id len)
-                              (recur pos 1 (m/* 2.0 (Array/aget out pos)))
-                              (do
-                                (Array/aset out npos (m/- curr (Array/aget out (m/- npos id id))))
-                                (recur npos (m/inc id) curr))))))))
+      ;; right end
+      (when (m/< end N) (let [end- (m/dec end)]
+                          (loop [pos end-
+                                 id (long 1)
+                                 curr (m/* 2.0 (Array/aget out end-))]
+                            (let [npos (m/inc pos)]
+                              (when (m/< npos N)
+                                (if (m/== id len)
+                                  (recur pos 1 (m/* 2.0 (Array/aget out pos)))
+                                  (do
+                                    (Array/aset out npos (m/- curr (Array/aget out (m/- npos id id))))
+                                    (recur npos (m/inc id) curr))))))))
 
-    ;; left end
-    (when-not (m/zero? start) (loop [pos start
-                                     id (long 1)
-                                     curr (m/* 2.0 (Array/aget out start))]
-                                (let [npos (m/dec pos)]
-                                  (when (m/not-neg? npos)
-                                    (if (m/== id len)
-                                      (recur pos 1 (m/* 2.0 (Array/aget out pos)))
-                                      (do
-                                        (Array/aset out npos (m/- curr (Array/aget out (m/+ npos id id))))
-                                        (recur npos (m/inc id) curr)))))))
-    
+      ;; left end
+      (when-not (m/zero? start) (loop [pos start
+                                       id (long 1)
+                                       curr (m/* 2.0 (Array/aget out start))]
+                                  (let [npos (m/dec pos)]
+                                    (when (m/not-neg? npos)
+                                      (if (m/== id len)
+                                        (recur pos 1 (m/* 2.0 (Array/aget out pos)))
+                                        (do
+                                          (Array/aset out npos (m/- curr (Array/aget out (m/+ npos id id))))
+                                          (recur npos (m/inc id) curr)))))))
+      
       out)))

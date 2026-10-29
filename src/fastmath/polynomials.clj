@@ -207,7 +207,7 @@
 
   Uses the squared modulus of `z`; when that is not a finite number (`z` is huge, infinite or NaN) falls back to plain complex Horner evaluation, which does not need it."
   ^Vec2 [rc ^Vec2 z]
-  (let [cnt (dec (count rc))
+  (let [cnt (m/dec (count rc))
         q (cplx/norm z)]
     (cond
       (m/zero? cnt) (Vec2. (double (rc 0)) 0.0)
@@ -812,21 +812,21 @@
   `(-1)^(l-k) C(n, l) C(l, k)` for the power `l`, from exact integers converted once. All zero for an order
   outside 0 .. degree."
   [^long degree ^long order]
-  (if (or (neg? order) (> order degree))
+  (if (or (m/neg? order) (m/> order degree))
     (vec (repeat (m/long-inc degree) 0.0))
     (loop [l (long 0)
            binomial-n-l 1N
-           binomial-l-k (if (zero? order) 1N 0N)
+           binomial-l-k (if (m/zero? order) 1N 0N)
            coefficients (transient [])]
-      (if (> l degree)
+      (if (m/> l degree)
         (persistent! coefficients)
-        (let [next-l (inc l)]
+        (let [next-l (m/inc l)]
           (recur next-l
                  (quot (*' binomial-n-l (- degree l)) next-l)
-                 (cond (< next-l order) 0N
-                       (== next-l order) 1N
+                 (cond (m/< next-l order) 0N
+                       (m/== next-l order) 1N
                        :else (quot (*' binomial-l-k next-l) (- next-l order)))
-                 (conj! coefficients (double (*' binomial-n-l binomial-l-k (if (even? (- l order)) 1 -1))))))))))
+                 (conj! coefficients (double (*' binomial-n-l binomial-l-k (if (m/even? (- l order)) 1 -1))))))))))
 
 (set! *unchecked-math* :warn-on-boxed)
 
@@ -953,7 +953,7 @@
     (cond
       (m/> x 1.0) (m/cosh (m/* degree (m/acosh x)))
       (m/< x -1.0) (m/* (m/fpow -1.0 degree) (m/cosh (m/* degree (m/acosh (m/- x)))))
-      :else (m/cos (* degree (m/acos x))))))
+      :else (m/cos (m/* degree (m/acos x))))))
 
 (defn chebyshev-T-ratio
   "Creates the Chebyshev polynomial of the first kind `T_n` with exact integer coefficients.
@@ -2074,7 +2074,7 @@
   See also [[meixner-pollaczek-P]] (double coefficients), [[eval-meixner-pollaczek-P]] (direct evaluation)."
   [^long degree ^double lambda ^double phi]
   (check-degree! degree)
-  (if (zero? degree)
+  (if (m/zero? degree)
     RONE
     (let [rational-lambda (rationalize lambda)
           rational-cos (rationalize (m/cos phi))
@@ -2082,7 +2082,7 @@
       (loop [i (long 2)
              pprev RONE
              prev (scale (ratio-polynomial [(*' rational-lambda rational-cos) rational-sin]) 2)]
-        (if (> i degree)
+        (if (m/> i degree)
           prev
           (recur (inc i) prev
                  (scale (sub (scale (mult prev (ratio-polynomial [(*' (+' rational-lambda (dec i)) rational-cos)

@@ -220,7 +220,6 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
-(m/use-primitive-operators)
 
 ;; ## Signal processing
 ;;
@@ -333,13 +332,13 @@
          ^doubles out (double-array len)]
      (loop [idx (int 0)
             effects-and-state effects]
-       (when (< idx len)
+       (when (m/< idx len)
          (let [sample (aget in idx)
                ^EffectsList res (single-pass effects-and-state sample)
-               idx+ (inc idx)] 
+               idx+ (m/inc idx)] 
            (aset out idx ^double (.sample res))
            (recur idx+
-                  (if (and (pos? reset) (zero? ^long (mod idx+ reset)))
+                  (if (and (m/pos? reset) (m/zero? ^long (m/mod idx+ reset)))
                     (reset-effects effects)
                     res)))))
      out))
@@ -369,7 +368,7 @@
 
   Returns a double. See also [[linear->db]]."
   ^double [^double x]
-  (m/exp10 (/ x 20.0)))
+  (m/exp10 (m// x 20.0)))
 
 (defn linear->db
   "Converts a linear amplitude ratio to decibels: `20 log10(x)`.
@@ -378,7 +377,7 @@
 
   Returns a double. See also [[db->linear]]."
   ^double [^double x]
-  (* 20.0 (m/log10 x)))
+  (m/* 20.0 (m/log10 x)))
 
 ;; ## Effects / Filters
 
@@ -401,9 +400,9 @@
 (defn- calc-filter-alpha
   "Calculate alpha factor"
   ^double [^double rate ^double cutoff]
-  (let [tinterval (/ rate)
-        tau (/ (* cutoff m/TWO_PI))]
-    (/ tinterval (+ tau tinterval))))
+  (let [tinterval (m// rate)
+        tau (m// (m/* cutoff m/TWO_PI))]
+    (m// tinterval (m/+ tau tinterval))))
 
 (defmethod effect :simple-lowpass
   ([m] (effect m {}))
@@ -412,9 +411,9 @@
    (let [alpha (calc-filter-alpha rate cutoff)] 
      (effect-node m (fn
                       ([^double sample ^double prev]
-                       (let [s1 (* sample alpha)
-                             s2 (- prev (* prev alpha))
-                             nprev (+ s1 s2)]
+                       (let [s1 (m/* sample alpha)
+                             s2 (m/- prev (m/* prev alpha))
+                             nprev (m/+ s1 s2)]
                          (SampleAndState. nprev nprev)))
                       ([] 0.0))))))
 
@@ -425,7 +424,7 @@
      (effect-node m (fn
                       ([^double sample lp]
                        (let [^EffectsList res (single-pass lp sample)]
-                         (SampleAndState. (- sample (.sample res)) res)))
+                         (SampleAndState. (m/- sample (.sample res)) res)))
                       ([] lpfilter))))))
 
 
@@ -437,11 +436,11 @@
   [m ^BiquadConf c]
   (effect-node m (fn
                    ([^double sample ^StateBiquad state]
-                    (let [y (-> (* (.b0 c) sample)
-                                (+ (* (.b1 c) (.x1 state)))
-                                (+ (* (.b2 c) (.x2 state)))
-                                (- (* (.a1 c) (.y1 state)))
-                                (- (* (.a2 c) (.y2 state))))]
+                    (let [y (-> (m/* (.b0 c) sample)
+                                (m/+ (m/* (.b1 c) (.x1 state)))
+                                (m/+ (m/* (.b2 c) (.x2 state)))
+                                (m/- (m/* (.a1 c) (.y1 state)))
+                                (m/- (m/* (.a2 c) (.y2 state))))]
                       (SampleAndState. y (StateBiquad. (.x1 state) sample (.y1 state) y))))
                    ([] (StateBiquad. 0.0 0.0 0.0 0.0)))))
 
@@ -486,9 +485,9 @@
   ([m {:keys [hi mid low shelf-slope peak-bw ^double rate]
        :or {hi 0.0 mid 0.0 low 0.0 shelf-slope 1.5 peak-bw 1.0 rate 44100.0}}]
    (let [b (compose-effects
-            (effect :biquad-hs {:fc (* rate (/ 10000.0 44100.0)) :gain hi :slope shelf-slope :fs rate})
-            (effect :biquad-eq {:fc (* rate (/ 1000.0 44100.0)) :gain mid :bw peak-bw :fs rate})
-            (effect :biquad-eq {:fc (* rate (/ 100.0 44100.0)) :gain low :bw peak-bw :fs rate}))]
+            (effect :biquad-hs {:fc (m/* rate (m// 10000.0 44100.0)) :gain hi :slope shelf-slope :fs rate})
+            (effect :biquad-eq {:fc (m/* rate (m// 1000.0 44100.0)) :gain mid :bw peak-bw :fs rate})
+            (effect :biquad-eq {:fc (m/* rate (m// 100.0 44100.0)) :gain low :bw peak-bw :fs rate}))]
      (effect-node m (fn
                       ([sample state]
                        (let [^EffectsList res (single-pass state sample)]
@@ -501,11 +500,11 @@
   ([m] (effect m {}))
   ([m {:keys [^double delay]
        :or {delay 0.5}}]
-   (let [a1 (/ (- 1.0 delay) (inc delay))]
+   (let [a1 (m// (m/- 1.0 delay) (m/inc delay))]
      (effect-node m (fn
                       ([^double sample ^double zm1]
-                       (let [y (+ zm1 (* sample (- a1)))
-                             new-zm1 (+ sample (* y a1))]
+                       (let [y (m/+ zm1 (m/* sample (m/- a1)))
+                             new-zm1 (m/+ sample (m/* y a1))]
                          (SampleAndState. y new-zm1)))
                       ([] 0.0))))))
 
@@ -517,25 +516,25 @@
   ([m] (effect m {}))
   ([m {:keys [denom]
        :or {denom 2}}]
-   (when-not (and (number? denom) (== (double denom) (m/floor (double denom))) (>= (double denom) 1.0))
+   (when-not (and (number? denom) (m/== (double denom) (m/floor (double denom))) (m/>= (double denom) 1.0))
      (throw (ex-info "Divider denominator should be an integer at least 1." {:denom denom})))
    (let [denom (long denom)]
      (effect-node m
                   (fn
                     ([^double sample ^StateDivider state]
-                     (let [count (inc (.count state))
-                           ^StateDivider s1 (if (or (and (> sample 0.0) (<= (.last state) 0.0))
-                                                    (and (neg? sample) (>= (.last state) 0.0)))
-                                              (if (== denom 1)
-                                                (StateDivider. (if (pos? (.out state)) -1.0 1.0) 0.0 0.0 (/ (.amp state) count) (.last state) 0)
-                                                (StateDivider. (.out state) (.amp state) count (.lamp state) (.last state) (inc (.zeroxs state))))
+                     (let [count (m/inc (.count state))
+                           ^StateDivider s1 (if (or (and (m/> sample 0.0) (m/<= (.last state) 0.0))
+                                                    (and (m/neg? sample) (m/>= (.last state) 0.0)))
+                                              (if (m/== denom 1)
+                                                (StateDivider. (if (m/pos? (.out state)) -1.0 1.0) 0.0 0.0 (m// (.amp state) count) (.last state) 0)
+                                                (StateDivider. (.out state) (.amp state) count (.lamp state) (.last state) (m/inc (.zeroxs state))))
                                               (StateDivider. (.out state) (.amp state) count (.lamp state) (.last state) (.zeroxs state)))
-                           amp (+ (.amp s1) (m/abs sample))
-                           ^StateDivider s2 (if (and (> denom 1)
-                                                     (== (rem (.zeroxs s1) denom) (dec denom)))
-                                              (StateDivider. (if (pos? (.out s1)) -1.0 1.0) 0.0 0.0 (/ amp (.count s1)) (.last s1) 0)
+                           amp (m/+ (.amp s1) (m/abs sample))
+                           ^StateDivider s2 (if (and (m/> denom 1)
+                                                     (m/== (m/rem (.zeroxs s1) denom) (m/dec denom)))
+                                              (StateDivider. (if (m/pos? (.out s1)) -1.0 1.0) 0.0 0.0 (m// amp (.count s1)) (.last s1) 0)
                                               (StateDivider. (.out s1) amp (.count s1) (.lamp s1) (.last s1) (.zeroxs s1)))]
-                       (SampleAndState. (* (.out s2) (.lamp s2)) (StateDivider. (.out s2) (.amp s2) (.count s2) (.lamp s2) sample (.zeroxs s2)))))
+                       (SampleAndState. (m/* (.out s2) (.lamp s2)) (StateDivider. (.out s2) (.amp s2) (.count s2) (.lamp s2) sample (.zeroxs s2)))))
                     ([] (StateDivider. 1.0 0.0 0.0 0.0 0.0 0)))))))
 
 ;; ### FM filter
@@ -552,16 +551,16 @@
      (effect-node m
                   (fn
                     ([^double sample ^StateFm state]
-                     (let [sig (* sample phase)
-                           new-integral (+ (.integral state) sig)
-                           m (m/cos (+ new-integral (* omega (.t state))))
-                           m (if (pos? quant)
+                     (let [sig (m/* sample phase)
+                           new-integral (m/+ (.integral state) sig)
+                           m (m/cos (m/+ new-integral (m/* omega (.t state))))
+                           m (if (m/pos? quant)
                                (m/norm (unchecked-int (m/norm m -1.0 1.0 0.0 quant)) 0.0 quant -1.0 1.0)
                                m)
-                           dem (m/abs (- m (.pre state)))
+                           dem (m/abs (m/- m (.pre state)))
                            ^EffectsList res (single-pass (.lp state) dem)
-                           demf (/ (* 2.0 (- (.sample res) omega)) phase)]
-                       (SampleAndState. (m/constrain demf -1.0 1.0) (StateFm. m new-integral (inc (.t state)) res))))
+                           demf (m// (m/* 2.0 (m/- (.sample res) omega)) phase)]
+                       (SampleAndState. (m/constrain demf -1.0 1.0) (StateFm. m new-integral (m/inc (.t state)) res))))
                     ([] (StateFm. 0.0 0.0 0.0 lp-chain)))))))
 
 
@@ -571,12 +570,12 @@
   ([m] (effect m {}))
   ([m {:keys [^double freq ^double rate]
        :or {freq 1000.0 rate 44100.0}}]
-   (let [dx (/ freq rate)]
+   (let [dx (m// freq rate)]
      (effect-node m (fn
                       ([^double sample ^double state]
-                       (let [res (if (>= sample state)
-                                   (min (+ state dx) sample)
-                                   (max (- state dx) sample))]
+                       (let [res (if (m/>= sample state)
+                                   (m/min (m/+ state dx) sample)
+                                   (m/max (m/- state dx) sample))]
                          (SampleAndState. res res)))
                       ([] 0.0))))))
 
@@ -586,11 +585,11 @@
   ([m] (effect m {}))
   ([m {:keys [^double factor]
        :or {factor 1.0}}]
-   (let [nfact (inc factor)]
+   (let [nfact (m/inc factor)]
      (effect-node m (fn 
                       ([^double sample state]
-                       (let [div (+ factor (m/abs sample))
-                             res (* nfact (/ sample div))]
+                       (let [div (m/+ factor (m/abs sample))
+                             res (m/* nfact (m// sample div))]
                          (SampleAndState. res state)))
                       ([]))))))
 
@@ -600,11 +599,11 @@
   ([m] (effect m {}))
   ([m {:keys [^double drive]
        :or {drive 2.0}}]
-   (let [drivem1 (dec drive)]
+   (let [drivem1 (m/dec drive)]
      (effect-node m (fn
                       ([^double sample state]
                        (let [fx (m/abs sample)
-                             res (/ (* sample (+ fx drive)) (inc (+ (* sample sample) (* fx drivem1))))]
+                             res (m// (m/* sample (m/+ fx drive)) (m/inc (m/+ (m/* sample sample) (m/* fx drivem1))))]
                          (SampleAndState. res state)))
                       ([]))))))
 
@@ -616,17 +615,17 @@
   ([m] (effect m {}))
   ([m {:keys [^double bits ^double fs ^double rate]
        :or {bits 2.0 fs 4410.0 rate 44100.0}}]
-   (let [step (if (or (>= bits 31.0) (< bits 1.0)) 0.0 (m/pow 0.5 (- bits 0.999)))
-         stepr (if (zero? step) 1.0 (/ step))
-         ratio (if (>= fs rate) 1.0 (/ fs rate))]
+   (let [step (if (or (m/>= bits 31.0) (m/< bits 1.0)) 0.0 (m/pow 0.5 (m/- bits 0.999)))
+         stepr (if (m/zero? step) 1.0 (m// step))
+         ratio (if (m/>= fs rate) 1.0 (m// fs rate))]
      (effect-node m (fn
                       ([^double sample ^StateDecimator state]
-                       (let [ncount (+ (.count state) ratio)]
-                         (if (>= ncount 1.0)
-                           (let [y (* stepr (+ sample (* (if (neg? sample) -1.0 1.0) step 0.5)))
-                                 delta (* step (- y (m/trunc y))) ;; C `modf` fractional part
-                                 last (- sample delta)]
-                             (SampleAndState. last (StateDecimator. (dec ncount) last)))
+                       (let [ncount (m/+ (.count state) ratio)]
+                         (if (m/>= ncount 1.0)
+                           (let [y (m/* stepr (m/+ sample (m/* (if (m/neg? sample) -1.0 1.0) step 0.5)))
+                                 delta (m/* step (m/- y (m/trunc y))) ;; C `modf` fractional part
+                                 last (m/- sample delta)]
+                             (SampleAndState. last (StateDecimator. (m/dec ncount) last)))
                            (SampleAndState. (.last state) (StateDecimator. ncount (.last state))))))
                       ([] (StateDecimator. 0.0 0.0)))))))
 
@@ -640,47 +639,47 @@
   ([m {:keys [^double bass ^double treble ^double gain ^double rate ^double slope ^double bass-freq ^double treble-freq]
        :or {bass 1.0 treble 1.0 gain 0.0 rate 44100.0 slope 0.4 bass-freq 250.0 treble-freq 4000.0}}]
    (let [data-gain (db->linear gain)
-         wb (/ (* m/TWO_PI bass-freq) rate)
-         wt (/ (* m/TWO_PI treble-freq) rate) 
+         wb (m// (m/* m/TWO_PI bass-freq) rate)
+         wt (m// (m/* m/TWO_PI treble-freq) rate) 
          cwb (m/cos wb)
          cwt (m/cos wt)
-         ab (m/exp (/ (* 2.302585092994046 bass) 40.0))
-         ab+ (inc ab)
-         ab- (dec ab)
-         at (m/exp (/ (* 2.302585092994046 treble) 40.0))
-         at+ (inc at)
-         at- (dec at)
-         bb (m/sqrt (- (/ (inc (m/sq ab)) slope) (m/sq (dec ab))))
-         bt (m/sqrt (- (/ (inc (m/sq at)) slope) (m/sq (dec at))))
-         bswb (* bb (m/sin wb))
-         bswt (* bt (m/sin wt))
+         ab (m/exp (m// (m/* 2.302585092994046 bass) 40.0))
+         ab+ (m/inc ab)
+         ab- (m/dec ab)
+         at (m/exp (m// (m/* 2.302585092994046 treble) 40.0))
+         at+ (m/inc at)
+         at- (m/dec at)
+         bb (m/sqrt (m/- (m// (m/inc (m/sq ab)) slope) (m/sq (m/dec ab))))
+         bt (m/sqrt (m/- (m// (m/inc (m/sq at)) slope) (m/sq (m/dec at))))
+         bswb (m/* bb (m/sin wb))
+         bswt (m/* bt (m/sin wt))
 
-         b0b (* ab (+ (- ab+ (* ab- cwb)) bswb))
-         b1b (* 2.0 ab (- ab- (* ab+ cwb)))
-         b2b (* ab (- (- ab+ (* ab- cwb)) bswb))
-         a0b (+ ab+ (* ab- cwb) bswb)
-         a1b (* -2.0 (+ ab- (* ab+ cwb)))
-         a2b (- (+ ab+ (* ab- cwb)) bswb)
+         b0b (m/* ab (m/+ (m/- ab+ (m/* ab- cwb)) bswb))
+         b1b (m/* 2.0 ab (m/- ab- (m/* ab+ cwb)))
+         b2b (m/* ab (m/- (m/- ab+ (m/* ab- cwb)) bswb))
+         a0b (m/+ ab+ (m/* ab- cwb) bswb)
+         a1b (m/* -2.0 (m/+ ab- (m/* ab+ cwb)))
+         a2b (m/- (m/+ ab+ (m/* ab- cwb)) bswb)
 
-         b0t (* at (+ at+ (* at- cwt) bswt))
-         b1t (* -2.0 at (+ at- (* at+ cwt)))
-         b2t (* at (- (+ at+ (* at- cwt)) bswt))
-         a0t (+ (- at+ (* at- cwt)) bswt)
-         a1t (* 2.0 (- at- (* at+ cwt)))
-         a2t (- (- at+ (* at- cwt)) bswt)]
+         b0t (m/* at (m/+ at+ (m/* at- cwt) bswt))
+         b1t (m/* -2.0 at (m/+ at- (m/* at+ cwt)))
+         b2t (m/* at (m/- (m/+ at+ (m/* at- cwt)) bswt))
+         a0t (m/+ (m/- at+ (m/* at- cwt)) bswt)
+         a1t (m/* 2.0 (m/- at- (m/* at+ cwt)))
+         a2t (m/- (m/- at+ (m/* at- cwt)) bswt)]
      (effect-node m (fn
                       ([^double sample ^StateBassTreble state]
-                       (let [outb (/ (-> (* b0b sample)
-                                         (+ (* b1b (.xn1Bass state)))
-                                         (+ (* b2b (.xn2Bass state)))
-                                         (- (* a1b (.yn1Bass state)))
-                                         (- (* a2b (.yn2Bass state)))) a0b)
-                             outt (/ (-> (* b0t outb)
-                                         (+ (* b1t (.xn1Treble state)))
-                                         (+ (* b2t (.xn2Treble state)))
-                                         (- (* a1t (.yn1Treble state)))
-                                         (- (* a2t (.yn2Treble state)))) a0t)]
-                         (SampleAndState. (* outt data-gain)
+                       (let [outb (m// (-> (m/* b0b sample)
+                                         (m/+ (m/* b1b (.xn1Bass state)))
+                                         (m/+ (m/* b2b (.xn2Bass state)))
+                                         (m/- (m/* a1b (.yn1Bass state)))
+                                         (m/- (m/* a2b (.yn2Bass state)))) a0b)
+                             outt (m// (-> (m/* b0t outb)
+                                         (m/+ (m/* b1t (.xn1Treble state)))
+                                         (m/+ (m/* b2t (.xn2Treble state)))
+                                         (m/- (m/* a1t (.yn1Treble state)))
+                                         (m/- (m/* a2t (.yn2Treble state)))) a0t)]
+                         (SampleAndState. (m/* outt data-gain)
                                           (StateBassTreble. sample (.xn1Bass state) outb (.yn1Bass state)
                                                             outb (.xn1Treble state) outt (.yn1Treble state)))))
                       ([] (StateBassTreble. 0.0 0.0 0.0 0.0
@@ -694,17 +693,17 @@
   ([m] (effect m {}))
   ([m {:keys [^double delay ^double decay ^double rate]
        :or {delay 0.5 decay 0.5 rate 44100.0}}]
-   (let [samples (* delay rate)
+   (let [samples (m/* delay rate)
          buffer-len (long samples)]
-     (when-not (<= 1.0 samples 1.0e7)
+     (when-not (m/<= 1.0 samples 1.0e7)
        (throw (ex-info "Echo delay should be from one sample to 1e7 samples long." {:delay delay :rate rate})))
      (effect-node m (fn
                       ([^double sample ^StateEcho state]
                        (let [^doubles buffer (.buffer state)
                              position (.position state)
-                             result (+ sample (* decay (aget buffer position)))]
+                             result (m/+ sample (m/* decay (aget buffer position)))]
                          (aset buffer position result)
-                         (SampleAndState. result (StateEcho. buffer (rem (inc position) buffer-len)))))
+                         (SampleAndState. result (StateEcho. buffer (m/rem (m/inc position) buffer-len)))))
                       ([]
                        (StateEcho. (double-array buffer-len 0.0) 0)))))))
 
@@ -716,45 +715,45 @@
   ([m] (effect m {}))
   ([m {:keys [^double rate trigger ^double cutoff ^double resonance ^double env-mod ^double decay ^double gain]
        :or {rate 44100.0 trigger false cutoff 0.8 resonance 0.8 env-mod 0.5 decay 1.0 gain 1.0}}]
-   (let [scale (/ m/PI rate)
-         e0 (* scale
-               (m/exp (-> (- 5.613 (* 0.8 env-mod))
-                          (+ (* 2.1553 cutoff))
-                          (- (* 0.7696 (- 1.0 resonance))))))        
+   (let [scale (m// m/PI rate)
+         e0 (m/* scale
+               (m/exp (-> (m/- 5.613 (m/* 0.8 env-mod))
+                          (m/+ (m/* 2.1553 cutoff))
+                          (m/- (m/* 0.7696 (m/- 1.0 resonance))))))        
          d (m/pow (->> decay
-                       (* 2.3)
-                       (+ 0.2)
-                       (* rate)
-                       (/ 1.0)
+                       (m/* 2.3)
+                       (m/+ 0.2)
+                       (m/* rate)
+                       (m// 1.0)
                        (m/pow 0.1)) 64.0)
-         r (m/exp (- (* 3.455 resonance) 1.20))
+         r (m/exp (m/- (m/* 3.455 resonance) 1.20))
          recalc-abc (fn [^double vc0]
-                      (let [whopping (+ e0 vc0)
-                            k (m/exp (/ (- whopping) r))
-                            a (* (+ k k) (m/cos (+ whopping whopping)))
-                            b (* (- k) k)
-                            c (* 0.2 (- (- 1.0 a) b))]
+                      (let [whopping (m/+ e0 vc0)
+                            k (m/exp (m// (m/- whopping) r))
+                            a (m/* (m/+ k k) (m/cos (m/+ whopping whopping)))
+                            b (m/* (m/- k) k)
+                            c (m/* 0.2 (m/- (m/- 1.0 a) b))]
                         (Vec3. a b c)))
          init-c0       (if trigger
-                         (- (* scale
-                               (m/exp (-> (+ 6.109 (* 1.5876 env-mod))
-                                          (+ (* 2.1553 cutoff))
-                                          (- (* 1.2 (- 1.0 resonance)))))) e0)
+                         (m/- (m/* scale
+                               (m/exp (-> (m/+ 6.109 (m/* 1.5876 env-mod))
+                                          (m/+ (m/* 2.1553 cutoff))
+                                          (m/- (m/* 1.2 (m/- 1.0 resonance)))))) e0)
                          0.0)]    
      (effect-node m (fn
                       ([^double sample ^StateVcf303 state]
                        (let [^Vec3 abc (.abc state)
-                             result (-> (* (.x abc) (.d1 state))
-                                        (+ (* (.y abc) (.d2 state)))
-                                        (+ (* (.z abc) sample)))
+                             result (-> (m/* (.x abc) (.d1 state))
+                                        (m/+ (m/* (.y abc) (.d2 state)))
+                                        (m/+ (m/* (.z abc) sample)))
                              d2 (.d1 state)
                              d1 result
-                             env-pos (inc (.env-pos state))]
-                         (if (>= env-pos 64)
-                           (let [c0 (* d (.c0 state))]
-                             (SampleAndState. (* gain result)
+                             env-pos (m/inc (.env-pos state))]
+                         (if (m/>= env-pos 64)
+                           (let [c0 (m/* d (.c0 state))]
+                             (SampleAndState. (m/* gain result)
                                               (StateVcf303. d1 d2 c0 0 (recalc-abc c0))))
-                           (SampleAndState. (* gain result)
+                           (SampleAndState. (m/* gain result)
                                             (StateVcf303. d1 d2 (.c0 state) env-pos abc)))))
                       ([] (StateVcf303. 0.0 0.0 init-c0 0 (recalc-abc init-c0))))))))
 
@@ -764,12 +763,12 @@
   ([m] (effect m {}))
   ([m {:keys [^double rate ^double maxrise ^double maxfall]
        :or {rate 44100.0 maxrise 500.0 maxfall 500.0}}]
-   (let [maxinc (/ maxrise rate)
-         maxdec (- (/ maxfall rate))]
+   (let [maxinc (m// maxrise rate)
+         maxdec (m/- (m// maxfall rate))]
      (effect-node m (fn
                       ([^double sample ^double prev]
-                       (let [increment (- sample prev) 
-                             nsample (+ prev (m/constrain increment maxdec maxinc))]
+                       (let [increment (m/- sample prev) 
+                             nsample (m/+ prev (m/constrain increment maxdec maxinc))]
                          (SampleAndState. nsample nsample)))
                       ([] 0.0))))))
 
@@ -782,28 +781,28 @@
   ([m] (effect m {}))
   ([m {:keys [^double rate ^double speed ^double depth ^double mix ^double depth-mod ^double feedback]
        :or {rate 44100.0 speed 0.3 depth 0.43 mix 0.47 feedback 0.3 depth-mod 1.0}}]
-   (let [rat (if (< speed 0.01) 0.0 (/ (* (m/pow 10.0 (- (* 3.0 speed) 2.0)) 2.0) rate))
-         dep (* 2000.0 (m/sq depth))
-         dem (- dep (* dep depth-mod))
-         dep (- dep dem)
+   (let [rat (if (m/< speed 0.01) 0.0 (m// (m/* (m/pow 10.0 (m/- (m/* 3.0 speed) 2.0)) 2.0) rate))
+         dep (m/* 2000.0 (m/sq depth))
+         dem (m/- dep (m/* dep depth-mod))
+         dep (m/- dep dem)
          wet mix
-         dry (- 1.0 wet)
-         fb (- (* 1.9 feedback) 0.95)]
+         dry (m/- 1.0 wet)
+         fb (m/- (m/* 1.9 feedback) 0.95)]
      (effect-node m (fn
                       ([^double sample ^StateMdaThruZero state]
                        (let [^doubles buffer (.buffer state)
-                             ph (+ (.ph state) rat)
-                             ph (if (> ph 1.0) (- ph 2.0) ph)
-                             bp (bit-and (dec (.bp state)) 0x7ff)]
-                         (aset buffer bp (+ sample (* fb (.f state))))
-                         (let [tmpf (+ dem (* dep (- 1.0 (m/sq ph))))
+                             ph (m/+ (.ph state) rat)
+                             ph (if (m/> ph 1.0) (m/- ph 2.0) ph)
+                             bp (m/bit-and (m/long-dec (.bp state)) 0x7ff)]
+                         (aset buffer bp (m/+ sample (m/* fb (.f state))))
+                         (let [tmpf (m/+ dem (m/* dep (m/- 1.0 (m/sq ph))))
                                tmp (long tmpf)
-                               tmpf (- tmpf tmp)
-                               tmp (bit-and (+ tmp bp) 0x7ff)
-                               tmpi (bit-and (inc tmp) 0x7ff)
+                               tmpf (m/- tmpf tmp)
+                               tmp (m/bit-and (m/long-add tmp bp) 0x7ff)
+                               tmpi (m/bit-and (m/long-inc tmp) 0x7ff)
                                f (aget buffer tmp)
-                               f (+ (* tmpf (- (aget buffer tmpi) f)) f)
-                               result (- (* sample dry) (* f wet))]
+                               f (m/+ (m/* tmpf (m/- (aget buffer tmpi) f)) f)
+                               result (m/- (m/* sample dry) (m/* f wet))]
                            (SampleAndState. result (StateMdaThruZero. buffer ph bp f)))))
                       ([] (StateMdaThruZero. (double-array 2048) 0.0 0 0.0)))))))
 
@@ -823,7 +822,7 @@
   ([m] (effect m 1.0))
   ([m gain]
    (let [gain (double (if (map? gain) (get gain :gain 1.0) gain))]
-     (effect-node m (fn ([^double sample _] (SampleAndState. (* gain sample) nil))
+     (effect-node m (fn ([^double sample _] (SampleAndState. (m/* gain sample) nil))
                       ([] nil))))))
 
 (defmethod effect :clipping
@@ -834,19 +833,19 @@
              :hard (fn ^double [^double v] (m/constrain v -1.0 1.0))
              :hyperbolic (fn ^double [^double v] (m/tanh v))
              :soft (fn ^double [^double v] (cond
-                                            (< v -1.0) -0.6666666666666666
-                                            (> v 1.0) 0.6666666666666666
-                                            :else (- v (* m/THIRD (m/cb v)))))
+                                            (m/< v -1.0) -0.6666666666666666
+                                            (m/> v 1.0) 0.6666666666666666
+                                            :else (m/- v (m/* m/THIRD (m/cb v)))))
              (throw (ex-info "Unknown clipping method." {:method method :allowed [:hard :hyperbolic :soft]})))]
      (effect-node m (fn ([^double sample _]
-                        (SampleAndState. (f (* pregain sample)) nil))
+                        (SampleAndState. (f (m/* pregain sample)) nil))
                       ([] nil))))))
 
 ;; ### State variable filters
 
 (defn- positive-Q!
   [Q]
-  (when-not (and (number? Q) (pos? (double Q)))
+  (when-not (and (number? Q) (m/pos? (double Q)))
     (throw (ex-info "Q should be positive." {:Q Q})))
   Q)
 
@@ -874,81 +873,81 @@
                :notch (fn ^double [^SVF1State s] (.n s))
                :allpass (fn ^double [^SVF1State s] (.p s))
                (svf-unknown :kind kind [:lowpass :highpass :bandpass :notch :allpass]))
-         f (* 2.0 (m/sinpi (/ cutoff (* rate oversamples))))
-         q (* 2.0 (m/cos (* m/HALF_PI (m/pow Q 0.1))))
-         qn2 (+ (* 0.5 q) 0.01)]
-     (when (neg? qn2)
+         f (m/* 2.0 (m/sinpi (m// cutoff (m/* rate oversamples))))
+         q (m/* 2.0 (m/cos (m/* m/HALF_PI (m/pow Q 0.1))))
+         qn2 (m/+ (m/* 0.5 q) 0.01)]
+     (when (m/neg? qn2)
        (throw (ex-info "Q is too large for :svf1 (the original filter returns NaN), maximum is about 1.0655." {:Q Q})))
-     (when (< oversamples 1)
+     (when (m/< oversamples 1)
        (throw (ex-info "Oversampling should be at least 1." {:oversamples oversamples})))
      (let [qn (m/sqrt qn2)]
        (effect-node m (fn ([^double sample ^SVF1State state]
                           (loop [i 0
-                                 in (* qn (+ sample (* (.b state) resonance)))
+                                 in (m/* qn (m/+ sample (m/* (.b state) resonance)))
                                  ^SVF1State state state]
-                            (if (== i oversamples)
+                            (if (m/== i oversamples)
                               (SampleAndState. (.invokePrim fun state) state)
-                              (let [b (- (.b state) (* 0.001 (m/cb (.b state))))
-                                    h (- in (.l state) (* b q))
-                                    b (+ b (* f h))
-                                    l (+ (.l state) (* f b))
-                                    n (+ l h)
-                                    p (- l h)
+                              (let [b (m/- (.b state) (m/* 0.001 (m/cb (.b state))))
+                                    h (m/- in (.l state) (m/* b q))
+                                    b (m/+ b (m/* f h))
+                                    l (m/+ (.l state) (m/* f b))
+                                    n (m/+ l h)
+                                    p (m/- l h)
                                     nstate (SVF1State. h b l p n)]
-                                (recur (inc i) (.invokePrim fun nstate) nstate)))))
+                                (recur (m/inc i) (.invokePrim fun nstate) nstate)))))
                         ([] (SVF1State. 0.0 0.0 0.0 0.0 0.0))))))))
 
 ;; stmlib `Svf` (Mutable Instruments), https://github.com/pichenettes/stmlib/blob/master/dsp/filter.h
 
-(def ^:const ^:private SVF2-M_PI_POW_2  (* m/M_PI m/M_PI))
-(def ^:const ^:private SVF2-M_PI_POW_3  (* SVF2-M_PI_POW_2 m/M_PI))
-(def ^:const ^:private SVF2-M_PI_POW_5  (* SVF2-M_PI_POW_3 SVF2-M_PI_POW_2))
-(def ^:const ^:private SVF2-M_PI_POW_7  (* SVF2-M_PI_POW_5 SVF2-M_PI_POW_2))
-(def ^:const ^:private SVF2-M_PI_POW_9  (* SVF2-M_PI_POW_7 SVF2-M_PI_POW_2))
-(def ^:const ^:private SVF2-M_PI_POW_11 (* SVF2-M_PI_POW_9 SVF2-M_PI_POW_2))
+(def ^:const ^:private SVF2-M_PI_POW_2  (m/* m/M_PI m/M_PI))
+(def ^:const ^:private SVF2-M_PI_POW_3  (m/* SVF2-M_PI_POW_2 m/M_PI))
+(def ^:const ^:private SVF2-M_PI_POW_5  (m/* SVF2-M_PI_POW_3 SVF2-M_PI_POW_2))
+(def ^:const ^:private SVF2-M_PI_POW_7  (m/* SVF2-M_PI_POW_5 SVF2-M_PI_POW_2))
+(def ^:const ^:private SVF2-M_PI_POW_9  (m/* SVF2-M_PI_POW_7 SVF2-M_PI_POW_2))
+(def ^:const ^:private SVF2-M_PI_POW_11 (m/* SVF2-M_PI_POW_9 SVF2-M_PI_POW_2))
 
-(def ^:const ^:private SVF2-DIRTY_A    (* 3.736e-01 SVF2-M_PI_POW_3))
-(def ^:const ^:private SVF2-FAST_A     (* 3.260e-01 SVF2-M_PI_POW_3))
-(def ^:const ^:private SVF2-FAST_B     (* 1.823e-01 SVF2-M_PI_POW_5))
-(def ^:const ^:private SVF2-ACCURATE_A (* 3.333314036e-01 SVF2-M_PI_POW_3))
-(def ^:const ^:private SVF2-ACCURATE_B (* 1.333923995e-01 SVF2-M_PI_POW_5))
-(def ^:const ^:private SVF2-ACCURATE_C (* 5.33740603e-02 SVF2-M_PI_POW_7))
-(def ^:const ^:private SVF2-ACCURATE_D (* 2.900525e-03 SVF2-M_PI_POW_9))
-(def ^:const ^:private SVF2-ACCURATE_E (* 9.5168091e-03 SVF2-M_PI_POW_11))
+(def ^:const ^:private SVF2-DIRTY_A    (m/* 3.736e-01 SVF2-M_PI_POW_3))
+(def ^:const ^:private SVF2-FAST_A     (m/* 3.260e-01 SVF2-M_PI_POW_3))
+(def ^:const ^:private SVF2-FAST_B     (m/* 1.823e-01 SVF2-M_PI_POW_5))
+(def ^:const ^:private SVF2-ACCURATE_A (m/* 3.333314036e-01 SVF2-M_PI_POW_3))
+(def ^:const ^:private SVF2-ACCURATE_B (m/* 1.333923995e-01 SVF2-M_PI_POW_5))
+(def ^:const ^:private SVF2-ACCURATE_C (m/* 5.33740603e-02 SVF2-M_PI_POW_7))
+(def ^:const ^:private SVF2-ACCURATE_D (m/* 2.900525e-03 SVF2-M_PI_POW_9))
+(def ^:const ^:private SVF2-ACCURATE_E (m/* 9.5168091e-03 SVF2-M_PI_POW_11))
 
 (defn- tan-exact
   ^double [^double f]
-  (m/tan (* m/M_PI (min f 0.497))))
+  (m/tan (m/* m/M_PI (m/min f 0.497))))
 
 (defn- tan-dirty
   ^double [^double f]
-  (* f (+ m/M_PI (* f f SVF2-DIRTY_A))))
+  (m/* f (m/+ m/M_PI (m/* f f SVF2-DIRTY_A))))
 
 (defn- tan-fast
   ^double [^double f]
-  (let [f2 (* f f)]
+  (let [f2 (m/* f f)]
     (->> SVF2-FAST_B
-         (* f2)
-         (+ SVF2-FAST_A)
-         (* f2)
-         (+ m/M_PI)
-         (* f))))
+         (m/* f2)
+         (m/+ SVF2-FAST_A)
+         (m/* f2)
+         (m/+ m/M_PI)
+         (m/* f))))
 
 (defn- tan-accurate
   ^double [^double f]
-  (let [f2 (* f f)]
+  (let [f2 (m/* f f)]
     (->> SVF2-ACCURATE_E
-         (* f2)
-         (+ SVF2-ACCURATE_D)
-         (* f2)
-         (+ SVF2-ACCURATE_C)
-         (* f2)
-         (+ SVF2-ACCURATE_B)
-         (* f2)
-         (+ SVF2-ACCURATE_A)
-         (* f2)
-         (+ m/M_PI)
-         (* f))))
+         (m/* f2)
+         (m/+ SVF2-ACCURATE_D)
+         (m/* f2)
+         (m/+ SVF2-ACCURATE_C)
+         (m/* f2)
+         (m/+ SVF2-ACCURATE_B)
+         (m/* f2)
+         (m/+ SVF2-ACCURATE_A)
+         (m/* f2)
+         (m/+ m/M_PI)
+         (m/* f))))
 
 (defn- svf-g
   "stmlib `tan` approximations of `tan(pi f)`."
@@ -966,24 +965,24 @@
   ([m] (effect m {}))
   ([m {:keys [rate cutoff Q kind tan]
        :or {rate 44100.0 cutoff 1000.0 kind :lowpass Q 0.5 tan :exact}}]
-   (let [g (svf-g tan (/ (double cutoff) (double rate)))
-         r (/ (double (positive-Q! Q)))
-         h (/ (+ 1.0 (* g (+ r g))))
+   (let [g (svf-g tan (m// (double cutoff) (double rate)))
+         r (m// (double (positive-Q! Q)))
+         h (m// (m/+ 1.0 (m/* g (m/+ r g))))
          ^IFn$DDDD out (case kind
                :lowpass (fn ^double [^double lp ^double _bp ^double _hp] lp)
                :highpass (fn ^double [^double _lp ^double _bp ^double hp] hp)
                :bandpass (fn ^double [^double _lp ^double bp ^double _hp] bp)
-               :bandpass-normalized (fn ^double [^double _lp ^double bp ^double _hp] (* r bp))
-               :notch (fn ^double [^double lp ^double _bp ^double hp] (+ lp hp))
+               :bandpass-normalized (fn ^double [^double _lp ^double bp ^double _hp] (m/* r bp))
+               :notch (fn ^double [^double lp ^double _bp ^double hp] (m/+ lp hp))
                (svf-unknown :kind kind [:lowpass :highpass :bandpass :bandpass-normalized :notch]))]
      (effect-node m (fn ([^double sample ^SVF2State state]
                         (let [s1 (.state1 state)
                               s2 (.state2 state)
-                              hp (* h (- sample (* r s1) (* g s1) s2))
-                              bp (+ (* g hp) s1)
-                              lp (+ (* g bp) s2)]
+                              hp (m/* h (m/- sample (m/* r s1) (m/* g s1) s2))
+                              bp (m/+ (m/* g hp) s1)
+                              lp (m/+ (m/* g bp) s2)]
                           (SampleAndState. (.invokePrim out lp bp hp)
-                                           (SVF2State. (+ (* g hp) bp) (+ (* g bp) lp)))))
+                                           (SVF2State. (m/+ (m/* g hp) bp) (m/+ (m/* g bp) lp)))))
                       ([] (SVF2State. 0.0 0.0)))))))
 
 
@@ -994,22 +993,22 @@
 
 (defn- compute-a
   ^Vec3 [^double g ^double k]
-  (let [a1 (/ (+ 1.0 (* g (+ g k))))
-        a2 (* g a1)]
-    (Vec3. a1 a2 (* g a2))))
+  (let [a1 (m// (m/+ 1.0 (m/* g (m/+ g k))))
+        a2 (m/* g a1)]
+    (Vec3. a1 a2 (m/* g a2))))
 
 (defn- compute-m
   ^Vec3 [kind ^double k ^double A]
   (case kind
     :lowpass (Vec3. 0.0 0.0 1.0)
     :bandpass (Vec3. 0.0 1.0 0.0)
-    :highpass (Vec3. 1.0 (- k) -1.0)
-    :notch (Vec3. 1.0 (- k) 0.0)
-    :peak (Vec3. 1.0 (- k) -2.0)
-    :allpass (Vec3. 1.0 (* -2.0 k) 0.0)
-    :bell (Vec3. 1.0 (* k (dec (* A A))) 0.0)
-    :lowshelf (Vec3. 1.0 (* k (dec A)) (dec (* A A)))
-    :highshelf (Vec3. (* A A) (* k (- 1.0 A) A) (- 1.0 (* A A)))
+    :highpass (Vec3. 1.0 (m/- k) -1.0)
+    :notch (Vec3. 1.0 (m/- k) 0.0)
+    :peak (Vec3. 1.0 (m/- k) -2.0)
+    :allpass (Vec3. 1.0 (m/* -2.0 k) 0.0)
+    :bell (Vec3. 1.0 (m/* k (m/dec (m/* A A))) 0.0)
+    :lowshelf (Vec3. 1.0 (m/* k (m/dec A)) (m/dec (m/* A A)))
+    :highshelf (Vec3. (m/* A A) (m/* k (m/- 1.0 A) A) (m/- 1.0 (m/* A A)))
     (svf-unknown :kind kind [:lowpass :bandpass :highpass :notch :peak :allpass :bell :lowshelf :highshelf])))
 
 (defmethod effect :svf3
@@ -1017,27 +1016,27 @@
   ([m {:keys [rate cutoff Q kind tan gaindb]
        :or {rate 44100.0 cutoff 1000.0 kind :lowpass Q 0.5 tan :exact gaindb 0.0}}]
    (let [Q (double (positive-Q! Q))
-         A (m/exp10 (/ (double gaindb) 40.0))
+         A (m/exp10 (m// (double gaindb) 40.0))
          Asqrt (m/sqrt A)
-         g (svf-g tan (/ (double cutoff) (double rate)))
-         k (if (= kind :bell) (/ (* A Q)) (/ Q))
+         g (svf-g tan (m// (double cutoff) (double rate)))
+         k (if (= kind :bell) (m// (m/* A Q)) (m// Q))
          ^Vec3 mv (compute-m kind k A)
          ^Vec3 av (case kind
-                    :lowshelf (compute-a (/ g Asqrt) k)
-                    :highshelf (compute-a (* g Asqrt) k)
+                    :lowshelf (compute-a (m// g Asqrt) k)
+                    :highshelf (compute-a (m/* g Asqrt) k)
                     (compute-a g k))]
      (effect-node m (fn ([^double sample ^SVF3State state]
-                        (let [v3 (- sample (.ic2 state))
-                              v1 (+ (* (.x av) (.ic1 state))
-                                    (* (.y av) v3))
-                              v2 (+ (.ic2 state)
-                                    (* (.y av) (.ic1 state))
-                                    (* (.z av) v3))]
-                          (SampleAndState. (+ (* sample (.x mv))
-                                              (* v1 (.y mv))
-                                              (* v2 (.z mv)))
-                                           (SVF3State. (- (* 2.0 v1) (.ic1 state))
-                                                       (- (* 2.0 v2) (.ic2 state))))))
+                        (let [v3 (m/- sample (.ic2 state))
+                              v1 (m/+ (m/* (.x av) (.ic1 state))
+                                    (m/* (.y av) v3))
+                              v2 (m/+ (.ic2 state)
+                                    (m/* (.y av) (.ic1 state))
+                                    (m/* (.z av) v3))]
+                          (SampleAndState. (m/+ (m/* sample (.x mv))
+                                              (m/* v1 (.y mv))
+                                              (m/* v2 (.z mv)))
+                                           (SVF3State. (m/- (m/* 2.0 v1) (.ic1 state))
+                                                       (m/- (m/* 2.0 v2) (.ic2 state))))))
                       ([] (SVF3State. 0.0 0.0)))))))
 
 
@@ -1149,7 +1148,7 @@
    (non-empty-signals! sig1 sig2)
    (let [s1 (count sig1)
          s2 (count sig2)
-         tsize (dec (+ s1 s2))
+         tsize (m/long-dec (m/long-add s1 s2))
          size (m/round-up-pow2 tsize)
          fft1 (trans/fft (pad/zero (m/seq->double-array sig1) size :right))
          fft2 (trans/fft (pad/zero (m/seq->double-array sig2) size :right))
@@ -1207,7 +1206,7 @@
   (if (instance? Cascade FIR-or-IIR)
     (let [^Cascade iir FIR-or-IIR]
       (mapv (fn [^double x] (.filter iir x)) xs))
-    (let [cf (if (< (+ (count xs) (count FIR-or-IIR)) 2048)
+    (let [cf (if (m/< (m/+ (count xs) (count FIR-or-IIR)) 2048)
                convolve fft-convolve)]
       (cf xs FIR-or-IIR :same))))
 
@@ -1272,7 +1271,7 @@
   "Correlation of `signal` with odd length `coeffs` centred at sample, zero padding."
   [^doubles coeffs ^long fc signal]
   (let [full (convolve signal (reverse coeffs))]
-    (subvec full fc (+ fc (count signal)))))
+    (subvec full fc (m/long-add fc (count signal)))))
 
 (defn savgol-filter
   "Creates Savitzky-Golay smoothing (or differentiating) filter.
@@ -1292,25 +1291,25 @@
   ([^long length ^long order] (savgol-filter length order 0))
   ([^long length ^long order ^long derivative] (savgol-filter length order derivative 1.0))
   ([^long length ^long order ^long derivative ^double delta]
-   (when-not (and (pos? length) (odd? length))
+   (when-not (and (m/pos? length) (m/odd? length))
      (throw (ex-info "Length should be positive and odd." {:length length})))
-   (when-not (< -1 order length)
+   (when-not (m/< -1 order length)
      (throw (ex-info "Order should be non-negative and less than length." {:length length :order order})))
-   (when-not (<= 0 derivative order)
+   (when-not (m/<= 0 derivative order)
      (throw (ex-info "Derivative should be between 0 and order." {:order order :derivative derivative})))
-   (when-not (pos? delta)
+   (when-not (m/pos? delta)
      (throw (ex-info "Delta should be positive." {:delta delta})))
-   (let [fc (m/long-quot (dec length) 2)
-         factor (/ (m/factorial derivative) (m/pow delta derivative))
-         coeffs (-> (for [v (range (- fc) (inc fc))]
-                      (map #(m/pow v %) (range (inc order))))
+   (let [fc (m/long-quot (m/long-dec length) 2)
+         factor (m// (m/factorial derivative) (m/pow delta derivative))
+         coeffs (-> (for [v (range (m/- fc) (m/inc fc))]
+                      (map #(m/pow v %) (range (m/inc order))))
                     (m/seq->double-double-array)
                     (Array2DRowRealMatrix.)
                     (SingularValueDecomposition.)
                     (.getSolver)
                     (.getInverse)
                     (.getRow derivative))
-         coeffs (double-array (map (fn [^double c] (* factor c)) coeffs))]
+         coeffs (double-array (map (fn [^double c] (m/* factor c)) coeffs))]
      (fn [signal]
        (perform-convolution coeffs fc signal)))))
 
@@ -1342,17 +1341,15 @@
   ([kernel] (kernel-smoothing-filter kernel 5))
   ([kernel ^long length] (kernel-smoothing-filter kernel length 1.0))
   ([kernel ^long length ^double step]
-   (when-not (and (pos? length) (odd? length))
+   (when-not (and (m/pos? length) (m/odd? length))
      (throw (ex-info "Length should be positive and odd." {:length length})))
-   (let [fc (m/long-quot (dec length) 2)
+   (let [fc (m/long-quot (m/long-dec length) 2)
          coeffs (map (fn [^long v]
-                       (kernel 0.0 (* step v))) (range (- fc) (inc fc)))
+                       (kernel 0.0 (m/* step v))) (range (m/- fc) (m/inc fc)))
          ^double sum (reduce m/+ coeffs)
          coeffs (double-array (map (fn [^double v]
-                                     (/ v sum)) coeffs))]
+                                     (m// v sum)) coeffs))]
      (partial perform-convolution coeffs fc))))
-
-(m/unuse-primitive-operators)
 
 ;; Spectral core.
 ;; Coefficients are scaled back to the unnormalized DFT (`:norm :backward`); bins of a one-sided spectrum

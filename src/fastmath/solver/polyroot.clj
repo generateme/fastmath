@@ -14,7 +14,7 @@
 (set! *warn-on-reflection* true)
 
 (def ^{:private true :const true :tag 'double} SIGMA 0.7)
-(def ^{:private true :const true :tag 'double} SNAP-EPSILON (* 8.0 m/MACHINE-EPSILON2))
+(def ^{:private true :const true :tag 'double} SNAP-EPSILON (m/* 8.0 m/MACHINE-EPSILON2))
 
 ;; input
 
@@ -29,7 +29,7 @@
   (let [[re im] (cond
                   (number? x) [(double x) 0.0]
                   (instance? Vec2 x) (vec x)
-                  (and (sequential? x) (== 2 (count x)) (every? number? x)) [(double (first x)) (double (second x))]
+                  (and (sequential? x) (m/== 2 (count x)) (every? number? x)) [(double (first x)) (double (second x))]
                   :else (invalid-coefficient index "must be a number, a Vec2 or a pair [re im]"))]
     (when-not (and (m/valid-double? re) (m/valid-double? im))
       (invalid-coefficient index "must be finite"))

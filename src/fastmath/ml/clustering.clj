@@ -160,8 +160,8 @@
   (let [size (m/inc k)
         drop-largest (fn [kept]
                        (let [[largest cnt] (first (rseq kept))]
-                         (if (m/== (long cnt) 1) (dissoc kept largest) (assoc kept largest (dec (long cnt))))))
-        add (fn [kept x] (update kept x (fnil inc 0)))
+                         (if (m/== (long cnt) 1) (dissoc kept largest) (assoc kept largest (m/long-dec (long cnt))))))
+        add (fn [kept x] (update kept x (fnil m/inc 0)))
         [kept _] (reduce (fn [[kept ^long n] ^double x]
                            (cond
                              (m/< n size) [(add kept x) (m/inc n)]
@@ -183,7 +183,7 @@
 (defn- difference-curve
   "Kneedle difference curve of an increasing convex curve `ys` (a vector): the curve normalised to the unit square, flipped to be concave, minus the diagonal."
   [ys]
-  (let [n- (double (dec (count ys)))
+  (let [n- (double (m/long-dec (count ys)))
         ymin (double (first ys))
         yrange (m/- (double (peek ys)) ymin)]
     (vec (map-indexed (fn [^long i ^double y] (m/- (m/- 1.0 (m// (m/- y ymin) yrange)) (m// i n-))) (rseq ys)))))
@@ -201,12 +201,12 @@
   Kneedle, Satopaa et al. 2011, offline version as in kneed 0.9.0 (after a local minimum of the difference curve the detection waits for the next local maximum), `x` is the index of `y`."
   [ys ^double sensitivity]
   (let [n (count ys)]
-    (when (and (>= n 3) (m/pos? (m/- (double (peek ys)) (double (first ys)))))
-      (let [n- (dec n)
+    (when (and (m/>= n 3) (m/pos? (m/- (double (peek ys)) (double (first ys)))))
+      (let [n- (m/dec n)
             step (m// 1.0 (double n-))
             rows (->> (difference-rows (difference-curve ys))
                       (drop-while (comp not #(nth % 3)))
-                      (take-while #(< (long (first %)) n-)))
+                      (take-while #(m/< (long (first %)) n-)))
             ;; the state is the threshold, its index and the detection flag (a local maximum
             ;; switches the detection on, a local minimum off), `reduced` returns the knee index
             knee (reduce (fn [[^double threshold ^long threshold-index active?] [^long i ^double x ^double nx
@@ -215,8 +215,8 @@
                                                                                      [(m/- x (m/* sensitivity step)) i true]
                                                                                      [threshold threshold-index active?])
                                  [^double threshold active?] (if minimum? [0.0 false] [threshold active?])]
-                             (if (and active? (< nx threshold))
-                               (reduced (- n- threshold-index))
+                             (if (and active? (m/< nx threshold))
+                               (reduced (m/- n- threshold-index))
                                [threshold threshold-index active?])))
                          [0.0 0 true] rows)]
         (when (number? knee) knee)))))
@@ -226,7 +226,7 @@
   (let [curve (k-distances (points->arrays points) dist k)
         idx (kneedle curve sensitivity)
         eps (when idx (curve idx))]
-    (if (and eps (pos? (double eps)))
+    (if (and eps (m/pos? (double eps)))
       eps
       (invalid-option :eps nil "an explicit :eps, no knee was found in the curve of distances to the neighbours"))))
 
@@ -354,9 +354,9 @@
                 (knee-radius points dist k (double sensitivity)))
       :pairs (let [arrays (points->arrays points)
                    distances (vec (for [i (range n)
-                                        j (range (inc (long i)) n)]
+                                        j (range (m/long-inc (long i)) n)]
                                     (.compute dist ^doubles (arrays i) ^doubles (arrays j))))]
-               (when (< (count (take 2 (distinct (map #(m/+ 0.0 (double %)) distances)))) 2)
+               (when (m/< (count (take 2 (distinct (map #(m/+ 0.0 (double %)) distances)))) 2)
                  (invalid-option :eps nil "an explicit :eps, all distances between points are equal"))
                (->> (kmeans++ distances {:clusters 2 :add-data? false :rng rng})
                     (map (comp first :representative))
@@ -520,10 +520,10 @@
   (let [size (long (nth sizes ci))]
     (if (m/== size 1)
       0.0
-      (let [a (m// (double (nth sums ci)) (double (dec size)))
-            b (double (reduce min (keep-indexed (fn [c s] (when-not (== (long c) ci)
-                                                           (m// (double s) (double (nth sizes c)))))
-                                                sums)))
+      (let [a (m// (double (nth sums ci)) (double (m/long-dec size)))
+            b (double (reduce m/min (keep-indexed (fn [c s] (when-not (m/== (long c) ci)
+                                                             (m// (double s) (double (nth sizes c)))))
+                                                  sums)))
             den (m/max a b)]
         (if (m/zero? den) 0.0 (m// (m/- b a) den))))))
 

@@ -350,12 +350,12 @@
          (double
           (reduce m/* 1.0 (map (fn [^double xi ^double yi]
                                  (let [xiyi (m/* xi yi)
-                                       m (min xi yi)
+                                       m (m/min xi yi)
                                        m2 (m/* m m)]
-                                   (inc (m/+ xiyi
-                                             (m/* xiyi m)
-                                             (m/* -0.5 (m/+ xi yi) m2)
-                                             (m/* m/THIRD m2 m)))))
+                                   (m/inc (m/+ xiyi
+                                               (m/* xiyi m)
+                                               (m/* -0.5 (m/+ xi yi) m2)
+                                               (m/* m/THIRD m2 m)))))
                                (if (number? x) [x] x)
                                (if (number? y) [y] y)))))))
 
@@ -423,8 +423,8 @@
      :or {sigma 1.0 n 2.0 v -1.0 distance v/dist}}]
    (fn ^double [x y] (let [^double dist (distance x y)
                           v+ (m/inc v)]
-                      (/ (special/bessel-J v+ (m/* sigma dist))
-                         (m/pow dist (m/- (m/* n v+))))))))
+                      (m// (special/bessel-J v+ (m/* sigma dist))
+                           (m/pow dist (m/- (m/* n v+))))))))
 
 ;; R kernlab
 (defn bessel2
@@ -500,14 +500,14 @@
   See also [[chi-square]], [[histogram]]."
   ([] (chi-square2 nil))
   ([_] (fn ^double [x y]
-         (- 1.0 ^double (reduce m/+ 0.0 (map (fn [^double xi ^double yi]
-                                               (let [s (m/+ xi yi)]
-                                                 (if (m/zero? s)
-                                                   0.0
-                                                   (m// (m/sq (m/- xi yi))
-                                                        (m/* 0.5 s)))))
-                                             (if (number? x) [x] x)
-                                             (if (number? y) [y] y)))))))
+         (m/- 1.0 ^double (reduce m/+ 0.0 (map (fn [^double xi ^double yi]
+                                                 (let [s (m/+ xi yi)]
+                                                   (if (m/zero? s)
+                                                     0.0
+                                                     (m// (m/sq (m/- xi yi))
+                                                          (m/* 0.5 s)))))
+                                               (if (number? x) [x] x)
+                                               (if (number? y) [y] y)))))))
 
 (defn histogram
   "Creates the histogram intersection kernel `sum_i min(x_i, y_i)`.
@@ -521,7 +521,7 @@
   See also [[generalized-histogram]], [[chi-square]]."
   ([] (histogram nil))
   ([_] (fn ^double [x y] (reduce m/+ 0.0 (map (fn [^double xi ^double yi]
-                                               (min xi yi))
+                                               (m/min xi yi))
                                              (if (number? x) [x] x)
                                              (if (number? y) [y] y))))))
 
@@ -539,8 +539,8 @@
   ([{:keys [^double p]
      :or {p 2.0}}]
    (fn ^double [x y] (reduce m/+ 0.0 (map (fn [^double xi ^double yi]
-                                           (min (m/pow (m/abs xi) p)
-                                                (m/pow (m/abs yi) p)))
+                                           (m/min (m/pow (m/abs xi) p)
+                                                  (m/pow (m/abs yi) p)))
                                          (if (number? x) [x] x)
                                          (if (number? y) [y] y))))))
 

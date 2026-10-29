@@ -27,7 +27,7 @@
   default-max-iters 1200)
 
 (def ^{:const true :tag 'double :doc "Default relative tolerance, four times the machine epsilon."}
-  default-relative-accuracy (* 4.0 m/MACHINE-EPSILON2))
+  default-relative-accuracy (m/* 4.0 m/MACHINE-EPSILON2))
 
 (def ^{:const true :tag 'double :doc "Default absolute tolerance, close to the smallest normal double so that it is relevant only for a root at zero."}
   default-absolute-accuracy 1.0e-300)
@@ -78,7 +78,7 @@
   (let [v (get options option)]
     (cond
       (nil? v) default
-      (and (or (instance? Long v) (instance? Integer v) (instance? Short v) (instance? Byte v)) (>= (long v) 1)) (long v)
+      (and (or (instance? Long v) (instance? Integer v) (instance? Short v) (instance? Byte v)) (m/>= (long v) 1)) (long v)
       :else (throw-invalid-option option v "must be an integer not less than 1"))))
 
 (defn finite-number
@@ -139,18 +139,18 @@
       (evaluations [_] (Array/get n 0))
       (eval [_ x]
         (let [k (Array/get n 0)]
-          (when (>= k max-evals)
+          (when (m/>= k max-evals)
             (throw-status :max-evals (str "The limit of " max-evals " function evaluations (:max-iters) is reached")
                           {:evaluations k :limit max-evals}))
-          (Array/set n 0 (inc k))
+          (Array/set n 0 (m/inc k))
           (let [y (.invoke f x)]
             (if (number? y)
               (let [d (double y)]
                 (if (m/nan? d)
-                  (throw-status :nan (str "The function is NaN at " x) {:evaluations (inc k) :x x})
+                  (throw-status :nan (str "The function is NaN at " x) {:evaluations (m/inc k) :x x})
                   d))
               (throw-status :invalid-result (str "The function returned a non number at " x ": " (pr-str y))
-                            {:evaluations (inc k) :x x}))))))))
+                            {:evaluations (m/inc k) :x x}))))))))
 
 ;; driver
 

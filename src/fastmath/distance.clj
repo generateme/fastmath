@@ -7,14 +7,14 @@
            [org.apache.commons.math3.ml.distance DistanceMeasure]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 ;; static distances
 
-(defn euclidean-1d "Euclidean distance for doubles" ^double [^double v1 ^double v2] (m/abs (- v1 v2)))
-(defn euclidean-sq-1d "Squared Euclidean distance for doubles" ^double [^double v1 ^double v2] (m/sq (- v1 v2)))
-(defn canberra-1d "Canberra distance for doubles" ^double [^double v1 ^double v2] (/ (m/abs (- v1 v2))
-                                                                                  (+ (m/abs v1) (m/abs v2))))
+(defn euclidean-1d "Euclidean distance for doubles" ^double [^double v1 ^double v2] (m/abs (m/- v1 v2)))
+(defn euclidean-sq-1d "Squared Euclidean distance for doubles" ^double [^double v1 ^double v2] (m/sq (m/- v1 v2)))
+(defn canberra-1d "Canberra distance for doubles" ^double [^double v1 ^double v2] (m// (m/abs (m/- v1 v2))
+                                                                                  (m/+ (m/abs v1) (m/abs v2))))
 
 (defn euclidean "Euclidean distance" ^double [v1 v2] (v/dist v1 v2))
 (defn manhattan "Manhattan distance" ^double [v1 v2] (v/dist-abs v1 v2))
@@ -25,8 +25,8 @@
 (defn discrete "Discrete distance" ^double [v1 v2] (v/dist-discrete v1 v2))
 (defn cosine "Cosine similarity" ^double [v1 v2] (v/sim-cos v1 v2))
 (defn angular "Angular distance" ^double [v1 v2] (v/dist-ang v1 v2))
-(defn weierstrass "Weierstrass metric" ^double [v1 v2] (m/acosh (- (* (m/sqrt (inc (v/magsq v1)))
-                                                                   (m/sqrt (inc (v/magsq v2))))
+(defn weierstrass "Weierstrass metric" ^double [v1 v2] (m/acosh (m/- (m/* (m/sqrt (m/inc (v/magsq v1)))
+                                                                   (m/sqrt (m/inc (v/magsq v2))))
                                                                 (v/dot v1 v2))))
 
 (defn haversine "Haversine distance" ^double [lat-lon1 lat-lon2] (m/haversine-dist lat-lon1 lat-lon2))
@@ -62,33 +62,33 @@
   "Minkowski distance for order `p` and optional `weights` for each dimension."
   ([v1 v2 ^double p]
    (m/pow (reduce m/+ 0.0 (map (fn [^double xx ^double yy]
-                                 (m/pow (m/abs (- xx yy)) p)) v1 v2)) (/ p)))
+                                 (m/pow (m/abs (m/- xx yy)) p)) v1 v2)) (m// p)))
   ([v1 v2 ^double p weights]
    (m/pow (reduce m/+ 0.0 (map (fn [^double w ^double xx ^double yy]
-                                 (* w (m/pow (m/abs (- xx yy)) p))) weights v1 v2)) (/ p)))
+                                 (m/* w (m/pow (m/abs (m/- xx yy)) p))) weights v1 v2)) (m// p)))
   ([^double p weights]
-   (let [rp (/ p)]
+   (let [rp (m// p)]
      (fn ^double [v1 v2]
        (m/pow (reduce m/+ 0.0 (map (fn [^double w ^double xx ^double yy]
-                                     (* w (m/pow (m/abs (- xx yy)) p))) weights v1 v2)) rp))))
+                                     (m/* w (m/pow (m/abs (m/- xx yy)) p))) weights v1 v2)) rp))))
   ([^double p]
-   (let [rp (/ p)]
+   (let [rp (m// p)]
      (fn ^double [v1 v2]
        (m/pow (reduce m/+ 0.0 (map (fn [^double xx ^double yy]
-                                     (m/pow (m/abs (- xx yy)) p)) v1 v2)) rp)))))
+                                     (m/pow (m/abs (m/- xx yy)) p)) v1 v2)) rp)))))
 ;;
 
 (defn bound
   "Create relative distance function to be bound by a `diameter` (default: by `1.0`)."
   ([distance] (bound distance 1.0))
   ([distance ^double diameter]
-   (fn ^double [v1 v2] (let [d (double (distance v1 v2))] (/ (* diameter d) (inc d))))))
+   (fn ^double [v1 v2] (let [d (double (distance v1 v2))] (m// (m/* diameter d) (m/inc d))))))
 
 (defn shoenberg-transform
   "Create relative distance function by applying Shoenberg transform."
   ([distance] (shoenberg-transform distance 1.0))
   ([distance ^double lambda]
-   (fn ^double [v1 v2] (- 1.0 (m/exp (* -1.0 lambda ^double (distance v1 v2)))))))
+   (fn ^double [v1 v2] (m/- 1.0 (m/exp (m/* -1.0 lambda ^double (distance v1 v2)))))))
 
 (defn ->acm-distance
   "Create DistanceMeasure Apache Commons Math object based on given distance function."
@@ -106,4 +106,3 @@
       IFn (invoke [_ x y] (distance x y))
       DistanceMeasure (compute [_ x y] (distance x y)))))
 
-(m/unuse-primitive-operators)

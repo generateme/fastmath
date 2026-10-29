@@ -168,7 +168,7 @@
         row0 (vec (repeat (m/long-inc n) 0))
         c-init (assoc (vec (repeat cnt row0)) 0 (assoc row0 0 1))]
     (loop [i 1
-           c1 (rat* 1 1)
+           c1 (rationalize 1)
            c4 (xs 0)
            c c-init]
       (if (m/== i cnt)

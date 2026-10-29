@@ -8,7 +8,7 @@
            [fastmath.fields.utils Tetrad]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defn kaleidoscope
   ([] {:type :regular
@@ -18,16 +18,16 @@
                       :line-up (r/drand -1.0 1.0)
                       :rotate (u/sdrand 0.25 1.5)})})
   ([^double amount {:keys [^double pull ^double line-up ^double rotate ^double x ^double y]}]
-   (let [w (* 0.5253219888177296 rotate) ;; cos(45)
-         qe (+ pull line-up)] 
+   (let [w (m/* 0.5253219888177296 rotate) ;; cos(45)
+         qe (m/+ pull line-up)] 
      (fn [^Vec2 v]
-       (let [xx (* w (.x v))
-             yy (* 0.8509035245341184 (.y v))]
-         (Vec2. (* amount (+ (- xx yy) x))
-                (let [a (+ xx yy)]
-                  (* amount (if (pos? (.y v))
-                              (+ a qe y)
-                              (- a qe))))))))))
+       (let [xx (m/* w (.x v))
+             yy (m/* 0.8509035245341184 (.y v))]
+         (Vec2. (m/* amount (m/+ (m/- xx yy) x))
+                (let [a (m/+ xx yy)]
+                  (m/* amount (if (m/pos? (.y v))
+                              (m/+ a qe y)
+                              (m/- a qe))))))))))
 
 (defn- complex-inverse
   [^Tetrad m]
@@ -73,7 +73,7 @@
 
 (defn- kleingroup-maskitleysmodified
   [mu b1]
-  (let [b1 (c/complex (* 2.0 (m/cos (/ m/PI (c/re b1)))) (c/im b1))]
+  (let [b1 (c/complex (m/* 2.0 (m/cos (m// m/PI (c/re b1)))) (c/im b1))]
     [(Tetrad. (c/mult (c/scale mu -1.0) c/I) c/-I c/-I c/ZERO)
      (Tetrad. c/ONE b1 c/ZERO c/ONE)]))
 
@@ -131,7 +131,7 @@
                   kleingroup-riley
                   kleingroup-modifiedriley
                   kleingroup-modifiedmaskit
-                  kleingroup-maskitleysmodified] (mod recipe 7))
+                  kleingroup-maskitleysmodified] (m/mod recipe 7))
          [mat-a mat-b] (recipe a b)
          mat-inv-a (complex-inverse mat-a)
          mat-inv-b (complex-inverse mat-b)
@@ -144,4 +144,3 @@
                      (c/div (-> (c/mult win (.c mat))
                                 (c/add (.d mat))))) amount))))))
 
-(m/unuse-primitive-operators)

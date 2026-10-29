@@ -36,7 +36,6 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
-(m/use-primitive-operators)
 
 ;; guards
 
@@ -47,23 +46,23 @@
 (defn- non-empty!
   "Throws when `xs` is empty, returns `xs`."
   [xs]
-  (when (or (nil? xs) (zero? (count xs)))
+  (when (or (nil? xs) (m/zero? (count xs)))
     (throw (ex-info "Signal is empty." {:length 0})))
   xs)
 
 (defn- even-length!
   "Throws when interleaved complex data has odd length, returns `xs`."
   [xs]
-  (when (odd? (count xs))
+  (when (m/odd? (count xs))
     (throw (ex-info "Interleaved complex data needs an even number of values." {:length (count xs)})))
   xs)
 
 (defn- non-empty-2d!
   "Throws when `xss` is empty or its rows have different lengths, returns `xss`."
   [xss]
-  (when (or (nil? xss) (zero? (count xss)) (zero? (count (first xss))))
+  (when (or (nil? xss) (m/zero? (count xss)) (m/zero? (count (first xss))))
     (throw (ex-info "2d signal is empty." {:rows (count xss)})))
-  (when-not (apply == (map count xss))
+  (when-not (apply m/== (map count xss))
     (throw (ex-info "Rows of a 2d signal should have the same length." {:lengths (mapv count xss)})))
   xss)
 
@@ -353,17 +352,17 @@
   "Scale applied by a Fourier-type transform of length `n` (normalization length) for `norm` and direction."
   ^double [norm ^long n inverse?]
   (case norm
-    :backward (if inverse? (/ 1.0 n) 1.0)
-    :ortho (/ 1.0 (m/sqrt n))
-    :forward (if inverse? 1.0 (/ 1.0 n))
+    :backward (if inverse? (m// 1.0 n) 1.0)
+    :ortho (m// 1.0 (m/sqrt n))
+    :forward (if inverse? 1.0 (m// 1.0 n))
     (unknown :norm norm norms)))
 
 (defn- scale!
   "Multiplies `arr` in place by `s`, returns `arr`."
   ^doubles [^doubles arr ^double s]
-  (when-not (== s 1.0)
+  (when-not (m/== s 1.0)
     (dotimes [i (alength arr)]
-      (Array/aset arr i (* s (Array/aget arr i)))))
+      (Array/aset arr i (m/* s (Array/aget arr i)))))
   arr)
 
 ;; Fourier
@@ -375,20 +374,20 @@
 (defn- ->complex-vec
   "Interleaved `[re im ...]` array to a vector of `Vec2`."
   [^doubles arr]
-  (mapv (fn [^long id] (Vec2. (Array/aget arr id) (Array/aget arr (inc id)))) (range 0 (alength arr) 2)))
+  (mapv (fn [^long id] (Vec2. (Array/aget arr id) (Array/aget arr (m/inc id)))) (range 0 (alength arr) 2)))
 
 (defn- interleave-complex
   ^doubles [xs]
   (let [zs (vec xs)
         n (count zs)
-        arr (double-array (* 2 n))]
+        arr (double-array (m/* 2 n))]
     (dotimes [id n]
       (let [z (zs id)
             _ (when-not (instance? Vec2 z)
                 (throw (ex-info "Complex signal should contain only complex numbers (Vec2)." {:index id :value z})))
             ^Vec2 z z]
-        (Array/aset arr (* 2 id) (.x z))
-        (Array/aset arr (inc (* 2 id)) (.y z))))
+        (Array/aset arr (m/* 2 id) (.x z))
+        (Array/aset arr (m/inc (m/* 2 id)) (.y z))))
     arr))
 
 (defn- real-fft
@@ -397,17 +396,17 @@
   (let [^doubles packed (jt-forward-fft xs nil)
         n (alength packed)
         s (norm-scale norm n false)
-        last-full (if (even? n) (dec (m/long-quot n 2)) (m/long-quot n 2))
-        res (transient [(Vec2. (* s (Array/aget packed 0)) 0.0)])]
+        last-full (if (m/even? n) (m/dec (m/long-quot n 2)) (m/long-quot n 2))
+        res (transient [(Vec2. (m/* s (Array/aget packed 0)) 0.0)])]
     (loop [k 1 res res]
-      (if (> k last-full)
-        (persistent! (if (even? n)
-                       (conj! res (Vec2. (* s (Array/aget packed 1)) 0.0))
+      (if (m/> k last-full)
+        (persistent! (if (m/even? n)
+                       (conj! res (Vec2. (m/* s (Array/aget packed 1)) 0.0))
                        res))
-        (recur (inc k)
-               (conj! res (if (and (odd? n) (== k last-full))
-                            (Vec2. (* s (Array/aget packed (dec n))) (* s (Array/aget packed 1)))
-                            (Vec2. (* s (Array/aget packed (* 2 k))) (* s (Array/aget packed (inc (* 2 k))))))))))))
+        (recur (m/inc k)
+               (conj! res (if (and (m/odd? n) (m/== k last-full))
+                            (Vec2. (m/* s (Array/aget packed (m/dec n))) (m/* s (Array/aget packed 1)))
+                            (Vec2. (m/* s (Array/aget packed (m/* 2 k))) (m/* s (Array/aget packed (m/inc (m/* 2 k))))))))))))
 
 (defn fft
   "Computes the discrete Fourier transform of a 1d signal.
@@ -446,8 +445,8 @@
 
 (defn- real-ifft
   [xs ^long n norm]
-  (let [m (inc (m/long-quot n 2))]
-    (when-not (== m (count xs))
+  (let [m (m/inc (m/long-quot n 2))]
+    (when-not (m/== m (count xs))
       (throw (ex-info "Single-sided spectrum length should be N/2+1." {:n n :length (count xs) :expected m})))
     (let [packed (double-array n)
           zs (vec xs)
@@ -457,13 +456,13 @@
               :let [k (long k)
                     ^Vec2 z (zs k)]]
         (cond
-          (and (even? n) (== k (m/long-quot n 2))) (Array/aset packed 1 (.x z))
-          (and (odd? n) (== k (m/long-quot n 2))) (do (Array/aset packed (dec n) (.x z))
-                                               (when (> n 1) (Array/aset packed 1 (.y z))))
-          :else (do (Array/aset packed (* 2 k) (.x z))
-                    (Array/aset packed (inc (* 2 k)) (.y z)))))
+          (and (m/even? n) (m/== k (m/long-quot n 2))) (Array/aset packed 1 (.x z))
+          (and (m/odd? n) (m/== k (m/long-quot n 2))) (do (Array/aset packed (m/dec n) (.x z))
+                                               (when (m/> n 1) (Array/aset packed 1 (.y z))))
+          :else (do (Array/aset packed (m/* 2 k) (.x z))
+                    (Array/aset packed (m/inc (m/* 2 k)) (.y z)))))
       ;; JTransforms' unscaled real inverse is N/2 times the signal for even N, the scaled one is exact
-      (scale! (jt-reverse-fft packed true) (* n (norm-scale norm n true))))))
+      (scale! (jt-reverse-fft packed true) (m/* n (norm-scale norm n true))))))
 
 (defn ifft
   "Computes the inverse discrete Fourier transform, the inverse of [[fft]].
@@ -489,7 +488,7 @@
        :complex (let [cnt (count xs)
                       _ (when (and n (not= (long n) cnt))
                           (throw (ex-info "For a complex spectrum :n should equal the number of coefficients." {:n n :count cnt})))
-                      res (scale! (jt-reverse-cfft (interleave-complex xs) true) (* cnt (norm-scale norm cnt true)))]
+                      res (scale! (jt-reverse-cfft (interleave-complex xs) true) (m/* cnt (norm-scale norm cnt true)))]
                   (if real?
                     (vec (take-nth 2 res))
                     (->complex-vec res)))
@@ -507,23 +506,23 @@
   ^doubles [transform-type norm ^long n ^long special]
   (let [w (double-array n)]
     (dotimes [i n]
-      (let [base (if (== 2 (long transform-type))
-                   (if (== i special) (m/sqrt (/ 0.25 n)) (m/sqrt (/ 0.5 n)))
-                   (if (== i special) (m/sqrt n) (m/sqrt (* 2.0 n))))]
+      (let [base (if (m/== 2 (long transform-type))
+                   (if (m/== i special) (m/sqrt (m// 0.25 n)) (m/sqrt (m// 0.5 n)))
+                   (if (m/== i special) (m/sqrt n) (m/sqrt (m/* 2.0 n))))]
         (Array/aset w i (double (case norm
                                   :ortho 1.0
                                   :backward base
-                                  :forward (if (== 2 (long transform-type)) (* base 2.0 n) (/ base (* 2.0 n)))
+                                  :forward (if (m/== 2 (long transform-type)) (m/* base 2.0 n) (m// base (m/* 2.0 n)))
                                   (unknown :norm norm norms))))))
     w))
 
 (defn- emul!
   ^doubles [^doubles a ^doubles w]
-  (dotimes [i (alength a)] (Array/aset a i (* (Array/aget a i) (Array/aget w i)))) a)
+  (dotimes [i (alength a)] (Array/aset a i (m/* (Array/aget a i) (Array/aget w i)))) a)
 
 (defn- ediv!
   ^doubles [^doubles a ^doubles w]
-  (dotimes [i (alength a)] (Array/aset a i (/ (Array/aget a i) (Array/aget w i)))) a)
+  (dotimes [i (alength a)] (Array/aset a i (m// (Array/aget a i) (Array/aget w i)))) a)
 
 (defn- type-23
   "Type II/III transform (`transform-type` 2 or 3, `inverse?`) on top of the orthonormal JTransforms one."
@@ -531,7 +530,7 @@
   (let [arr (m/seq->double-array (non-empty! xs))
         n (alength arr)
         w (type-23-weights transform-type norm n (special-fn n))]
-    (if (== 2 (long transform-type))
+    (if (m/== 2 (long transform-type))
       (if inverse?
         (ortho-inverse (emul! arr w) true)
         (ediv! (ortho-forward arr true) w))
@@ -543,30 +542,30 @@
   "Unnormalized DCT-I (scipy `backward`) via FFT of the even extension, length `n >= 2`."
   ^doubles [^doubles x]
   (let [n (alength x)
-        len (* 2 (dec n))
+        len (m/* 2 (m/dec n))
         ext (double-array len)]
     (System/arraycopy x 0 ext 0 n)
     (loop [i 1]
-      (when (< i (dec n))
-        (Array/aset ext (- len i) (Array/aget x i))
-        (recur (inc i))))
+      (when (m/< i (m/dec n))
+        (Array/aset ext (m/- len i) (Array/aget x i))
+        (recur (m/inc i))))
     (let [^doubles spec (jt-forward-cfftr ext nil)
           out (double-array n)]
-      (dotimes [k n] (Array/aset out k (Array/aget spec (* 2 k))))
+      (dotimes [k n] (Array/aset out k (Array/aget spec (m/* 2 k))))
       out)))
 
 (defn- dst-1
   "Unnormalized DST-I (scipy `backward`) via FFT of the odd extension, length `n >= 1`."
   ^doubles [^doubles x]
   (let [n (alength x)
-        len (* 2 (inc n))
+        len (m/* 2 (m/inc n))
         ext (double-array len)]
     (dotimes [i n]
-      (Array/aset ext (inc i) (Array/aget x i))
-      (Array/aset ext (- len i 1) (- (Array/aget x i))))
+      (Array/aset ext (m/inc i) (Array/aget x i))
+      (Array/aset ext (m/- len i 1) (m/- (Array/aget x i))))
     (let [^doubles spec (jt-forward-cfftr ext nil)
           out (double-array n)]
-      (dotimes [k n] (Array/aset out k (- (Array/aget spec (inc (* 2 (inc k)))))))
+      (dotimes [k n] (Array/aset out k (m/- (Array/aget spec (m/inc (m/* 2 (m/inc k)))))))
       out)))
 
 (defn- type-1
@@ -577,25 +576,25 @@
         n (alength x)]
     (case kind
       :cosine (do
-                (when (< n 2) (throw (ex-info "DCT-I needs at least 2 values." {:length n})))
-                (let [len (* 2 (dec n))]
+                (when (m/< n 2) (throw (ex-info "DCT-I needs at least 2 values." {:length n})))
+                (let [len (m/* 2 (m/dec n))]
                   (case norm
                     :backward (dct-1 x)
-                    :forward (scale! (dct-1 x) (/ 1.0 len))
+                    :forward (scale! (dct-1 x) (m// 1.0 len))
                     :ortho (let [r2 (m/sqrt 2.0)
                                  xs (doto ^doubles (aclone x)
-                                      (Array/aset 0 (* r2 (Array/aget x 0)))
-                                      (Array/aset (dec n) (* r2 (Array/aget x (dec n)))))
-                                 ^doubles y (scale! (dct-1 xs) (/ 1.0 (m/sqrt len)))]
-                             (Array/aset y 0 (/ (Array/aget y 0) r2))
-                             (Array/aset y (dec n) (/ (Array/aget y (dec n)) r2))
+                                      (Array/aset 0 (m/* r2 (Array/aget x 0)))
+                                      (Array/aset (m/dec n) (m/* r2 (Array/aget x (m/dec n)))))
+                                 ^doubles y (scale! (dct-1 xs) (m// 1.0 (m/sqrt len)))]
+                             (Array/aset y 0 (m// (Array/aget y 0) r2))
+                             (Array/aset y (m/dec n) (m// (Array/aget y (m/dec n)) r2))
                              y)
                     (unknown :norm norm norms))))
-      :sine (let [len (* 2 (inc n))]
+      :sine (let [len (m/* 2 (m/inc n))]
               (case norm
                 :backward (dst-1 x)
-                :forward (scale! (dst-1 x) (/ 1.0 len))
-                :ortho (scale! (dst-1 x) (/ 1.0 (m/sqrt len)))
+                :forward (scale! (dst-1 x) (m// 1.0 len))
+                :ortho (scale! (dst-1 x) (m// 1.0 (m/sqrt len)))
                 (unknown :norm norm norms))))))
 
 (def ^:private dct-methods [:DCT-I :DCT-II :DCT-III])
@@ -611,8 +610,8 @@
               (unknown :method method dct-methods))
     :sine (case method
             :DST-I (type-1 :sine norm inverse? xs)
-            :DST-II (type-23 jt-forward-dst jt-reverse-dst dec 2 norm inverse? xs)
-            :DST-III (type-23 jt-forward-dst jt-reverse-dst dec 3 norm inverse? xs)
+            :DST-II (type-23 jt-forward-dst jt-reverse-dst m/dec 2 norm inverse? xs)
+            :DST-III (type-23 jt-forward-dst jt-reverse-dst m/dec 3 norm inverse? xs)
             (unknown :method method dst-methods))))
 
 (defn dct
@@ -697,7 +696,7 @@
   ([xs options]
    (let [{:keys [norm] :or {norm :backward}} (merge (::dht (meta xs)) options)
          n (count (non-empty! xs))]
-     (vec (scale! (jt-reverse-dht xs true) (* n (norm-scale norm n true)))))))
+     (vec (scale! (jt-reverse-dht xs true) (m/* n (norm-scale norm n true)))))))
 
 ;; Hadamard
 
@@ -722,8 +721,6 @@
   [xs]
   (vec (reverse-1d (FastHadamardTransformer.) (power-of-two! xs))))
 
-(m/unuse-primitive-operators)
-
 ;; Wavelets
 
 (defn- wavelet-options
@@ -738,7 +735,7 @@
   ^long [level ^long n ^long filter-length]
   (cond
     (nil? level) (wv/max-level n filter-length)
-    (and (integer? level) (m/not-neg? (long level))) (long level)
+    (and (number? level) (m/integer? (double level)) (m/not-neg? (long level))) (long level)
     :else (throw (ex-info "Level should be a non-negative integer." {:level level}))))
 
 (defn- signal->array
@@ -766,7 +763,7 @@
 
 (defn- split-flat
   [coeffs lengths]
-  (when-not (== (count coeffs) (long (reduce + lengths)))
+  (when-not (m/== (count coeffs) (long (reduce m/+ lengths)))
     (throw (ex-info "Flat coefficients do not match band lengths." {:length (count coeffs) :lengths lengths})))
   (loop [cs (vec coeffs) ls lengths acc []]
     (if-let [l (first ls)]
@@ -778,8 +775,8 @@
   ^doubles [^doubles arr n]
   (cond
     (nil? n) arr
-    (== (alength arr) (long n)) arr
-    (> (alength arr) (long n)) (java.util.Arrays/copyOf arr (int n))
+    (m/== (alength arr) (long n)) arr
+    (m/> (alength arr) (long n)) (java.util.Arrays/copyOf arr (int n))
     :else (throw (ex-info "Reconstructed signal is shorter than the requested length." {:length (alength arr) :n n}))))
 
 (defn- filter-bank
@@ -857,8 +854,8 @@
                              la (alength a)
                              ld (alength d)
                              ^doubles a (cond
-                                          (== la ld) a
-                                          (== la (inc ld)) (java.util.Arrays/copyOf a ld)
+                                          (m/== la ld) a
+                                          (m/== la (m/inc ld)) (java.util.Arrays/copyOf a ld)
                                           :else (throw (ex-info "Band lengths do not fit together." {:approximation la :detail ld})))]
                          (wv/idwt-level w a d mode)))
                      (m/seq->double-array (first bands)) (rest bands))]
@@ -915,26 +912,26 @@
          nodes (if (number? (first coeffs))
                  (if level
                    (let [parts (long (m/exp2 level))]
-                     (when-not (zero? (m/long-mod (count coeffs) parts))
+                     (when-not (m/zero? (m/long-mod (count coeffs) parts))
                        (throw (ex-info "Flat coefficients can't be split into 2^level equal nodes." {:length (count coeffs) :level level})))
-                     (mapv vec (partition (quot (count coeffs) parts) coeffs)))
+                     (mapv vec (partition (m/quot (count coeffs) parts) coeffs)))
                    (throw (ex-info "Flat coefficients need :level." {})))
                  coeffs)
          cnt (count (non-empty-bands! nodes))
          lvl (m/log2int cnt)]
      (when-not (m/power-of-two? cnt)
        (throw (ex-info "Number of nodes should be a power of two." {:nodes cnt})))
-     (when-not (apply == (map count nodes))
+     (when-not (apply m/== (map count nodes))
        (throw (ex-info "Nodes should have the same length." {:lengths (map count nodes)})))
-     (let [tree-lengths (when n (vec (take (inc lvl) (iterate #(wv/coeffs-length % l mode) (long n)))))]
+     (let [tree-lengths (when n (vec (take (m/inc lvl) (iterate #(wv/coeffs-length % l mode) (long n)))))]
        (when (and tree-lengths (not= (count (first nodes)) (tree-lengths lvl)))
          (throw (ex-info "Node length does not match the signal length :n." {:node-length (count (first nodes)) :expected (tree-lengths lvl)})))
        (loop [nodes (mapv m/seq->double-array nodes) k lvl]
-         (if (zero? k)
+         (if (m/zero? k)
            (vec ^doubles (first nodes))
-           (recur (mapv (fn [[a d]] (trim-to (wv/idwt-level w a d mode) (when tree-lengths (tree-lengths (dec k)))))
+           (recur (mapv (fn [[a d]] (trim-to (wv/idwt-level w a d mode) (when tree-lengths (tree-lengths (m/dec k)))))
                         (partition 2 nodes))
-                  (dec k))))))))
+                  (m/dec k))))))))
 
 (defn wpd
   "Computes the full wavelet packet decomposition: the [[wpt]] nodes of every level from 0 (the signal) to `:level`.

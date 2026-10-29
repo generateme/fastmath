@@ -21,7 +21,7 @@
         u (double-array n-)
         y2 (double-array n)]
     (dotimes [iter (m/dec n-)]
-      (let [i (inc iter)
+      (let [i (m/inc iter)
             i- (m/dec i)
             i+ (m/inc i)
             x- (Array/aget xs i-)
@@ -64,7 +64,7 @@
                  (conj arr (Coeffs. x1 x2
                                     (Array/aget ys i) (Array/aget ys i+)
                                     (Array/aget y2 i) (Array/aget y2 i+)
-                                    h (m// (* h h) 6.0)))))))))
+                                    h (m// (m/* h h) 6.0)))))))))
 
 (defn- natural-spline
   "Natural cubic spline function over double arrays, without any validation of the data."

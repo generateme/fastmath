@@ -256,7 +256,7 @@
   [option value expected]
   (ex-info (str "Invalid option " option) {:option option :value value :expected expected}))
 
-(defn- natural? [^long min-value] (fn [x] (and (integer? x) (m/>= (long x) min-value))))
+(defn- natural? [^long min-value] (fn [x] (and (number? x) (m/integer? (double x)) (m/>= (long x) min-value))))
 (defn- non-negative? [x] (and (number? x) (m/not-neg? (double x))))
 
 (def ^:private option-checks

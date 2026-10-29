@@ -24,7 +24,7 @@
 (defn- spacings
   "Returns the array of the `n-1` spacings between consecutive samples."
   ^doubles [^doubles xs ^double dx ^long n]
-  (let [nh (if (pos? n) (m/long-dec n) 0)
+  (let [nh (if (m/pos? n) (m/long-dec n) 0)
         h (double-array nh)]
     (dotimes [i nh]
       (Array/aset h i (if xs
@@ -36,9 +36,9 @@
 
 (defn- trapezoid-total
   ^double [^doubles ys ^doubles h]
-  (loop [i 0
+  (loop [i (long 0)
          s 0.0]
-    (if (< i (alength h))
+    (if (m/< i (alength h))
       (recur (m/long-inc i)
              (m/+ s (m// (m/* (Array/aget h i)
                               (m/+ (Array/aget ys (m/long-inc i)) (Array/aget ys i)))
@@ -49,9 +49,9 @@
   ^doubles [^doubles ys ^doubles h]
   (let [n (alength ys)
         res (double-array n)]
-    (loop [i 0
+    (loop [i (long 0)
            s 0.0]
-      (when (< i (alength h))
+      (when (m/< i (alength h))
         (let [s (m/+ s (m// (m/* (Array/aget h i)
                                  (m/+ (Array/aget ys (m/long-inc i)) (Array/aget ys i)))
                             2.0))]
@@ -88,18 +88,18 @@
 (defn- simpson-pairs
   "Sum of the Simpson pairs, uniform spacing (to be multiplied by dx/3)."
   ^double [^doubles ys ^long npairs]
-  (loop [j 0
+  (loop [j (long 0)
          s 0.0]
-    (if (< j npairs)
+    (if (m/< j npairs)
       (recur (m/long-inc j) (m/+ s (simpson-pair ys (m/long-mult 2 j))))
       s)))
 
 (defn- simpson-pairs-nonuniform
   "Sum of the Simpson pairs, arbitrary spacings."
   ^double [^doubles ys ^doubles h ^long npairs]
-  (loop [j 0
+  (loop [j (long 0)
          s 0.0]
-    (if (< j npairs)
+    (if (m/< j npairs)
       (recur (m/long-inc j) (m/+ s (simpson-pair-nonuniform ys h (m/long-mult 2 j))))
       s)))
 
@@ -110,8 +110,8 @@
 (defn- simpson-total
   ^double [^doubles ys ^doubles h uniform?]
   (let [n (alength ys)]
-    (if (< n 3)
-      (if (== n 2) (trapezoid-total ys h) 0.0)
+    (if (m/< n 3)
+      (if (m/== n 2) (trapezoid-total ys h) 0.0)
       (let [npairs (m/long-quot (m/long-dec n) 2)
             main (if uniform?
                    (m/* (m// (Array/aget h 0) 3.0) (simpson-pairs ys npairs))
@@ -155,18 +155,18 @@
 (defn- simpson-cumulative
   ^doubles [^doubles ys ^doubles h uniform?]
   (let [n (alength ys)]
-    (if (< n 3)
+    (if (m/< n 3)
       (trapezoid-cumulative ys h)
       (let [res (double-array n)
             fs (double-array 3)
             last-interval (m/long-sub n 2)]
         (loop [k 0
                s 0.0]
-          (when (<= k last-interval)
+          (when (m/<= k last-interval)
             (let [;; odd intervals and the last one are integrated over the second interval of the
                   ;; triple (k-1, k, k+1), the other ones over the first interval of (k, k+1, k+2);
                   ;; the former is the latter for the reversed triple
-                  second? (or (m/odd? k) (== k last-interval))
+                  second? (or (m/odd? k) (m/== k last-interval))
                   i (if second? (m/long-dec k) k)
                   ya (Array/aget ys i)
                   yb (Array/aget ys (m/long-inc i))
@@ -227,14 +227,14 @@
                    (number? x-or-dx) [nil (double x-or-dx)]
                    :else [(samples->array x-or-dx :x-or-dx) 1.0])
          xs (when xs
-              (when-not (== (alength ^doubles xs) n)
+              (when-not (m/== (alength ^doubles xs) n)
                 (throw (ex-info "Lengths of ys and x differ."
                                 {:ys-count n :x-count (alength ^doubles xs)})))
               xs)
          uniform? (nil? xs)
          h (spacings xs dx n)]
      (if cumulative?
-       (if (zero? n)
+       (if (m/zero? n)
          []
          (vec (if (= method :simpson)
                 (simpson-cumulative ys h uniform?)

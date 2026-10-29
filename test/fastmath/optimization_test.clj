@@ -586,7 +586,7 @@
 
 (t/deftest bayesian-optimization-guards
   ;; unknown values throw immediately, before any step is taken
-  (t/is (= {:utility-function-type :foo :allowed #{:ucb :ei :poi}}
+  (t/is (= {:utility-function-type :foo :allowed #{:ucb :ei :poi :log-ucb :log-ei :log-poi}}
            (ex-data-of #(sut/bayesian-optimization (fn [_] 0.0) {:bounds hb :utility-function-type :foo}))))
   (t/is (= :bfgs (:method (ex-data-of #(sut/bayesian-optimization (fn [_] 0.0) {:bounds hb :optimizer :bfgs})))))
   (doseq [bounds [nil [[5 -5] [0 1]] [[##-Inf ##Inf] [0 1]] [[0 1] [0 ##NaN]] []]]

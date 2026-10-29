@@ -24,7 +24,6 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
-(m/use-primitive-operators)
 
 ;; Literature
 ;; http://evoq-eval.siam.org/Portals/0/Publications/SIURO/Vol4/Choosing_Basis_Functions_and_Shape_Parameters.pdf
@@ -84,7 +83,7 @@
   ([] (linear nil))
   ([params]
    (let [scale (scale-of params)]
-     (fn ^double [^double x] (m/abs (/ x scale))))))
+     (fn ^double [^double x] (m/abs (m// x scale))))))
 
 (defn gaussian
   "Gaussian kernel: `exp(-(r / scale)^2)`.
@@ -102,7 +101,7 @@
   ([] (gaussian nil))
   ([params]
    (let [scale (scale-of params)]
-     (fn ^double [^double x] (m/exp (- (m/sq (/ x scale))))))))
+     (fn ^double [^double x] (m/exp (m/- (m/sq (m// x scale))))))))
 
 ;; RBF kernels
 ;; [1] https://www.math.unipd.it/~demarchi/RBF/LectureNotes.pdf
@@ -129,13 +128,13 @@
    (let [k (required-double :truncated-power params :k)
          scale (scale-of params)]
      (cond
-       (== k m/THIRD) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (if (<= ex 1.0)
-                                                                             (m/cbrt (- 1.0 ex)) 0.0)))
-       (== k 0.5) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (if (<= ex 1.0) (m/sqrt (- 1.0 ex)) 0.0)))
-       (== k 1.0) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (if (<= ex 1.0) (- 1.0 ex) 0.0)))
-       (== k 2.0) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (if (<= ex 1.0) (m/sq (- 1.0 ex)) 0.0)))
-       (== k 3.0) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (if (<= ex 1.0) (m/cb (- 1.0 ex)) 0.0)))
-       :else (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (if (<= ex 1.0) (m/pow (- 1.0 ex) k) 0.0)))))))
+       (m/== k m/THIRD) (fn ^double [^double x] (let [ex (m/abs (m// x scale))] (if (m/<= ex 1.0)
+                                                                             (m/cbrt (m/- 1.0 ex)) 0.0)))
+       (m/== k 0.5) (fn ^double [^double x] (let [ex (m/abs (m// x scale))] (if (m/<= ex 1.0) (m/sqrt (m/- 1.0 ex)) 0.0)))
+       (m/== k 1.0) (fn ^double [^double x] (let [ex (m/abs (m// x scale))] (if (m/<= ex 1.0) (m/- 1.0 ex) 0.0)))
+       (m/== k 2.0) (fn ^double [^double x] (let [ex (m/abs (m// x scale))] (if (m/<= ex 1.0) (m/sq (m/- 1.0 ex)) 0.0)))
+       (m/== k 3.0) (fn ^double [^double x] (let [ex (m/abs (m// x scale))] (if (m/<= ex 1.0) (m/cb (m/- 1.0 ex)) 0.0)))
+       :else (fn ^double [^double x] (let [ex (m/abs (m// x scale))] (if (m/<= ex 1.0) (m/pow (m/- 1.0 ex) k) 0.0)))))))
 
 ;; [1] p.33
 
@@ -159,16 +158,16 @@
    (let [dimension (required-double :gaussians-laguerre params :dimension)
          degree (required-long :gaussians-laguerre params :degree)
          scale (scale-of params)
-         hdimension (* 0.5 dimension)]
-     (when-not (pos? dimension)
+         hdimension (m/* 0.5 dimension)]
+     (when-not (m/pos? dimension)
        (invalid-input! :gaussians-laguerre :dimension "must be positive" dimension))
-     (when (neg? degree)
+     (when (m/neg? degree)
        (invalid-input! :gaussians-laguerre :degree "must be non-negative" degree))
      (fn ^double [^double x]
-       (let [ex (m/sq (/ x scale))
-             e (m/exp (- ex))]
+       (let [ex (m/sq (m// x scale))
+             e (m/exp (m/- ex))]
          ;; the polynomial overflows where the exponential underflows: avoid Inf * 0
-         (if (zero? e) 0.0 (* e (poly/eval-laguerre-L degree hdimension ex))))))))
+         (if (m/zero? e) 0.0 (m/* e (poly/eval-laguerre-L degree hdimension ex))))))))
 
 ;; [1] p.33
 
@@ -190,23 +189,23 @@
   ([params]
    (let [d (required-double :poisson params :d)
          scale (scale-of params)]
-     (when (< d 1.0)
+     (when (m/< d 1.0)
        (invalid-input! :poisson :d "must be at least 1" d))
      (cond
-       (== d 1.0) (fn ^double [^double x] (m/cos (/ x scale)))
-       (== d 2.0) (fn ^double [^double x] (special/bessel-J0 (m/abs (/ x scale))))
-       (== d 3.0) (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                           (if (< ex 1.0e-13) 1.0 (/ (m/sin ex) ex))))
-       (== d 4.0) (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                           (if (< ex 1.0e-13) 1.0 (/ (* 2.0 (special/bessel-J1 ex)) ex))))
-       :else (let [p (dec (* 0.5 d))
-                   c (m/exp (+ (* p m/LN2) (special/log-gamma (inc p))))
-                   c2 (/ -0.5 d)]
+       (m/== d 1.0) (fn ^double [^double x] (m/cos (m// x scale)))
+       (m/== d 2.0) (fn ^double [^double x] (special/bessel-J0 (m/abs (m// x scale))))
+       (m/== d 3.0) (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                           (if (m/< ex 1.0e-13) 1.0 (m// (m/sin ex) ex))))
+       (m/== d 4.0) (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                           (if (m/< ex 1.0e-13) 1.0 (m// (m/* 2.0 (special/bessel-J1 ex)) ex))))
+       :else (let [p (m/dec (m/* 0.5 d))
+                   c (m/exp (m/+ (m/* p m/LN2) (special/log-gamma (m/inc p))))
+                   c2 (m// -0.5 d)]
                (fn ^double [^double x]
-                 (let [ex (m/abs (/ x scale))]
-                   (if (< ex 1.0e-5)
-                     (inc (* c2 ex ex)) ;; series, the error is below 1e-20
-                     (* c (/ (special/bessel-J p ex) (m/pow ex p)))))))))))
+                 (let [ex (m/abs (m// x scale))]
+                   (if (m/< ex 1.0e-5)
+                     (m/inc (m/* c2 ex ex)) ;; series, the error is below 1e-20
+                     (m/* c (m// (special/bessel-J p ex) (m/pow ex p)))))))))))
 
 ;; [1] p. 34
 
@@ -230,17 +229,17 @@
   ([params]
    (let [order (required-long :matern params :order)
          scale (scale-of params)]
-     (when-not (and (pos? order) (odd? order))
+     (when-not (and (m/pos? order) (m/odd? order))
        (invalid-input! :matern :order "must be a positive odd integer" order))
-     (let [v (* 0.5 order)
-           rg (m/exp (- (* (- 1.0 v) m/LN2) (special/log-gamma v)))]
+     (let [v (m/* 0.5 order)
+           rg (m/exp (m/- (m/* (m/- 1.0 v) m/LN2) (special/log-gamma v)))]
        (fn ^double [^double x]
-         (let [ex (m/abs (/ x scale))]
-           (if (< ex 1.0e-20)
+         (let [ex (m/abs (m// x scale))]
+           (if (m/< ex 1.0e-20)
              1.0
              (let [k (special/bessel-K-half-odd order ex)]
                ;; K underflows to 0 where ex^v overflows: avoid 0 * Inf
-               (if (zero? k) 0.0 (* rg (m/pow ex v) k))))))))))
+               (if (m/zero? k) 0.0 (m/* rg (m/pow ex v) k))))))))))
 
 ;; [1] p. 43
 
@@ -251,11 +250,11 @@
     (or (nil? negate?) (= :auto negate?))
     (case kind
       ;; (-1)^ceil(beta) for beta > 0, positive (positive definite) otherwise
-      :gmq (if (and (pos? beta) (odd? (long (m/ceil beta)))) -1.0 1.0)
+      :gmq (if (and (m/pos? beta) (m/odd? (long (m/ceil beta)))) -1.0 1.0)
       ;; (-1)^ceil(beta/2)
-      :radial-powers (if (even? (long (m/ceil (* 0.5 beta)))) 1.0 -1.0)
+      :radial-powers (if (m/even? (long (m/ceil (m/* 0.5 beta)))) 1.0 -1.0)
       ;; (-1)^(ceil(beta) + 1)
-      :tps (if (even? (long (m/ceil beta))) -1.0 1.0))
+      :tps (if (m/even? (long (m/ceil beta))) -1.0 1.0))
     negate? -1.0
     :else 1.0))
 
@@ -280,17 +279,17 @@
          scale (scale-of params)
          fact (infer-negate :gmq beta (get params :negate?))]
      (cond
-       (== beta m/THIRD) (fn ^double [^double x] (* fact (m/cbrt (inc (m/sq (/ x scale))))))
-       (== beta (- m/THIRD)) (fn ^double [^double x] (* fact (m/cbrt (/ (inc (m/sq (/ x scale)))))))
-       (== beta 0.5) (fn ^double [^double x] (* fact (m/sqrt (inc (m/sq (/ x scale))))))
-       (== beta -0.5) (fn ^double [^double x] (* fact (m/sqrt (/ (inc (m/sq (/ x scale)))))))
-       (== beta 1.0) (fn ^double [^double x] (* fact (inc (m/sq (/ x scale)))))
-       (== beta -1.0) (fn ^double [^double x] (* fact (/ (inc (m/sq (/ x scale))))))
-       (== beta 2.0) (fn ^double [^double x] (* fact (m/sq (inc (m/sq (/ x scale))))))
-       (== beta -2.0) (fn ^double [^double x] (* fact (m/sq (/ (inc (m/sq (/ x scale)))))))
-       (== beta 3.0) (fn ^double [^double x] (* fact (m/cb (inc (m/sq (/ x scale))))))
-       (== beta -3.0) (fn ^double [^double x] (* fact (m/cb (/ (inc (m/sq (/ x scale)))))))
-       :else (fn ^double [^double x] (* fact (m/pow (inc (m/sq (/ x scale))) beta)))))))
+       (m/== beta m/THIRD) (fn ^double [^double x] (m/* fact (m/cbrt (m/inc (m/sq (m// x scale))))))
+       (m/== beta (m/- m/THIRD)) (fn ^double [^double x] (m/* fact (m/cbrt (m// (m/inc (m/sq (m// x scale)))))))
+       (m/== beta 0.5) (fn ^double [^double x] (m/* fact (m/sqrt (m/inc (m/sq (m// x scale))))))
+       (m/== beta -0.5) (fn ^double [^double x] (m/* fact (m/sqrt (m// (m/inc (m/sq (m// x scale)))))))
+       (m/== beta 1.0) (fn ^double [^double x] (m/* fact (m/inc (m/sq (m// x scale)))))
+       (m/== beta -1.0) (fn ^double [^double x] (m/* fact (m// (m/inc (m/sq (m// x scale))))))
+       (m/== beta 2.0) (fn ^double [^double x] (m/* fact (m/sq (m/inc (m/sq (m// x scale))))))
+       (m/== beta -2.0) (fn ^double [^double x] (m/* fact (m/sq (m// (m/inc (m/sq (m// x scale)))))))
+       (m/== beta 3.0) (fn ^double [^double x] (m/* fact (m/cb (m/inc (m/sq (m// x scale))))))
+       (m/== beta -3.0) (fn ^double [^double x] (m/* fact (m/cb (m// (m/inc (m/sq (m// x scale)))))))
+       :else (fn ^double [^double x] (m/* fact (m/pow (m/inc (m/sq (m// x scale))) beta)))))))
 
 ;; [1] p. 43
 
@@ -315,9 +314,9 @@
          scale (scale-of params)
          fact (infer-negate :radial-powers beta (get params :negate?))]
      (cond
-       (== beta 1.0) (fn ^double [^double x] (* fact (m/abs (/ x scale))))
-       (== beta 3.0) (fn ^double [^double x] (* fact (m/cb (m/abs (/ x scale)))))
-       :else (fn ^double [^double x] (* fact (m/pow (m/abs (/ x scale)) beta)))))))
+       (m/== beta 1.0) (fn ^double [^double x] (m/* fact (m/abs (m// x scale))))
+       (m/== beta 3.0) (fn ^double [^double x] (m/* fact (m/cb (m/abs (m// x scale)))))
+       :else (fn ^double [^double x] (m/* fact (m/pow (m/abs (m// x scale)) beta)))))))
 
 (defn thin-plate-splines
   "Thin plate splines kernel: `sign * rho^(2 beta) * log(rho)` with `rho = abs(r / scale)`.
@@ -338,77 +337,77 @@
   ([params]
    (let [beta (required-double :thin-plate-splines params :beta)
          scale (scale-of params)
-         beta2 (* 2.0 beta)
+         beta2 (m/* 2.0 beta)
          fact (infer-negate :tps beta (get params :negate?))]
-     (when-not (pos? beta)
+     (when-not (m/pos? beta)
        (invalid-input! :thin-plate-splines :beta "must be positive" beta))
      (fn ^double [^double x]
-       (let [ex (m/abs (/ x scale))]
-         (if (zero? ex) 0.0 (* fact (m/pow ex beta2) (m/log ex))))))))
+       (let [ex (m/abs (m// x scale))]
+         (if (m/zero? ex) 0.0 (m/* fact (m/pow ex beta2) (m/log ex))))))))
 
 ;; [2] p.44
 
 (defn- whittaker-integration [^double alpha ^double k ^double beta]
-  (let [k- (dec k)]
-    (if (zero? alpha)
+  (let [k- (m/dec k)]
+    (if (m/zero? alpha)
       (fn ^double [^double r]
-        (let [f (if (zero? r)
-                  (fn ^double [^double t] (m/exp (- (* t beta))))
-                  (fn ^double [^double t] (* (m/pow (max 0.0 (- 1.0 (* r t))) k-)
-                                            (m/exp (- (* t beta))))))]
+        (let [f (if (m/zero? r)
+                  (fn ^double [^double t] (m/exp (m/- (m/* t beta))))
+                  (fn ^double [^double t] (m/* (m/pow (m/max 0.0 (m/- 1.0 (m/* r t))) k-)
+                                            (m/exp (m/- (m/* t beta))))))]
           (calc/gk-quadrature f 0.0 ##Inf {:max-iters 1000 :abs 1.0e-6 :rel 1.0e-6})))
       (fn ^double [^double r]
-        (let [f (if (zero? r)
-                  (fn ^double [^double t] (* (m/pow t alpha)
-                                            (m/exp (- (* t beta)))))
-                  (fn ^double [^double t] (* (m/pow (max 0.0 (- 1.0 (* r t))) k-)
+        (let [f (if (m/zero? r)
+                  (fn ^double [^double t] (m/* (m/pow t alpha)
+                                            (m/exp (m/- (m/* t beta)))))
+                  (fn ^double [^double t] (m/* (m/pow (m/max 0.0 (m/- 1.0 (m/* r t))) k-)
                                             (m/pow t alpha)
-                                            (m/exp (- (* t beta))))))]
+                                            (m/exp (m/- (m/* t beta))))))]
           (calc/gk-quadrature f 0.0 ##Inf {:max-iters 1000 :abs 1.0e-6 :rel 1.0e-6}))))))
 
 (defn- whittaker-direct
   "Closed forms of the Whittaker kernel, `kind` 0 to 3 for alpha, k = (0, 2), (1, 2), (0, 3), (1, 3); `ex` is rho."
   ^double [^long kind ^double beta ^double ex]
-  (let [e (m/exp (- (/ beta ex)))]
+  (let [e (m/exp (m/- (m// beta ex)))]
     (case kind
-      0 (/ (+ (- beta ex) (* ex e)) beta)
-      1 (let [ex2 (* 2.0 ex)]
-          (/ (+ (- beta ex2) (* (+ beta ex2) e)) beta))
+      0 (m// (m/+ (m/- beta ex) (m/* ex e)) beta)
+      1 (let [ex2 (m/* 2.0 ex)]
+          (m// (m/+ (m/- beta ex2) (m/* (m/+ beta ex2) e)) beta))
       2 (let [b (m/sq beta)
-              ex2 (* 2.0 (m/sq ex))]
-          (/ (+ (- b (* 2.0 beta ex)) ex2 (- (* ex2 e))) b))
+              ex2 (m/* 2.0 (m/sq ex))]
+          (m// (m/+ (m/- b (m/* 2.0 beta ex)) ex2 (m/- (m/* ex2 e))) b))
       3 (let [b (m/sq beta)
-              ex2 (* 6.0 (m/sq ex))
-              bex (* 2.0 beta ex)]
-          (/ (+ (- b (* 2.0 bex)) ex2 (- (* (+ bex ex2) e))) b)))))
+              ex2 (m/* 6.0 (m/sq ex))
+              bex (m/* 2.0 beta ex)]
+          (m// (m/+ (m/- b (m/* 2.0 bex)) ex2 (m/- (m/* (m/+ bex ex2) e))) b)))))
 
 (defn- whittaker-tail
   "Series in `u = beta / rho` of the closed forms (they cancel catastrophically for a small `u`)."
   ^double [^long kind ^double u]
   (let [n0 (case kind 0 2 1 3 2 3 3 4)
-        shift (if (< kind 2) 1 2)
+        shift (if (m/< kind 2) 1 2)
         fact0 (case kind 0 2.0 1 6.0 2 6.0 3 24.0)]
     ;; value = sum over n >= n0 of c(n) u^(n - shift) / n!
     (loop [n n0
-           t (/ (m/pow u (- n0 shift)) fact0)
+           t (m// (m/pow u (m/- n0 shift)) fact0)
            acc 0.0]
-      (let [sgn (if (even? n) 1.0 -1.0)
+      (let [sgn (if (m/even? n) 1.0 -1.0)
             c (case kind
                 0 sgn
-                1 (* -1.0 sgn (- n 2))
-                2 (* -2.0 sgn)
-                3 (* 2.0 sgn (- n 3)))
-            term (* c t)
-            acc (+ acc term)]
-        (if (or (> n 60) (and (> n (inc n0)) (<= (m/abs term) (* 1.0e-18 (m/abs acc)))))
+                1 (m/* -1.0 sgn (m/- n 2))
+                2 (m/* -2.0 sgn)
+                3 (m/* 2.0 sgn (m/- n 3)))
+            term (m/* c t)
+            acc (m/+ acc term)]
+        (if (or (m/> n 60) (and (m/> n (m/inc n0)) (m/<= (m/abs term) (m/* 1.0e-18 (m/abs acc)))))
           acc
-          (recur (inc n) (/ (* t u) (inc n)) acc))))))
+          (recur (m/inc n) (m// (m/* t u) (m/inc n)) acc))))))
 
 (defn- whittaker-closed [^long kind ^double beta ^double scale]
   (fn ^double [^double x]
-    (let [ex (m/abs (/ x scale))
-          u (/ beta ex)]
-      (if (< u 1.5)
+    (let [ex (m/abs (m// x scale))
+          u (m// beta ex)]
+      (if (m/< u 1.5)
         (whittaker-tail kind u)
         (whittaker-direct kind beta ex)))))
 
@@ -436,22 +435,22 @@
          k (required-double :whittaker params :k)
          beta (required-double :whittaker params :beta)
          scale (scale-of params)]
-     (when-not (> alpha -1.0)
+     (when-not (m/> alpha -1.0)
        (invalid-input! :whittaker :alpha "must be greater than -1" alpha))
-     (when-not (pos? k)
+     (when-not (m/pos? k)
        (invalid-input! :whittaker :k "must be positive" k))
-     (when-not (pos? beta)
+     (when-not (m/pos? beta)
        (invalid-input! :whittaker :beta "must be positive" beta))
      (cond
-       (and (== alpha 0.0) (== k 2.0)) (whittaker-closed 0 beta scale)
-       (and (== alpha 1.0) (== k 2.0)) (whittaker-closed 1 beta scale)
-       (and (== alpha 0.0) (== k 3.0)) (whittaker-closed 2 beta scale)
-       (and (== alpha 1.0) (== k 3.0)) (whittaker-closed 3 beta scale)
+       (and (m/== alpha 0.0) (m/== k 2.0)) (whittaker-closed 0 beta scale)
+       (and (m/== alpha 1.0) (m/== k 2.0)) (whittaker-closed 1 beta scale)
+       (and (m/== alpha 0.0) (m/== k 3.0)) (whittaker-closed 2 beta scale)
+       (and (m/== alpha 1.0) (m/== k 3.0)) (whittaker-closed 3 beta scale)
        :else
        (let [w (whittaker-integration alpha k beta)
              w0 (double (w 0.0))]
-         (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                  (/ ^double (w ex) w0))))))))
+         (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                  (m// ^double (w ex) w0))))))))
 
 ;; [2] p.131
 
@@ -477,22 +476,22 @@
    (let [s (required-long :shifted-surface-splines params :s)
          beta (required-double :shifted-surface-splines params :beta)
          scale (scale-of params)
-         t (- beta (* 0.5 s))
+         t (m/- beta (m/* 0.5 s))
          ct (long (m/ceil t))]
-     (when (< s 1)
+     (when (m/< s 1)
        (invalid-input! :shifted-surface-splines :s "must be positive" s))
-     (when-not (pos? t)
+     (when-not (m/pos? t)
        (invalid-input! :shifted-surface-splines :beta "must be greater than half of s" beta))
-     (if (odd? s)
-       (let [fact (if (even? ct) 1.0 -1.0)]
+     (if (m/odd? s)
+       (let [fact (if (m/even? ct) 1.0 -1.0)]
          (fn ^double [^double x]
-           (* fact (m/pow (inc (m/sq (/ x scale))) t))))
-       (let [fact (if (even? ct) -1.0 1.0)]
-         (when-not (== t (m/floor t))
+           (m/* fact (m/pow (m/inc (m/sq (m// x scale))) t))))
+       (let [fact (if (m/even? ct) -1.0 1.0)]
+         (when-not (m/== t (m/floor t))
            (invalid-input! :shifted-surface-splines :beta "must be an integer for an even s" beta))
          (fn ^double [^double x]
-           (let [r2 (m/sq (/ x scale))]
-             (* fact 0.5 (m/pow (inc r2) t) (m/log1p r2)))))))))
+           (let [r2 (m/sq (m// x scale))]
+             (m/* fact 0.5 (m/pow (m/inc r2) t) (m/log1p r2)))))))))
 
 ;; [2] p.88
 ;; normalized to have 1.0 at 0.0
@@ -517,38 +516,38 @@
    (let [s (required-double :wendland params :s)
          k (required-long :wendland params :k)
          scale (scale-of params)]
-     (when (< s 1.0)
+     (when (m/< s 1.0)
        (invalid-input! :wendland :s "must be at least 1" s))
-     (when-not (<= 0 k 4)
+     (when-not (m/<= 0 k 4)
        (invalid-input! :wendland :k "must be an integer from 0 to 4" k))
-     (let [l (+ (m/floor (* s 0.5)) (double k) 1.0)
-           p (+ l k)]
+     (let [l (m/+ (m/floor (m/* s 0.5)) (double k) 1.0)
+           p (m/+ l k)]
        (case (int k)
-         0 (fn ^double [^double x] (let [r (m/abs (/ x scale))]
-                                    (if (< r 1.0) (m/pow (- 1.0 r) l) 0.0)))
-         1 (fn ^double [^double x] (let [r (m/abs (/ x scale))]
-                                    (if (< r 1.0)
-                                      (* (m/pow (- 1.0 r) p) (inc (* p r))) 0.0)))
+         0 (fn ^double [^double x] (let [r (m/abs (m// x scale))]
+                                    (if (m/< r 1.0) (m/pow (m/- 1.0 r) l) 0.0)))
+         1 (fn ^double [^double x] (let [r (m/abs (m// x scale))]
+                                    (if (m/< r 1.0)
+                                      (m/* (m/pow (m/- 1.0 r) p) (m/inc (m/* p r))) 0.0)))
          2 (let [f2 (poly/mevalpoly l 3.0 4.0 1.0)
                  f1 (poly/mevalpoly l 6.0 3.0)]
-             (fn ^double [^double x] (let [r (m/abs (/ x scale))]
-                                      (if (< r 1.0)
-                                        (/ (* (m/pow (- 1.0 r) p)
+             (fn ^double [^double x] (let [r (m/abs (m// x scale))]
+                                      (if (m/< r 1.0)
+                                        (m// (m/* (m/pow (m/- 1.0 r) p)
                                               (poly/mevalpoly r 3.0 f1 f2)) 3.0) 0.0))))
          3 (let [f3 (poly/mevalpoly l 15.0 23.0 9.0 1.0)
                  f2 (poly/mevalpoly l 45.0 36.0 6.0)
                  f1 (poly/mevalpoly l 45.0 15.0)]
-             (fn ^double [^double x] (let [r (m/abs (/ x scale))]
-                                      (if (< r 1.0)
-                                        (/ (* (m/pow (- 1.0 r) p)
+             (fn ^double [^double x] (let [r (m/abs (m// x scale))]
+                                      (if (m/< r 1.0)
+                                        (m// (m/* (m/pow (m/- 1.0 r) p)
                                               (poly/mevalpoly r 15.0 f1 f2 f3)) 15.0) 0.0))))
          4 (let [f4 (poly/mevalpoly l 105.0 176.0 86.0 16.0 1.0)
-                 f3 (* 5.0 (poly/mevalpoly l 84.0 85.0 24.0 2.0))
-                 f2 (* 45.0 (poly/mevalpoly l 14.0 8.0 1.0))
-                 f1 (* 105.0 (poly/mevalpoly l 4.0 1.0))]
-             (fn ^double [^double x] (let [r (m/abs (/ x scale))]
-                                      (if (< r 1.0)
-                                        (/ (* (m/pow (- 1.0 r) p)
+                 f3 (m/* 5.0 (poly/mevalpoly l 84.0 85.0 24.0 2.0))
+                 f2 (m/* 45.0 (poly/mevalpoly l 14.0 8.0 1.0))
+                 f1 (m/* 105.0 (poly/mevalpoly l 4.0 1.0))]
+             (fn ^double [^double x] (let [r (m/abs (m// x scale))]
+                                      (if (m/< r 1.0)
+                                        (m// (m/* (m/pow (m/- 1.0 r) p)
                                               (poly/mevalpoly r 105.0 f1 f2 f3 f4)) 105.0) 0.0)))))))))
 
 ;; [2] p. 91
@@ -573,13 +572,13 @@
    (let [s (required-double :gneiting params :s)
          l (required-double :gneiting params :l)
          scale (scale-of params)]
-     (when-not (pos? s)
+     (when-not (m/pos? s)
        (invalid-input! :gneiting :s "must be positive" s))
-     (let [f (- (/ (* (inc l) (+ l s 2.0)) s))]
+     (let [f (m/- (m// (m/* (m/inc l) (m/+ l s 2.0)) s))]
        (fn ^double [^double x]
-         (let [ex (m/abs (/ x scale))]
-           (if (< ex 1.0)
-             (* (m/pow (- 1.0 ex) l)
+         (let [ex (m/abs (m// x scale))]
+           (if (m/< ex 1.0)
+             (m/* (m/pow (m/- 1.0 ex) l)
                 (poly/mevalpoly ex 1.0 l f))
              0.0)))))))
 
@@ -590,74 +589,74 @@
 
 (defn- wu-integration [^double l]
   (fn ^double [^double r]
-    (let [rr (* 2.0 r)]
-      (calc/gk-quadrature (fn [^double t] (* (m/pow (- 1.0 (* t t)) l)
-                                            (m/pow (- 1.0 (m/sq (- rr t))) l)))
-                          (dec rr) 1.0))))
+    (let [rr (m/* 2.0 r)]
+      (calc/gk-quadrature (fn [^double t] (m/* (m/pow (m/- 1.0 (m/* t t)) l)
+                                            (m/pow (m/- 1.0 (m/sq (m/- rr t))) l)))
+                          (m/dec rr) 1.0))))
 
 (defn- wu-differentiation [f ^long k]
-  (if (zero? k)
+  (if (m/zero? k)
     f
     (let [Dk (finite/derivative f) ;; derivative
-          fDk (fn ^double [^double r ^double h] (let [hr (+ r h)]
-                                                 (/ ^double (Dk hr) (- hr)))) ;; D operator
+          fDk (fn ^double [^double r ^double h] (let [hr (m/+ r h)]
+                                                 (m// ^double (Dk hr) (m/- hr)))) ;; D operator
           eDk (finite/extrapolate fDk {:power 2.0})] ;; extrapolation
       (recur (fn ^double [^double r]
                (let [r (m/abs r)]
-                 (if (< r 1.0e-3)
+                 (if (m/< r 1.0e-3)
                    (eDk r) ;; extrapolate at 0 for small `r`
                    (fDk r 0.0))))
-             (dec k)))))
+             (m/dec k)))))
 
 (defn- wu-closed-form
   "Closed form of the Wu function for the integer `l` (0 to 3) and `k` (0 to `l`) or nil."
   [^long l ^long k ^double scale]
-  (case (+ (* 10 l) k)
-    0 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                               (if (< ex 1.0) (- 1.0 ex) 0.0)))
-    10 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (* (m/cb (- 1.0 ex))
+  (case (m/+ (m/* 10 l) k)
+    0 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                               (if (m/< ex 1.0) (m/- 1.0 ex) 0.0)))
+    10 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m/* (m/cb (m/- 1.0 ex))
                                      (poly/mevalpoly ex 1.0 3.0 1.0))
                                   0.0)))
-    11 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (* 0.5 (m/sq (- 1.0 ex))
+    11 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m/* 0.5 (m/sq (m/- 1.0 ex))
                                      (poly/mevalpoly ex 2.0 1.0))
                                   0.0)))
-    20 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (* (m/fpow (- 1.0 ex) 5)
+    20 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m/* (m/fpow (m/- 1.0 ex) 5)
                                      (poly/mevalpoly ex 1.0 5.0 9.0 5.0 1.0))
                                   0.0)))
-    21 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (* 0.25 (m/fpow (- 1.0 ex) 4)
+    21 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m/* 0.25 (m/fpow (m/- 1.0 ex) 4)
                                      (poly/mevalpoly ex 4.0 16.0 12.0 3.0))
                                   0.0)))
-    22 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (* 0.125 (m/cb (- 1.0 ex))
+    22 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m/* 0.125 (m/cb (m/- 1.0 ex))
                                      (poly/mevalpoly ex 8.0 9.0 3.0))
                                   0.0)))
-    30 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (/ (* (m/fpow (- 1.0 ex) 7)
+    30 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m// (m/* (m/fpow (m/- 1.0 ex) 7)
                                         (poly/mevalpoly ex 5.0 35.0 101.0 147.0 101.0 35.0 5.0)) 5.0)
                                   0.0)))
-    31 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (/ (* (m/fpow (- 1.0 ex) 6)
+    31 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m// (m/* (m/fpow (m/- 1.0 ex) 6)
                                         (poly/mevalpoly ex 6.0 36.0 82.0 72.0 30.0 5.0)) 6.0)
                                   0.0)))
-    32 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (/ (* (m/fpow (- 1.0 ex) 5)
+    32 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m// (m/* (m/fpow (m/- 1.0 ex) 5)
                                         (poly/mevalpoly ex 8.0 40.0 48.0 25.0 5.0)) 8.0)
                                   0.0)))
-    33 (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                (if (< ex 1.0)
-                                  (/ (* (m/fpow (- 1.0 ex) 4)
+    33 (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                (if (m/< ex 1.0)
+                                  (m// (m/* (m/fpow (m/- 1.0 ex) 4)
                                         (poly/mevalpoly ex 16.0 29.0 20.0 5.0)) 16.0)
                                   0.0)))
     nil))
@@ -684,16 +683,15 @@
    (let [l (required-double :wu params :l)
          k (required-long :wu params :k)
          scale (scale-of params)]
-     (when (neg? l)
+     (when (m/neg? l)
        (invalid-input! :wu :l "must be non-negative" l))
-     (when (neg? k)
+     (when (m/neg? k)
        (invalid-input! :wu :k "must be non-negative" k))
-     (or (when (and (== l (m/floor l)) (<= l 3.0) (<= k l))
+     (or (when (and (m/== l (m/floor l)) (m/<= l 3.0) (m/<= k l))
            (wu-closed-form (long l) k scale))
          (let [integr (wu-integration l)
                phi (wu-differentiation integr k)
-               fact (/ ^double (phi 0.0))]
-           (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
-                                    (if (<= ex 1.0) (* fact ^double (phi ex)) 0.0))))))))
+               fact (m// ^double (phi 0.0))]
+           (fn ^double [^double x] (let [ex (m/abs (m// x scale))]
+                                    (if (m/<= ex 1.0) (m/* fact ^double (phi ex)) 0.0))))))))
 
-(m/unuse-primitive-operators)

@@ -832,7 +832,7 @@
   (case param
     :pw (when (and (number? pw) (or (m/< (double pw) 0.0) (m/> (double pw) 1.0)))
           (throw (ex-info "polyblep: :pw must be in [0, 1]" {:pw pw})))
-    :n (when-not (or (nil? n) (and (number? n) (m/>= (double n) 1.0) (== (double n) (m/floor (double n)))))
+    :n (when-not (or (nil? n) (and (number? n) (m/>= (double n) 1.0) (m/== (double n) (m/floor (double n)))))
          (throw (ex-info "polyblep: :n must be an integer, at least 1" {:n n})))
     :f2 (when-not (or (number? f2) (fn? f2))
           (throw (ex-info "polyblep: :f2 (follower frequency in Hz, number or function of time) is required" {:f2 f2})))

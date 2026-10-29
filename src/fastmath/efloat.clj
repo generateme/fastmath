@@ -6,20 +6,20 @@
   (:require [fastmath.core :as m]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators #{'min 'max 'abs})
+(set! *warn-on-reflection* true)
 
 (defrecord EFloat [^double v ^double low ^double high])
 
 ;; helpers
 
-(defn- add+ ^double [^double a ^double b] (m/next-double (+ a b)))
-(defn- add- ^double [^double a ^double b] (m/prev-double (+ a b)))
-(defn- sub+ ^double [^double a ^double b] (m/next-double (- a b)))
-(defn- sub- ^double [^double a ^double b] (m/prev-double (- a b)))
-(defn- mul+ ^double [^double a ^double b] (m/next-double (* a b)))
-(defn- mul- ^double [^double a ^double b] (m/prev-double (* a b)))
-(defn- div+ ^double [^double a ^double b] (m/next-double (/ a b)))
-(defn- div- ^double [^double a ^double b] (m/prev-double (/ a b)))
+(defn- add+ ^double [^double a ^double b] (m/next-double (m/+ a b)))
+(defn- add- ^double [^double a ^double b] (m/prev-double (m/+ a b)))
+(defn- sub+ ^double [^double a ^double b] (m/next-double (m/- a b)))
+(defn- sub- ^double [^double a ^double b] (m/prev-double (m/- a b)))
+(defn- mul+ ^double [^double a ^double b] (m/next-double (m/* a b)))
+(defn- mul- ^double [^double a ^double b] (m/prev-double (m/* a b)))
+(defn- div+ ^double [^double a ^double b] (m/next-double (m// a b)))
+(defn- div- ^double [^double a ^double b] (m/prev-double (m// a b)))
 (defn- sqrt+ ^double [^double a] (m/next-double (m/sqrt a)))
 (defn- sqrt- ^double [^double a] (m/prev-double (m/sqrt a)))
 (defn- fma+ ^double [^double a ^double b ^double c] (m/next-double (m/fma a b c)))
@@ -29,68 +29,68 @@
   "Create EFloat object from a single value or low and high values."
   (^EFloat [^double v] (EFloat. v v v))
   (^EFloat [^double v ^double err]
-   (if (zero? err)
+   (if (m/zero? err)
      (EFloat. v v v)
      (EFloat. v (sub- v err) (add+ v err))))
   (^EFloat [^double v ^double low ^double high] (EFloat. v low high)))
 
 (defn upper-bound ^double [^EFloat ev] (.high ev))
 (defn lower-bound ^double [^EFloat ev] (.low ev))
-(defn mid-point ^double [^EFloat ev] (* 0.5 (+ (.low ev) (.high ev))))
-(defn width ^double [^EFloat ev] (- (.high ev) (.low ev)))
+(defn mid-point ^double [^EFloat ev] (m/* 0.5 (m/+ (.low ev) (.high ev))))
+(defn width ^double [^EFloat ev] (m/- (.high ev) (.low ev)))
 (defn ->double ^double [^EFloat ev] (.v ev))
-(defn absolute-error ^double [^EFloat ev] (m/next-double (m/max (m/abs (- (.high ev) (.v ev)))
-                                                             (m/abs (- (.v ev) (.low ev))))))
-(defn relative-error ^double [^EFloat ev] (m/next-double (/ (m/max (m/abs (- (.high ev) (.v ev)))
-                                                                (m/abs (- (.v ev) (.low ev))))
+(defn absolute-error ^double [^EFloat ev] (m/next-double (m/max (m/abs (m/- (.high ev) (.v ev)))
+                                                             (m/abs (m/- (.v ev) (.low ev))))))
+(defn relative-error ^double [^EFloat ev] (m/next-double (m// (m/max (m/abs (m/- (.high ev) (.v ev)))
+                                                                (m/abs (m/- (.v ev) (.low ev))))
                                                          (m/abs (.v ev)))))
 
 (defn equals?
   ^EFloat [^EFloat ev ^double v]
-  (and (== v (.low ev))
-       (== v (.high ev))))
+  (and (m/== v (.low ev))
+       (m/== v (.high ev))))
 
 (defn in-range?
   [^EFloat ev ^double v]
-  (and (>= v (.low ev))
-       (<= v (.high ev))))
+  (and (m/>= v (.low ev))
+       (m/<= v (.high ev))))
 
-(defn neg ^EFloat [^EFloat ev] (EFloat. (- (.v ev)) (- (.high ev)) (- (.low ev))))
+(defn neg ^EFloat [^EFloat ev] (EFloat. (m/- (.v ev)) (m/- (.high ev)) (m/- (.low ev))))
 
 (defn add ^EFloat [^EFloat ev1 ^EFloat ev2]
-  (EFloat. (+ (.v ev1) (.v ev2)) (add- (.low ev1) (.low ev2)) (add+ (.high ev1) (.high ev2))))
+  (EFloat. (m/+ (.v ev1) (.v ev2)) (add- (.low ev1) (.low ev2)) (add+ (.high ev1) (.high ev2))))
 
 (defn sub ^EFloat [^EFloat ev1 ^EFloat ev2]
-  (EFloat. (- (.v ev1) (.v ev2)) (sub- (.low ev1) (.low ev2)) (sub+ (.high ev1) (.high ev2))))
+  (EFloat. (m/- (.v ev1) (.v ev2)) (sub- (.low ev1) (.low ev2)) (sub+ (.high ev1) (.high ev2))))
 
 (defn mul ^EFloat [^EFloat ev1 ^EFloat ev2]
-  (let [m1 (* (.low ev1) (.low ev2))
-        m2 (* (.high ev1) (.low ev2))
-        m3 (* (.low ev1) (.high ev2))
-        m4 (* (.high ev1) (.high ev2))]
-    (EFloat. (* (.v ev1) (.v ev2))
+  (let [m1 (m/* (.low ev1) (.low ev2))
+        m2 (m/* (.high ev1) (.low ev2))
+        m3 (m/* (.low ev1) (.high ev2))
+        m4 (m/* (.high ev1) (.high ev2))]
+    (EFloat. (m/* (.v ev1) (.v ev2))
              (m/min (m/prev-double m1) (m/prev-double m2) (m/prev-double m3) (m/prev-double m4))
              (m/max (m/next-double m1) (m/next-double m2) (m/next-double m3) (m/next-double m4)))))
 
 (defn div ^EFloat [^EFloat ev1 ^EFloat ev2]
   (if (in-range? ev2 0.0)
-    (EFloat. (/ (.v ev1) 0.0) ##-Inf ##Inf)
-    (let [m1 (/ (.low ev1) (.low ev2))
-          m2 (/ (.high ev1) (.low ev2))
-          m3 (/ (.low ev1) (.high ev2))
-          m4 (/ (.high ev1) (.high ev2))]
-      (EFloat. (/ (.v ev1) (.v ev2))
+    (EFloat. (m// (.v ev1) 0.0) ##-Inf ##Inf)
+    (let [m1 (m// (.low ev1) (.low ev2))
+          m2 (m// (.high ev1) (.low ev2))
+          m3 (m// (.low ev1) (.high ev2))
+          m4 (m// (.high ev1) (.high ev2))]
+      (EFloat. (m// (.v ev1) (.v ev2))
                (m/min (m/prev-double m1) (m/prev-double m2) (m/prev-double m3) (m/prev-double m4))
                (m/max (m/next-double m1) (m/next-double m2) (m/next-double m3) (m/next-double m4))))))
 
 (defn sq ^EFloat [^EFloat ev]
   (let [alow (m/abs (.low ev))
         ahigh (m/abs (.high ev))
-        alow' (if (> alow ahigh) ahigh alow)
-        ahigh' (if (> alow ahigh) alow ahigh)]
+        alow' (if (m/> alow ahigh) ahigh alow)
+        ahigh' (if (m/> alow ahigh) alow ahigh)]
     (if (in-range? ev 0.0)
-      (EFloat. (* (.v ev) (.v ev)) 0.0 (mul+ ahigh' ahigh'))
-      (EFloat. (* (.v ev) (.v ev)) (mul- alow' alow') (mul+ ahigh' ahigh')))))
+      (EFloat. (m/* (.v ev) (.v ev)) 0.0 (mul+ ahigh' ahigh'))
+      (EFloat. (m/* (.v ev) (.v ev)) (mul- alow' alow') (mul+ ahigh' ahigh')))))
 (defn sqrt ^EFloat [^EFloat ev] (EFloat. (m/sqrt (.v ev)) (sqrt- (.low ev)) (sqrt+ (.high ev))))
 
 (defn fma ^EFloat [^EFloat ev1 ^EFloat ev2 ^EFloat ev3]
@@ -106,27 +106,27 @@
 
 (defn difference-of-products
   ^EFloat [^EFloat a ^EFloat b ^EFloat c ^EFloat d]
-  (let [ab0 (* (.low a) (.low b))
-        ab1 (* (.high a) (.low b))
-        ab2 (* (.low a) (.high b))
-        ab3 (* (.high a) (.high b))
+  (let [ab0 (m/* (.low a) (.low b))
+        ab1 (m/* (.high a) (.low b))
+        ab2 (m/* (.low a) (.high b))
+        ab3 (m/* (.high a) (.high b))
         ab-low (m/min ab0 ab1 ab2 ab3)
         ab-high (m/max ab0 ab2 ab2 ab3)
-        a-low (if (or (== ab-low ab0) (== ab-low ab2)) (.low a) (.high a))
-        b-low (if (or (== ab-low ab0) (== ab-low ab1)) (.low b) (.high b))
-        a-high (if (or (== ab-high ab0) (== ab-high ab2)) (.low a) (.high a))
-        b-high (if (or (== ab-high ab0) (== ab-high ab1)) (.low b) (.high b))
+        a-low (if (or (m/== ab-low ab0) (m/== ab-low ab2)) (.low a) (.high a))
+        b-low (if (or (m/== ab-low ab0) (m/== ab-low ab1)) (.low b) (.high b))
+        a-high (if (or (m/== ab-high ab0) (m/== ab-high ab2)) (.low a) (.high a))
+        b-high (if (or (m/== ab-high ab0) (m/== ab-high ab1)) (.low b) (.high b))
         
-        cd0 (* (.low c) (.low d))
-        cd1 (* (.high c) (.low d))
-        cd2 (* (.low c) (.high d))
-        cd3 (* (.high c) (.high d))
+        cd0 (m/* (.low c) (.low d))
+        cd1 (m/* (.high c) (.low d))
+        cd2 (m/* (.low c) (.high d))
+        cd3 (m/* (.high c) (.high d))
         cd-low (m/min cd0 cd1 cd2 cd3)
         cd-high (m/max cd0 cd2 cd2 cd3)
-        c-low (if (or (== cd-low cd0) (== cd-low cd2)) (.low c) (.high c))
-        d-low (if (or (== cd-low cd0) (== cd-low cd1)) (.low d) (.high d))
-        c-high (if (or (== cd-high cd0) (== cd-high cd2)) (.low c) (.high c))
-        d-high (if (or (== cd-high cd0) (== cd-high cd1)) (.low d) (.high d))
+        c-low (if (or (m/== cd-low cd0) (m/== cd-low cd2)) (.low c) (.high c))
+        d-low (if (or (m/== cd-low cd0) (m/== cd-low cd1)) (.low d) (.high d))
+        c-high (if (or (m/== cd-high cd0) (m/== cd-high cd2)) (.low c) (.high c))
+        d-high (if (or (m/== cd-high cd0) (m/== cd-high cd1)) (.low d) (.high d))
 
         low (m/difference-of-products a-low b-low c-high d-high)
         high (m/difference-of-products a-high b-high c-low d-low)]
@@ -136,22 +136,22 @@
 
 (defn abs ^EFloat [^EFloat ev]
   (cond
-    (>= (.low ev) 0.0) ev
-    (<= (.high ev) 0.0) (neg ev)
-    :else (EFloat. (m/abs (.v ev)) 0.0 (m/max (- (.low ev)) (.high ev)))))
+    (m/>= (.low ev) 0.0) ev
+    (m/<= (.high ev) 0.0) (neg ev)
+    :else (EFloat. (m/abs (.v ev)) 0.0 (m/max (m/- (.low ev)) (.high ev)))))
 
 (defn acos ^EFloat [^EFloat ev]
   (let [low (m/acos (m/min 1.0 (.high ev)))
         high (m/acos (m/max -1.0 (.low ev)))]
     (EFloat. (m/acos (.v ev)) (m/max 0.0 (m/prev-double low)) (m/next-double high))))
 
-(def ^{:const true :private true :tag 'double} PI32 (* 1.5 m/PI))
+(def ^{:const true :private true :tag 'double} PI32 (m/* 1.5 m/PI))
 
 (defn sin ^EFloat [^EFloat ev]
   (let [low (m/sin (m/max 0.0 (.low ev)))
         high (m/sin (.high ev))
-        low (if (> low high) high low)
-        high (if (> low high) low high)
+        low (if (m/> low high) high low)
+        high (if (m/> low high) low high)
         low (m/max -1.0 (m/prev-double low))
         high (m/min 1.0 (m/next-double high))
         s (m/sin (.v ev))]
@@ -163,8 +163,8 @@
 (defn cos ^EFloat [^EFloat ev]
   (let [low (m/cos (m/max 0.0 (.low ev)))
         high (m/cos (.high ev))
-        low (if (> low high) high low)
-        high (if (> low high) low high)
+        low (if (m/> low high) high low)
+        high (if (m/> low high) low high)
         low (m/max -1.0 (m/prev-double low))
         high (m/min 1.0 (m/next-double high))]
     (EFloat. (m/cos (.v ev)) (if (in-range? ev m/PI) -1.0 low) high)))
@@ -176,15 +176,15 @@
 (defn addf ^EFloat [^EFloat ev ^double v] (add ev (EFloat. v v v)))
 (defn subf ^EFloat [^EFloat ev ^double v] (sub ev (EFloat. v v v)))
 (defn mulf ^EFloat [^EFloat ev ^double v]
-  (if (pos? v)
-    (EFloat. (* (.v ev) v) (mul- (.low ev) v) (mul+ (.high ev) v))
-    (EFloat. (* (.v ev) v) (mul- (.high ev) v) (mul+ (.low ev) v))))
+  (if (m/pos? v)
+    (EFloat. (m/* (.v ev) v) (mul- (.low ev) v) (mul+ (.high ev) v))
+    (EFloat. (m/* (.v ev) v) (mul- (.high ev) v) (mul+ (.low ev) v))))
 (defn divf ^EFloat [^EFloat ev ^double v]
-  (if (zero? v)
-    (EFloat. (/ (.v ev) v) ##-Inf ##Inf)
-    (if (pos? v)
-      (EFloat. (/ (.v ev) v) (div- (.low ev) v) (div+ (.high ev) v))
-      (EFloat. (/ (.v ev) v) (div- (.high ev) v) (div+ (.low ev) v)))))
+  (if (m/zero? v)
+    (EFloat. (m// (.v ev) v) ##-Inf ##Inf)
+    (if (m/pos? v)
+      (EFloat. (m// (.v ev) v) (div- (.low ev) v) (div+ (.high ev) v))
+      (EFloat. (m// (.v ev) v) (div- (.high ev) v) (div+ (.low ev) v)))))
 
 (defn floor ^double [^EFloat ev] (m/floor (.low ev)))
 (defn ceil ^double [^EFloat ev] (m/ceil (.high ev)))
@@ -196,23 +196,23 @@
 
 (defn- mulpow2
   ^EFloat [^EFloat ev ^double s]
-  (let [low (* s (.low ev))
-        high (* s (.high ev))]
-    (EFloat. (* s (.v ev)) (m/min low high) (m/max low high))))
+  (let [low (m/* s (.low ev))
+        high (m/* s (.high ev))]
+    (EFloat. (m/* s (.v ev)) (m/min low high) (m/max low high))))
 
 (defrecord Pair [a b])
 
 (defn quadratic
   ^Pair [^EFloat a ^EFloat b ^EFloat c]
   (let [discrim (difference-of-products b b (mulpow2 a 4.0) c)]
-    (when-not (neg? (.low discrim))
+    (when-not (m/neg? (.low discrim))
       (let [float-root-discrim (sqrt discrim)
-            q (if (neg? (->double b))
+            q (if (m/neg? (->double b))
                 (mulpow2 (sub b float-root-discrim) -0.5)
                 (mulpow2 (add b float-root-discrim) -0.5))
             t0 (div q a)
             t1 (div c q)]
-        (if (> (.low t0) (.low t1))
+        (if (m/> (.low t0) (.low t1))
           (Pair. t1 t0) (Pair. t0 t1))))))
 
 ;; https://github.com/mmp/pbrt-v3/blob/master/src/core/efloat.h

@@ -6,13 +6,13 @@
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defn- srandom
   "Symetric random from [-mx -mn] and [mn mx]"
   ^double  [^double mn ^double mx]
   (let [rand (r/drand mn mx)]
-    (r/randval rand (* -1.0 rand))))
+    (r/randval rand (m/* -1.0 rand))))
 
 (defn- mk-random
   ([] (r/randval r/drand r/irand))
@@ -66,8 +66,8 @@
 (defn- make-astroid
   [{:keys [^double a]}]
   (fn [^double t]
-    (Vec2. (* a (m/cb (m/cos t)))
-           (* a (m/cb (m/sin t))))))
+    (Vec2. (m/* a (m/cb (m/cos t)))
+           (m/* a (m/cb (m/sin t))))))
 (make-curve-method astroid)
 
 (make-config-method astroid-pedal-curve (let [rx0 (mk-random)
@@ -77,17 +77,17 @@
                                            :y0 (ry0 -4.0 4.0)}))
 (defn- make-astroid-pedal-curve
   [{:keys [^double a ^double x0 ^double y0]}]
-  (let [x02 (+ x0 x0)
-        y02 (+ y0 y0)]
+  (let [x02 (m/+ x0 x0)
+        y02 (m/+ y0 y0)]
     (fn [^double t]
       (let [sint (m/sin t)
             cost (m/cos t)]
-        (Vec2. (* cost (+ (* sint (- (* a sint) y0))
-                          (* x0 cost)))
-               (* 0.5 sint (- (+ (* a (m/cos (+ t t)))
+        (Vec2. (m/* cost (m/+ (m/* sint (m/- (m/* a sint) y0))
+                          (m/* x0 cost)))
+               (m/* 0.5 sint (m/- (m/+ (m/* a (m/cos (m/+ t t)))
                                  a
-                                 (* y02 sint))
-                              (* x02 cost))))))))
+                                 (m/* y02 sint))
+                              (m/* x02 cost))))))))
 (make-curve-method astroid-pedal-curve)
 
 (make-config-method cardioid-pedal-curve (let [rx0 (mk-random)
@@ -97,23 +97,23 @@
                                             :y0 (ry0 -4.0 4.0)}))
 (defn- make-cardioid-pedal-curve
   [{:keys [^double a ^double x0 ^double y0]}]
-  (let [x02 (+ x0 x0)
-        y02 (+ y0 y0)
-        a3 (* 3.0 a)]
+  (let [x02 (m/+ x0 x0)
+        y02 (m/+ y0 y0)
+        a3 (m/* 3.0 a)]
     (fn [^double t]
-      (let [t2 (+ t t)
-            t3 (+ t2 t)]
-        (Vec2. (* 0.25 (- (+ (* (+ a x02) (m/cos t3))
-                             (* a3 (m/cos t))
-                             (* y02 (m/sin t3))
+      (let [t2 (m/+ t t)
+            t3 (m/+ t2 t)]
+        (Vec2. (m/* 0.25 (m/- (m/+ (m/* (m/+ a x02) (m/cos t3))
+                             (m/* a3 (m/cos t))
+                             (m/* y02 (m/sin t3))
                              x02)
-                          (* a3 (m/cos t2))
+                          (m/* a3 (m/cos t2))
                           a))
-               (* 0.25 (- (+ (* (+ a x02) (m/sin t3))
-                             (* a3 (m/sin t))
+               (m/* 0.25 (m/- (m/+ (m/* (m/+ a x02) (m/sin t3))
+                             (m/* a3 (m/sin t))
                              y02)
-                          (* a3 (m/sin t2))
-                          (* y02 (m/cos t3)))))))))
+                          (m/* a3 (m/sin t2))
+                          (m/* y02 (m/cos t3)))))))))
 (make-curve-method cardioid-pedal-curve)
 
 (make-config-method lissajous (let [rkx (mk-random 0.3 m/ceil)
@@ -124,29 +124,29 @@
 (defn- make-lissajous
   [{:keys [^double a ^double b ^double kx ^double ky]}]
   (fn [^double t]
-    (Vec2. (* a (m/cos (* kx t)))
-           (* b (m/sin (* ky t))))))
+    (Vec2. (m/* a (m/cos (m/* kx t)))
+           (m/* b (m/sin (m/* ky t))))))
 (make-curve-method lissajous)
 
 (make-config-method piriform {:a (srandom 0.5 1.5) :b (srandom 0.5 1.5)})
 (defn- make-piriform
   [{:keys [^double a ^double b]}]
   (fn [^double t]
-    (let [sint+1 (inc (m/sin t))]
-      (Vec2. (* a sint+1)
-             (* b sint+1 (m/cos t))))))
+    (let [sint+1 (m/inc (m/sin t))]
+      (Vec2. (m/* a sint+1)
+             (m/* b sint+1 (m/cos t))))))
 (make-curve-method piriform)
 
 (make-config-method superellipse-general {:a 1.0 :b 1.0 :y (srandom 0.01 m/TWO_PI) :z (srandom 0.01 m/TWO_PI)
                                           :n1 (r/drand -5.0 5.0) :n2 (r/drand -5.0 5.0) :n3 (r/drand -5.0 5.0)})
 (defn- make-superellipse-general
   [{:keys [^double a ^double b ^double y ^double z ^double n1 ^double n2 ^double n3]}]
-  (let [ra (/ a)
-        rb (/ b)
-        rn1 (/ n1)]
+  (let [ra (m// a)
+        rb (m// b)
+        rn1 (m// n1)]
     (fn [^double t]
-      (v/from-polar (Vec2. (/ (m/pow (+ (m/pow (m/abs (* ra (m/cos (* 0.25 y t)))) n2)
-                                        (m/pow (m/abs (* rb (m/sin (* 0.25 z t)))) n3)) rn1))
+      (v/from-polar (Vec2. (m// (m/pow (m/+ (m/pow (m/abs (m/* ra (m/cos (m/* 0.25 y t)))) n2)
+                                        (m/pow (m/abs (m/* rb (m/sin (m/* 0.25 z t)))) n3)) rn1))
                            t)))))
 (make-curve-method superellipse-general)
 
@@ -163,12 +163,12 @@
                                           :n1 (r/drand -5.0 5.0) :n2 (r/drand -5.0 5.0) :n3 (r/drand -5.0 5.0)})
 (defn- make-superformula-general
   [{:keys [^double a ^double b ^double y ^double z ^double n1 ^double n2 ^double n3]}]
-  (let [ra (/ a)
-        rb (/ b)
-        -rn1 (/ -1.0 n1)]
+  (let [ra (m// a)
+        rb (m// b)
+        -rn1 (m// -1.0 n1)]
     (fn [^double t]
-      (v/from-polar (Vec2. (m/pow (+ (m/pow (m/abs (* ra (m/cos (* 0.25 y t)))) n2)
-                                     (m/pow (m/abs (* rb (m/sin (* 0.25 z t)))) n3)) -rn1)
+      (v/from-polar (Vec2. (m/pow (m/+ (m/pow (m/abs (m/* ra (m/cos (m/* 0.25 y t)))) n2)
+                                     (m/pow (m/abs (m/* rb (m/sin (m/* 0.25 z t)))) n3)) -rn1)
                            t)))))
 (make-curve-method superformula-general)
 
@@ -185,12 +185,12 @@
 (defn- make-hypotrochoid
   [{:keys [^double R ^double r ^double d]}]
   (fn [^double t]
-    (let [diff (- R r)
-          ratio (* t (/ diff r))]
-      (Vec2. (+ (* diff (m/cos t))
-                (* d (m/cos ratio)))
-             (- (* diff (m/sin t))
-                (* d (m/sin ratio)))))))
+    (let [diff (m/- R r)
+          ratio (m/* t (m// diff r))]
+      (Vec2. (m/+ (m/* diff (m/cos t))
+                (m/* d (m/cos ratio)))
+             (m/- (m/* diff (m/sin t))
+                (m/* d (m/sin ratio)))))))
 (make-curve-method hypotrochoid)
 
 (defn mult

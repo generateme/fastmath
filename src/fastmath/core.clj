@@ -35,8 +35,7 @@
   To enable these primitive operators in your namespace, call [[use-primitive-operators]].
   To revert to the original `clojure.core` functions, call [[unuse-primitive-operators]].
   Note that the `fastmath.core` versions are not a complete drop-in replacement due to their primitive-specific behavior (e.g., return types), and calling `unuse-primitive-operators` at the end of the namespace is recommended, especially in Clojure 1.12+."
-  (:refer-clojure
-   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs integer?])
+  (:refer-clojure :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs integer?])
   (:import [fastmath.java PrimitiveMath]
            [net.jafama FastMath]
            [org.apache.commons.math3.util Precision]

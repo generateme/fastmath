@@ -55,7 +55,7 @@
   ^double [xs]
   (let [fv (double (first xs))
         ^Vec2 mm (reduce (fn [^Vec2 curr ^double v]
-                           (Vec2. (min (.x curr) v) (max (.y curr) v))) (Vec2. fv fv) (rest xs))]
+                           (Vec2. (m/min (.x curr) v) (m/max (.y curr) v))) (Vec2. fv fv) (rest xs))]
     (m/* 0.5 (m/+ (.x mm) (.y mm)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -158,7 +158,7 @@
              (if (or (m/> ntinyterms 2) (m/> m max-iters))
                (m/* (m/exp c) nsum)
                (let [nwpow (v/emult wpow ws)]
-                 (recur (inc m)
+                 (recur (m/inc m)
                         nwpow
                         (conj psums (v/sum nwpow))
                         (conj terms t)

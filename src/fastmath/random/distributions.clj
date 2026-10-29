@@ -439,7 +439,7 @@
       (lpdf [_ v] (m/log (.density d v)))
       (probability [_ v] (.density d v))
       (cdf [_ v] (.cdf d v))
-      (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
+      (cdf [_ v1 v2] (m/- (.cdf d v2) (.cdf d v1)))
       (icdf [_ v] (.inverseF d v))
       (sample [_] (.inverseF d (prot/drandom rng)))
       (dimensions [_] 1)
@@ -474,13 +474,13 @@
   (let [rng (or rng (JDKRandomGenerator.))]
     (reify
       prot/DistributionProto
-      (pdf [_ v] (/ (- (.cdf d (+ ^double v 0.5e-6))
-                       (.cdf d (- ^double v 0.5e-6)))
-                    1.0e-6))
+      (pdf [_ v] (m// (m/- (.cdf d (m/+ (double v) 0.5e-6))
+                           (.cdf d (m/- (double v) 0.5e-6)))
+                      1.0e-6))
       (lpdf [rd v] (m/log (prot/pdf rd v)))
       (probability [rd v] (prot/pdf rd v))
       (cdf [_ v] (.cdf d v))
-      (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
+      (cdf [_ v1 v2] (m/- (.cdf d v2) (.cdf d v1)))
       (icdf [_ v] (.inverseF d v))
       (sample [_] (.inverseF d (prot/drandom rng)))
       (dimensions [_] 1)
@@ -768,7 +768,7 @@
   A sample is a vector of normalised gamma variates (computed in log space when their sum is below `1e-8`, so small `alpha` do not degenerate); zero and one coordinates are moved to the neighbouring double. `pdf`, `lpdf` and `probability` take a sequence with one coordinate per dimension, non-negative and summing to 1 within `1e-8`, and use the limits at the boundary (a coordinate zero with `alpha < 1` gives `+Inf`); other points throw `ex-info`. `means` and `covariance` are available, `cdf`, `icdf`, `mean`, `variance` and bounds are not. Returns a multivariate continuous distribution."
   [alpha gamma rng]
   (let [rng (or rng (JDKRandomGenerator.))
-        alpha (if (integer? alpha)
+        alpha (if (and (number? alpha) (m/integer? (double alpha)))
                 (double-array alpha 1.0)
                 (m/seq->double-array alpha))
         sampler (mapv (fn [^double shape] (gamma {:shape shape :scale 1.0 :rng rng})) alpha)
@@ -949,7 +949,7 @@
   ([pdf-func {:keys [^double mn ^double mx ^long steps interpolator]
               :or {mn 0.0 mx 1.0 steps 1000 interpolator :monotone}
               :as options}]
-   (let [diff5 (* 5.0 (m// (m/- mx mn) steps))
+   (let [diff5 (m/* 5.0 (m// (m/- mx mn) steps))
          mn (m/- mn diff5)
          mx (m/+ mx diff5)
          xs (m/slice-range mn mx steps)
@@ -961,7 +961,7 @@
                                ^double (quad/gk-quadrature f x1 x2 int-options))))
                  (reductions m/+ 0.0)
                  (m/seq->double-array))
-         ys (strictly-increasing! (v/div ys (Array/aget ys (dec steps)))) ;; normalize to ensure 1 at the endpoint
+         ys (strictly-increasing! (v/div ys (Array/aget ys (m/dec steps)))) ;; normalize to ensure 1 at the endpoint
          intpol (case interpolator
                   :monotone monotone-interp/monotone
                   :linear linear-interp/linear
@@ -970,9 +970,9 @@
      [(let [i (intpol xs ys)]
         ;; outside of the integrated range the interpolator extrapolates, the cdf is 0 below and 1 above
         (fn [^double x] (cond
-                          (m/<= x mn) 0.0
-                          (m/>= x mx) 1.0
-                          :else (m/constrain (double (i x)) 0.0 1.0))))
+                         (m/<= x mn) 0.0
+                         (m/>= x mx) 1.0
+                         :else (m/constrain (double (i x)) 0.0 1.0))))
       (intpol ys xs)])))
 
 (defn- find-first-non-zero
@@ -1235,11 +1235,11 @@
       (invalid-input! function :data "has to be a non-empty sequence" data "non-empty sequence"))
     (case data-type
       :integer (when-not (every? (fn [x] (and (number? x)
-                                              (if (integer? x)
-                                                (<= Long/MIN_VALUE x Long/MAX_VALUE)
-                                                (and (Double/isFinite (double x))
-                                                     (m/== (double x) (m/floor (double x)))
-                                                     (m/< (m/abs (double x)) long-range-limit)))))
+                                             (if (integer? x)
+                                               (<= Long/MIN_VALUE x Long/MAX_VALUE)
+                                               (and (Double/isFinite (double x))
+                                                    (m/== (double x) (m/floor (double x)))
+                                                    (m/< (m/abs (double x)) long-range-limit)))))
                                  data')
                  (invalid-input! function :data "has to contain integers only" data "integers within the long range"))
       :real (when-not (every? (fn [x] (and (number? x) (not (m/nan? (double x))))) data')
@@ -1430,7 +1430,7 @@
     :else (let [ks (map (fn [^double a ^long i]
                           (m/* a i i (m/exp (m/* -2.0 (m/sq (m/* i x))))))
                         (cycle [1.0 -1.0]) (range 1 21))]
-            (* 8.0 x (v/sum ks)))))
+            (m/* 8.0 x (v/sum ks)))))
 
 (defn- kolmogorov-cdf-raw
   ^double [^double x]
@@ -1484,7 +1484,7 @@
   ^long [^double omega ^long n ^long ns ^long nf]
   (let [A (m/dec omega)
         B (m/- n nf (m/* (m/+ ns n 2) omega))
-        C (m/* (inc ns) (inc n) omega)]
+        C (m/* (m/inc ns) (m/inc n) omega)]
     (long (m/floor (m// (m/* -2.0 C)
                         (m/- B (m/sqrt (m/- (m/* B B) (m/* 4.0 A C)))))))))
 
@@ -3270,7 +3270,7 @@
                       (loop [a 0 b (m/dec n)]
                         (if (m/>= a b)
                           b
-                          (let [mid (m/+ a (bit-shift-right (m/- b a) 1))]
+                          (let [mid (m/+ a (m/bit-shift-right (m/- b a) 1))]
                             (if (pred mid) (recur a mid) (recur (m/inc mid) b))))))]
     {:pdf (fn ^double [^double x] (let [i (long (index x))] (if (m/neg? i) 0.0 (aget pmf i))))
      :lpdf (fn ^double [^double x] (let [i (long (index x))] (if (m/neg? i) ##-Inf (m/log (aget pmf i)))))
@@ -3383,7 +3383,7 @@
   [distr left right]
   (when-not (prot/distribution? distr)
     (invalid-input! 'truncated :distr "has to be a distribution." distr "distribution"))
-  (when-not (== 1 (long (prot/dimensions distr)))
+  (when-not (m/one? (long (prot/dimensions distr)))
     (invalid-input! 'truncated :distr "has to be a univariate distribution." distr "univariate distribution"))
   (let [l (truncation-bound :left left)
         r (truncation-bound :right right)]
@@ -3449,12 +3449,12 @@
   (let [all-ds (vec distrs)
         all-ws (vec weights)
         n (count all-ds)]
-    (when (zero? n)
+    (when (m/zero? n)
       (invalid-input! 'mixture :distrs "can not be empty." distrs "non-empty sequence of distributions"))
     (doseq [d all-ds]
-      (when-not (and (prot/distribution? d) (== 1 (long (prot/dimensions d))))
+      (when-not (and (prot/distribution? d) (m/one? (long (prot/dimensions d))))
         (invalid-input! 'mixture :distrs "all elements have to be univariate distributions." d "univariate distribution")))
-    (when-not (== n (count all-ws))
+    (when-not (m/== n (count all-ws))
       (invalid-input! 'mixture :weights "the number of weights has to be equal to the number of distributions."
                       (count all-ws) n))
     (doseq [w all-ws]
@@ -3470,8 +3470,8 @@
           probs (v/normalize-L1 weights)
           enum (categorical-distribution distrs probs rng)
           all-integer? (every? (fn [d] (and (not (prot/continuous? d))
-                                        (not (contains? non-integer-discrete-ids (prot/distribution-id d)))))
-                           distrs)
+                                           (not (contains? non-integer-discrete-ids (prot/distribution-id d)))))
+                               distrs)
           lower-bound (double (reduce m/min (map (fn [d] (double (prot/lower-bound d))) distrs)))
           upper-bound (double (reduce m/max (map (fn [d] (double (prot/upper-bound d))) distrs)))
           cdf (fn [^double x] (v/dot (map (fn ^double [d] (prot/cdf d x)) distrs) probs))

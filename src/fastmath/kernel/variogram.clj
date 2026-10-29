@@ -1212,7 +1212,7 @@
                  [^long i2 ^double d2] idiffs
                  :when (m/< i1 i2)]
              (m/abs (m/- d1 d2)))
-        q (m// (m/combinations (inc (int (m/* 0.5 n))) 2)
+        q (m// (m/combinations (m/long-inc (unchecked-long (m/* 0.5 n))) 2)
                (count ds))]
     (m/sq (m/* 2.2191 (stats/quantile ds q)))))
 

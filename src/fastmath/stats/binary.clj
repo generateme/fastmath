@@ -499,8 +499,8 @@
         lr- (m// fnr tnr)
         ts (m// tp (m/+ tp fn fp))
         f-beta (clojure.core/fn ^double [^double beta] (let [b2 (m/* beta beta)]
-                                                         (m/* (inc b2) (m// (m/* ppv tpr)
-                                                                            (m/+ (m/* b2 ppv) tpr)))))
+                                                         (m/* (m/inc b2) (m// (m/* ppv tpr)
+                                                                              (m/+ (m/* b2 ppv) tpr)))))
         f1-score (f-beta 1.0)
         mcc (mcc tp fp fn tn)
         bm (m/dec (m/+ tpr tnr))

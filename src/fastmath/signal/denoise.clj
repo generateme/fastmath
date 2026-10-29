@@ -144,7 +144,7 @@
 
 (defn- split-bands
   [coeffs lengths]
-  (when-not (== (count coeffs) (long (reduce + lengths)))
+  (when-not (m/== (count coeffs) (long (reduce m/+ lengths)))
     (throw (ex-info "Flat coefficients do not match band lengths." {:length (count coeffs) :lengths lengths})))
   (loop [cs (vec coeffs) ls lengths acc []]
     (if-let [l (first ls)]

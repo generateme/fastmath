@@ -30,7 +30,7 @@
                                                              (m/== j k) (recur (m/inc j) p)
                                                              :else (recur (m/inc j)
                                                                           (m/* p scale (m/abs (m/- xk (Array/aget xs j))))))))))))))]
-        (Array/aset w k (if (even? (- k d)) s (m/- s)))))
+        (Array/aset w k (if (m/even? (m/long-sub k d)) s (m/- s)))))
     w))
 
 (defn- sort-nodes
@@ -53,7 +53,7 @@
        (m/valid-double? (double order))
        (m/== (double order) (Math/floor (double order)))
        (m/>= (double order) 0.0)
-       (m/<= (double order) (double (dec n)))))
+       (m/<= (double order) (m/dec n))))
 
 (defn- barycentric*
   "Barycentric rational interpolator over arrays; `order` is validated here."
@@ -68,7 +68,7 @@
                          {:order order :count n}))
     (let [d (long order)
           [^doubles xs ^doubles ys] (sort-nodes xs ys)]
-      (loop [i 1]
+      (loop [i (long 1)]
         (when (m/< i n)
           (when (m/== (Array/aget xs i) (Array/aget xs (m/dec i)))
             (ic/invalid-input! method :duplicate-nodes

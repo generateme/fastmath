@@ -6,47 +6,47 @@
   (:import [fastmath.vector Vec2 Vec3 Vec4]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defn hadamard
   ([] {:type :random})
   ([^double amount _]
    (fn [^Vec2 v]
      (-> (cond
-           (< (r/drand) m/THIRD) (v/mult v 0.5)
-           (< (r/drand) m/TWO_THIRD) (Vec2. (* 0.5 (.y v)) (- (* -0.5 (.x v)) 0.5))
-           :else (Vec2. (- (* -0.5 (.y v)) 0.5) (* 0.5 (.x v))))
+           (m/< (r/drand) m/THIRD) (v/mult v 0.5)
+           (m/< (r/drand) m/TWO_THIRD) (Vec2. (m/* 0.5 (.y v)) (m/- (m/* -0.5 (.x v)) 0.5))
+           :else (Vec2. (m/- (m/* -0.5 (.y v)) 0.5) (m/* 0.5 (.x v))))
          (v/mult amount)))))
 
 (defn- hamid-pline
   ^Vec2 [^Vec4 xy] ;; x1:x y1:y x2:z y2:w
-  (let [ydiff (- (.w xy) (.y xy))
-        xdiff (- (.z xy) (.x xy))
-        m (if (zero? xdiff) 10000.0 (/ ydiff xdiff))
+  (let [ydiff (m/- (.w xy) (.y xy))
+        xdiff (m/- (.z xy) (.x xy))
+        m (if (m/zero? xdiff) 10000.0 (m// ydiff xdiff))
         line-length (m/hypot-sqrt xdiff ydiff)
         d (r/drand line-length)
-        xoffset (/ d (m/sqrt (inc (* m m))))
-        xoffset (if (< (.z xy) (.x xy)) (- xoffset) xoffset)
-        yoffset (m/abs (* m xoffset))
-        yoffset (if (< (.w xy) (.y xy)) (- yoffset) xoffset)]
-    (Vec2. (+ (.x xy) xoffset)
-           (+ (.y xy) yoffset))))
+        xoffset (m// d (m/sqrt (m/inc (m/* m m))))
+        xoffset (if (m/< (.z xy) (.x xy)) (m/- xoffset) xoffset)
+        yoffset (m/abs (m/* m xoffset))
+        yoffset (if (m/< (.w xy) (.y xy)) (m/- yoffset) xoffset)]
+    (Vec2. (m/+ (.x xy) xoffset)
+           (m/+ (.y xy) yoffset))))
 
 (defn- hamid-pcircle
   ^Vec2 [^Vec3 xy filled]
-  (let [radius (if (and filled (> (r/drand) 0.05)) (r/drand (.z xy)) (.z xy))
+  (let [radius (if (and filled (m/> (r/drand) 0.05)) (r/drand (.z xy)) (.z xy))
         a (r/drand m/TWO_PI)]
-    (Vec2. (+ (.x xy) (* radius (m/cos a)))
-           (+ (.y xy) (* radius (m/sin a))))))
+    (Vec2. (m/+ (.x xy) (m/* radius (m/cos a)))
+           (m/+ (.y xy) (m/* radius (m/sin a))))))
 
 (defn- hamid-A
   ^Vec2 [^long n]
-  (let [n (rem n 400.0)]
+  (let [n (m/rem n 400.0)]
     (cond
-      (< n 100) (Vec2. (/ n 100.0) 0.0)
-      (< n 200) (Vec2. 1.0 (/ (- n 100.0) 100.0))
-      (< n 300) (Vec2. (/ (- 300.0 n) 100.0) 1.0)
-      :else (Vec2. 0.0 (/ (- 400.0 n) 100.0)))))
+      (m/< n 100) (Vec2. (m// n 100.0) 0.0)
+      (m/< n 200) (Vec2. 1.0 (m// (m/- n 100.0) 100.0))
+      (m/< n 300) (Vec2. (m// (m/- 300.0 n) 100.0) 1.0)
+      :else (Vec2. 0.0 (m// (m/- 400.0 n) 100.0)))))
 
 (defn hamid
   ([] {:type :pattern
@@ -73,196 +73,196 @@
                            ^double a ^double b ^double c ^double d ^double e
                            ^double f ^double g ^double h ^double i ^double j
                            ^double k ^double l ^double m ^double n ^double o ^double p]}]
-   (let [npointsd (/ (double npoints))
-         presetid (int (rem presetid 20))
-         hamid-line-1 (let [fa (* a 4.0 m/PI) fb (* b 2.0 m/PI)
-                            fc (* c 8.0 m/PI) fd (* d 4.0 m/PI)
-                            fe (* e -0.5) ff (* f -0.5)]
+   (let [npointsd (m// (double npoints))
+         presetid (int (m/rem presetid 20))
+         hamid-line-1 (let [fa (m/* a 4.0 m/PI) fb (m/* b 2.0 m/PI)
+                            fc (m/* c 8.0 m/PI) fd (m/* d 4.0 m/PI)
+                            fe (m/* e -0.5) ff (m/* f -0.5)]
                         (fn [^double in]
-                          (Vec4. (- (m/sin (* fa in)))    (- (m/cos (* fb in)))
-                                 (* fe (m/sin (* fc in))) (* ff (m/cos (* fd in))))))
-         hamid-line-2 (let [fa (* a 2.0 m/PI) fb (* b 2.0 m/PI)
-                            fc (* c 8.0 m/PI) fd (* d 12.0 m/PI)
-                            fe (* e -0.5) ff (* f -0.5)]
+                          (Vec4. (m/- (m/sin (m/* fa in)))    (m/- (m/cos (m/* fb in)))
+                                 (m/* fe (m/sin (m/* fc in))) (m/* ff (m/cos (m/* fd in))))))
+         hamid-line-2 (let [fa (m/* a 2.0 m/PI) fb (m/* b 2.0 m/PI)
+                            fc (m/* c 8.0 m/PI) fd (m/* d 12.0 m/PI)
+                            fe (m/* e -0.5) ff (m/* f -0.5)]
                         (fn [^double in]
-                          (Vec4. (- (m/sin (* fa in)))    (- (m/cos (* fb in)))
-                                 (* fe (m/sin (* fc in))) (* ff (m/cos (* fd in))))))
-         hamid-line-3 (let [fa (* a 8.0 m/PI) fb (* b 2.0 m/PI)
-                            fc (* c 6.0 m/PI) fd (* d 2.0 m/PI)
-                            fe (* e -0.5) ff (* f -0.5)]
+                          (Vec4. (m/- (m/sin (m/* fa in)))    (m/- (m/cos (m/* fb in)))
+                                 (m/* fe (m/sin (m/* fc in))) (m/* ff (m/cos (m/* fd in))))))
+         hamid-line-3 (let [fa (m/* a 8.0 m/PI) fb (m/* b 2.0 m/PI)
+                            fc (m/* c 6.0 m/PI) fd (m/* d 2.0 m/PI)
+                            fe (m/* e -0.5) ff (m/* f -0.5)]
                         (fn [^double in]
-                          (Vec4. (- (m/sin (* fa in)))    (- (m/cos (* fb in)))
-                                 (* fe (m/sin (* fc in))) (* ff (m/cos (* fd in))))))
-         hamid-line-4 (let [fa (* a 10.0 m/PI) fb (* b 2.0 m/PI)
-                            fc (* c 12.0 m/PI) fd (* d 2.0 m/PI)
-                            fe (* e -0.5) ff (* f -0.5)]
+                          (Vec4. (m/- (m/sin (m/* fa in)))    (m/- (m/cos (m/* fb in)))
+                                 (m/* fe (m/sin (m/* fc in))) (m/* ff (m/cos (m/* fd in))))))
+         hamid-line-4 (let [fa (m/* a 10.0 m/PI) fb (m/* b 2.0 m/PI)
+                            fc (m/* c 12.0 m/PI) fd (m/* d 2.0 m/PI)
+                            fe (m/* e -0.5) ff (m/* f -0.5)]
                         (fn [^double in]
-                          (Vec4. (- (m/sin (* fa in)))    (- (m/cos (* fb in)))
-                                 (* fe (m/sin (* fc in))) (* ff (m/cos (* fd in))))))
-         hamid-line-5 (let [fa (* a 10.0 m/PI) fb (* b 8.0 m/PI)
-                            fc (* c 12.0 m/PI) fd (* d 10.0 m/PI)
-                            s (/ 699.0 npoints)]
+                          (Vec4. (m/- (m/sin (m/* fa in)))    (m/- (m/cos (m/* fb in)))
+                                 (m/* fe (m/sin (m/* fc in))) (m/* ff (m/cos (m/* fd in))))))
+         hamid-line-5 (let [fa (m/* a 10.0 m/PI) fb (m/* b 8.0 m/PI)
+                            fc (m/* c 12.0 m/PI) fd (m/* d 10.0 m/PI)
+                            s (m// 699.0 npoints)]
                         (fn [^double in]
-                          (let [in (+ in s)]
-                            (Vec4. (m/sin (* fa in)) (m/cos (* fb in))
-                                   (m/sin (* fc in)) (m/cos (* fd in))))))
-         hamid-line-6 (let [fa (* a -2.0) fb (* b 4.0 m/PI) f1 (/ npoints 1000.0)
-                            fc (* c 0.5) fd (* d 6.0 m/PI) fi (* i 3.0)
-                            fej (/ (* e j -2.0) 15.0) ff (* f 6.0 m/PI)
-                            fgk (/ (* g k 4.0) 15.0) fh (* h 2.0 m/PI)]
+                          (let [in (m/+ in s)]
+                            (Vec4. (m/sin (m/* fa in)) (m/cos (m/* fb in))
+                                   (m/sin (m/* fc in)) (m/cos (m/* fd in))))))
+         hamid-line-6 (let [fa (m/* a -2.0) fb (m/* b 4.0 m/PI) f1 (m// npoints 1000.0)
+                            fc (m/* c 0.5) fd (m/* d 6.0 m/PI) fi (m/* i 3.0)
+                            fej (m// (m/* e j -2.0) 15.0) ff (m/* f 6.0 m/PI)
+                            fgk (m// (m/* g k 4.0) 15.0) fh (m/* h 2.0 m/PI)]
                         (fn [^double in]
-                          (Vec4. (* fa (m/cos (* fb in f1))) (* fc (u/spow (m/cos (* fd in)) fi))
-                                 (* fej (m/sin (* ff in))) (* fgk (m/sin (* fh in))))))
-         hamid-line-7 (let [fa (* a 3.0) fb (* b 2.0 m/PI) fh (* h 3.0)
-                            fc (* c 8.0 m/PI) fd (* d 1.5) fe (* e 2.0 m/PI)
-                            fi (* i 3.0) ff (* f -0.5) fg (* g 6.0 m/PI)]
+                          (Vec4. (m/* fa (m/cos (m/* fb in f1))) (m/* fc (u/spow (m/cos (m/* fd in)) fi))
+                                 (m/* fej (m/sin (m/* ff in))) (m/* fgk (m/sin (m/* fh in))))))
+         hamid-line-7 (let [fa (m/* a 3.0) fb (m/* b 2.0 m/PI) fh (m/* h 3.0)
+                            fc (m/* c 8.0 m/PI) fd (m/* d 1.5) fe (m/* e 2.0 m/PI)
+                            fi (m/* i 3.0) ff (m/* f -0.5) fg (m/* g 6.0 m/PI)]
                         (fn [^double in]
-                          (Vec4. (* fa (u/spow (m/sin (* fb in)) fh)) (- (m/cos (* fc in)))
-                                 (* fd (u/spow (m/sin (* fe in)) fi)) (* ff (m/sin (* fg in))))))
-         hamid-line-8 (let [fa (* a 6.0 m/PI) fb (* 8.0 m/PI)
-                            fc (* c 1.5) ff (* 3.0 f)
-                            fd (* d -0.5) fe (* e 6.0 m/PI)]
+                          (Vec4. (m/* fa (u/spow (m/sin (m/* fb in)) fh)) (m/- (m/cos (m/* fc in)))
+                                 (m/* fd (u/spow (m/sin (m/* fe in)) fi)) (m/* ff (m/sin (m/* fg in))))))
+         hamid-line-8 (let [fa (m/* a 6.0 m/PI) fb (m/* 8.0 m/PI)
+                            fc (m/* c 1.5) ff (m/* 3.0 f)
+                            fd (m/* d -0.5) fe (m/* e 6.0 m/PI)]
                         (fn [^double in]
-                          (Vec4. (m/cos (* fa in)) (- (m/cos (* fb in)))
-                                 (* fc (u/spow (m/sin (* m/TWO_PI in)) ff))
-                                 (* fd (m/cos (* fe in))))))
-         hamid-line-9 (let [fa (* a 20.0 m/PI) fb (* b 18.0 m/PI)
-                            fe (* e 3.0) fc (* c 16.0 m/PI)
-                            fd (* d 14.0 m/PI) ff (* f 3.0)]
+                          (Vec4. (m/cos (m/* fa in)) (m/- (m/cos (m/* fb in)))
+                                 (m/* fc (u/spow (m/sin (m/* m/TWO_PI in)) ff))
+                                 (m/* fd (m/cos (m/* fe in))))))
+         hamid-line-9 (let [fa (m/* a 20.0 m/PI) fb (m/* b 18.0 m/PI)
+                            fe (m/* e 3.0) fc (m/* c 16.0 m/PI)
+                            fd (m/* d 14.0 m/PI) ff (m/* f 3.0)]
                         (fn [^double in]
-                          (Vec4. (m/cb (m/sin (* fa in))) (u/spow (m/cos (* fb in)) fe)
-                                 (m/cb (m/sin (* fc in))) (u/spow (m/cos (* fd in)) ff))))
+                          (Vec4. (m/cb (m/sin (m/* fa in))) (u/spow (m/cos (m/* fb in)) fe)
+                                 (m/cb (m/sin (m/* fc in))) (u/spow (m/cos (m/* fd in)) ff))))
          hamid-line-10 (fn [^long in]
                          (let [^Vec2 out1 (hamid-A in)
-                               ^Vec2 out2 (hamid-A (+ in 199))]
+                               ^Vec2 out2 (hamid-A (m/long-add in 199))]
                            (Vec4. (.x out1) (.y out1) (.x out2) (.y out2))))
-         hamid-circle-10 (let [fa (* a m/TWO_THIRD) fb (* b 2.0 m/PI) fc (* c 36.0 m/PI)
-                               fd (* d 30.0 m/PI) fk (/ k 3.0)
-                               fl (* l 3.0) fm (/ m 3.0)
-                               fen (* e n m/TWO_THIRD) ff (* f 2.0 m/PI) fg (* g 36.0 m/PI)
-                               fh (* h 30.0 m/PI) fo (/ o 3.0) fi (* i 14.0 m/PI) fp (/ p 5.0)
-                               fj (* j 36.0 m/PI)]
+         hamid-circle-10 (let [fa (m/* a m/TWO_THIRD) fb (m/* b 2.0 m/PI) fc (m/* c 36.0 m/PI)
+                               fd (m/* d 30.0 m/PI) fk (m// k 3.0)
+                               fl (m/* l 3.0) fm (m// m 3.0)
+                               fen (m/* e n m/TWO_THIRD) ff (m/* f 2.0 m/PI) fg (m/* g 36.0 m/PI)
+                               fh (m/* h 30.0 m/PI) fo (m// o 3.0) fi (m/* i 14.0 m/PI) fp (m// p 5.0)
+                               fj (m/* j 36.0 m/PI)]
                            (fn [^double in]
-                             (Vec3. (+ (* fa (m/sin (* fb in)))
-                                       (* fk (m/sin (* fc in)) (m/cos (* fd in)))
-                                       (* fm (u/spow (m/sin (* 43.982297150257104 in)) fl)))
-                                    (+ (* fen (m/cos (* ff in)))
-                                       (* fo (m/cos (* fg in)) (m/cos (* fh in)))
-                                       (* fp (m/cb (m/cos (* fi in)))))
-                                    (+ 0.006666666666666667 (/ (m/sq (m/sq (m/sin (* fj in)))) 9.0)))))
-         hamid-circle-11 (let [fa (* a 14.0 m/PI) fb (* b 32.0 m/PI)
-                               fc (* c 20.0 m/PI) fd (/ d 3.0)]
+                             (Vec3. (m/+ (m/* fa (m/sin (m/* fb in)))
+                                       (m/* fk (m/sin (m/* fc in)) (m/cos (m/* fd in)))
+                                       (m/* fm (u/spow (m/sin (m/* 43.982297150257104 in)) fl)))
+                                    (m/+ (m/* fen (m/cos (m/* ff in)))
+                                       (m/* fo (m/cos (m/* fg in)) (m/cos (m/* fh in)))
+                                       (m/* fp (m/cb (m/cos (m/* fi in)))))
+                                    (m/+ 0.006666666666666667 (m// (m/sq (m/sq (m/sin (m/* fj in)))) 9.0)))))
+         hamid-circle-11 (let [fa (m/* a 14.0 m/PI) fb (m/* b 32.0 m/PI)
+                               fc (m/* c 20.0 m/PI) fd (m// d 3.0)]
                            (fn [^double in]
-                             (Vec3. (m/sin (* fa in)) (m/cos (* fb in))
-                                    (* fd (m/sq (m/sin (* fc in)))))))
-         hamid-circle-12 (let [fa (* a m/TWO_THIRD) fb (* b 6.0 m/PI) fc (* c 36.0 m/PI)
-                               fd (* d 30.0 m/PI) fk (* k 3.0)
-                               fe (* e 14.0) fl (/ l 4.0) fm (* m 3.0)
-                               ff (* f m/TWO_THIRD) fg (* g 6.0 m/PI)
-                               fh (* h 28.0 m/PI) fi (* i 30.0 m/PI) fp (/ p 20.0)
-                               ffn (/ n 5.0) fj (* j 36.0 m/PI) fo (* o 4.0)]
+                             (Vec3. (m/sin (m/* fa in)) (m/cos (m/* fb in))
+                                    (m/* fd (m/sq (m/sin (m/* fc in)))))))
+         hamid-circle-12 (let [fa (m/* a m/TWO_THIRD) fb (m/* b 6.0 m/PI) fc (m/* c 36.0 m/PI)
+                               fd (m/* d 30.0 m/PI) fk (m/* k 3.0)
+                               fe (m/* e 14.0) fl (m// l 4.0) fm (m/* m 3.0)
+                               ff (m/* f m/TWO_THIRD) fg (m/* g 6.0 m/PI)
+                               fh (m/* h 28.0 m/PI) fi (m/* i 30.0 m/PI) fp (m// p 20.0)
+                               ffn (m// n 5.0) fj (m/* j 36.0 m/PI) fo (m/* o 4.0)]
                            (fn [^double in]
-                             (Vec3. (+ (* fa (m/sin (* fb in)))
-                                       (* 0.25 (m/sin (* fc in)) (m/cos (* fd in)))
-                                       (* fl (u/spow (m/sin (* fe in)) fk)))
-                                    (+ (* ff (m/cos (* fg in)))
-                                       (* m/THIRD (m/cos (* fh in)) (m/cos (* fi in)))
-                                       (* ffn (u/spow (m/cos (* 43.982297150257104 in)) fm)))
-                                    (+  0.006666666666666667
-                                        (* fp (u/spow (m/sq (m/sin (* fj in))) fo))))))
-         hamid-circle-13 (let [fa (* a 10.0 m/PI) fb (* b 28.0 m/PI) fe (* e 3.0)
-                               fc (* c 18.0 m/PI) fd (/ d 3.0)]
+                             (Vec3. (m/+ (m/* fa (m/sin (m/* fb in)))
+                                       (m/* 0.25 (m/sin (m/* fc in)) (m/cos (m/* fd in)))
+                                       (m/* fl (u/spow (m/sin (m/* fe in)) fk)))
+                                    (m/+ (m/* ff (m/cos (m/* fg in)))
+                                       (m/* m/THIRD (m/cos (m/* fh in)) (m/cos (m/* fi in)))
+                                       (m/* ffn (u/spow (m/cos (m/* 43.982297150257104 in)) fm)))
+                                    (m/+  0.006666666666666667
+                                        (m/* fp (u/spow (m/sq (m/sin (m/* fj in))) fo))))))
+         hamid-circle-13 (let [fa (m/* a 10.0 m/PI) fb (m/* b 28.0 m/PI) fe (m/* e 3.0)
+                               fc (m/* c 18.0 m/PI) fd (m// d 3.0)]
                            (fn [^double in]
-                             (Vec3. (m/sin (* fa in)) (u/spow (m/cos (* fb in)) fe)
-                                    (* fd (m/sq (m/sin (* fc in)))))))
-         hamid-circle-14 (let [fa (* a m/TWO_THIRD) fb (* b 18.0 m/PI) fc (* c 40.0 m/PI)
-                               fd (* d 30.0 m/PI) fe (* e 34.0 m/PI) fk (* k 3.0) fl (/ l 4.0)
-                               ff (* f m/TWO_THIRD) fg (* g 18.0 m/PI) fh (* h 28.0 m/PI)
-                               f1 125.66370614359172 fi (* i 34.0 m/PI) fm (* m 3.0) ffn (/ n 3.0)
-                               fj (* j 56.0 m/PI) fp (/ p 8.0) fo (* o 4.0)]
+                             (Vec3. (m/sin (m/* fa in)) (u/spow (m/cos (m/* fb in)) fe)
+                                    (m/* fd (m/sq (m/sin (m/* fc in)))))))
+         hamid-circle-14 (let [fa (m/* a m/TWO_THIRD) fb (m/* b 18.0 m/PI) fc (m/* c 40.0 m/PI)
+                               fd (m/* d 30.0 m/PI) fe (m/* e 34.0 m/PI) fk (m/* k 3.0) fl (m// l 4.0)
+                               ff (m/* f m/TWO_THIRD) fg (m/* g 18.0 m/PI) fh (m/* h 28.0 m/PI)
+                               f1 125.66370614359172 fi (m/* i 34.0 m/PI) fm (m/* m 3.0) ffn (m// n 3.0)
+                               fj (m/* j 56.0 m/PI) fp (m// p 8.0) fo (m/* o 4.0)]
                            (fn [^double in]
-                             (Vec3. (+ (* fa (m/sin (* fb in)))
-                                       (* m/THIRD (m/cb (m/sin (* fc in)))
-                                          (* (m/cos (* fd in))))
-                                       (* fl (u/spow (m/sin (* fe in)) fk)))
-                                    (+ (* ff (m/cos (* fg in)))
-                                       (* m/THIRD (m/cb (m/cos (* fh in)))
-                                          (m/cos (* f1 in)))
-                                       (* ffn (u/spow (m/cos (* fi in)) fm)))
-                                    (+ 0.006666666666666667 (* fp (u/spow (m/sin (* fj in)) fo))))))
-         hamid-circle-15 (let [fa (* a m/TWO_THIRD) fb (* b 14.0 m/PI) fc (* c 10.0 m/PI)
-                               fd (* d 28.0 m/PI) fe (* e 46.0 m/PI) fm (* m 3.0) ffn (/ n 3.0)
-                               ff (* f 14.0 m/PI) fg (* g 10.0 m/PI) fh (* h 28.0 m/PI)
-                               fj (* j 34.0 m/PI) fo (* o 3.0)
-                               fk (* k 72.0 m/PI) fl (* l 12.0) fp (/ p 20.0)]
+                             (Vec3. (m/+ (m/* fa (m/sin (m/* fb in)))
+                                       (m/* m/THIRD (m/cb (m/sin (m/* fc in)))
+                                          (m/* (m/cos (m/* fd in))))
+                                       (m/* fl (u/spow (m/sin (m/* fe in)) fk)))
+                                    (m/+ (m/* ff (m/cos (m/* fg in)))
+                                       (m/* m/THIRD (m/cb (m/cos (m/* fh in)))
+                                          (m/cos (m/* f1 in)))
+                                       (m/* ffn (u/spow (m/cos (m/* fi in)) fm)))
+                                    (m/+ 0.006666666666666667 (m/* fp (u/spow (m/sin (m/* fj in)) fo))))))
+         hamid-circle-15 (let [fa (m/* a m/TWO_THIRD) fb (m/* b 14.0 m/PI) fc (m/* c 10.0 m/PI)
+                               fd (m/* d 28.0 m/PI) fe (m/* e 46.0 m/PI) fm (m/* m 3.0) ffn (m// n 3.0)
+                               ff (m/* f 14.0 m/PI) fg (m/* g 10.0 m/PI) fh (m/* h 28.0 m/PI)
+                               fj (m/* j 34.0 m/PI) fo (m/* o 3.0)
+                               fk (m/* k 72.0 m/PI) fl (m/* l 12.0) fp (m// p 20.0)]
                            (fn [^double in]
-                             (Vec3. (+ (* fa (m/sin (* fb in)))
-                                       (* m/THIRD (m/cb (m/sin (* fc in)))
-                                          (* (m/cos (* fd in))))
-                                       (* ffn (u/spow (m/sin (* fe in)) fm)))
-                                    (+ (* m/TWO_THIRD (m/cos (* ff in)))
-                                       (* m/THIRD (m/cb (m/cos (* fg in)))
-                                          (m/cos (* fh in)))
-                                       (* m/THIRD (u/spow (m/cos (* fj in)) fo)))
-                                    (+ 0.006666666666666667
-                                       (* 0.1111111111111111 (m/sq (m/cb (m/sin (* fk in)))))
-                                       (* fp (m/sq (m/sq (m/sin (* fl in)))))))))
-         hamid-circle-16 (let [fa (* a 38.0 m/PI) fb (* b 26.0 m/PI) fc (* c 18.0 m/PI)
-                               fl (* l 3.0) fm (/ m 2.0) fd (* d 18.0 m/PI) fe (* e 38.0 m/PI)
-                               ff (* f 36.0 m/PI) fg (* g 18.0 m/PI) ffn (* n 3.0) fo (/ o 4.0)
-                               fh (* h 18.0 m/PI) fi (* i 100.0 m/PI)
-                               fj (* j 72.0 m/PI) fk (* k 18.0 m/PI) fp (/ p 20.0)]
+                             (Vec3. (m/+ (m/* fa (m/sin (m/* fb in)))
+                                       (m/* m/THIRD (m/cb (m/sin (m/* fc in)))
+                                          (m/* (m/cos (m/* fd in))))
+                                       (m/* ffn (u/spow (m/sin (m/* fe in)) fm)))
+                                    (m/+ (m/* m/TWO_THIRD (m/cos (m/* ff in)))
+                                       (m/* m/THIRD (m/cb (m/cos (m/* fg in)))
+                                          (m/cos (m/* fh in)))
+                                       (m/* m/THIRD (u/spow (m/cos (m/* fj in)) fo)))
+                                    (m/+ 0.006666666666666667
+                                       (m/* 0.1111111111111111 (m/sq (m/cb (m/sin (m/* fk in)))))
+                                       (m/* fp (m/sq (m/sq (m/sin (m/* fl in)))))))))
+         hamid-circle-16 (let [fa (m/* a 38.0 m/PI) fb (m/* b 26.0 m/PI) fc (m/* c 18.0 m/PI)
+                               fl (m/* l 3.0) fm (m// m 2.0) fd (m/* d 18.0 m/PI) fe (m/* e 38.0 m/PI)
+                               ff (m/* f 36.0 m/PI) fg (m/* g 18.0 m/PI) ffn (m/* n 3.0) fo (m// o 4.0)
+                               fh (m/* h 18.0 m/PI) fi (m/* i 100.0 m/PI)
+                               fj (m/* j 72.0 m/PI) fk (m/* k 18.0 m/PI) fp (m// p 20.0)]
                            (fn [^double in]
-                             (Vec3. (+ (* 0.5 (m/sin (* fa in)) (m/cos (* fb in)))
-                                       (* fm (u/spow (m/sin (* fc in)) fl)))
-                                    (+ (* m/TWO_THIRD (m/cos (* fd in)))
-                                       (* m/THIRD (m/cos (* fe in)) (m/cos (* ff in)))
-                                       (* fo (u/spow (m/cos (* fg in)) ffn)))
-                                    (+ 0.006666666666666667
-                                       (* 0.01 (u/spow (m/sin (* fh in)) 10.0)
-                                          (m/cb (m/sq (m/sin (* fi in)))))
-                                       (* fp (m/sq (m/sq (m/sq (m/sin (* fj in)))))
-                                          (m/cb (m/sq (m/cos (* fk in)))))))))
-         hamid-circle-17 (let [fa (* a 2.0) fb (* b 10.0 m/PI) fc (* c 6.0 m/PI)
-                               fd (* d 28.0 m/PI) fe (* e 126.0 m/PI) fl (/ m 10.0)
-                               ff (* f 6.0 m/PI) fg (* g 18.0 m/PI) fh (* h 36.0 m/PI)
-                               fi (* i 126.0 m/PI) fm (/ m 10.0)
-                               fj (* j 48.0 m/PI) fk (* k 12.0 m/PI) ffn (* 2.0 n)
-                               fo (/ o 18.0)]
+                             (Vec3. (m/+ (m/* 0.5 (m/sin (m/* fa in)) (m/cos (m/* fb in)))
+                                       (m/* fm (u/spow (m/sin (m/* fc in)) fl)))
+                                    (m/+ (m/* m/TWO_THIRD (m/cos (m/* fd in)))
+                                       (m/* m/THIRD (m/cos (m/* fe in)) (m/cos (m/* ff in)))
+                                       (m/* fo (u/spow (m/cos (m/* fg in)) ffn)))
+                                    (m/+ 0.006666666666666667
+                                       (m/* 0.01 (u/spow (m/sin (m/* fh in)) 10.0)
+                                          (m/cb (m/sq (m/sin (m/* fi in)))))
+                                       (m/* fp (m/sq (m/sq (m/sq (m/sin (m/* fj in)))))
+                                          (m/cb (m/sq (m/cos (m/* fk in)))))))))
+         hamid-circle-17 (let [fa (m/* a 2.0) fb (m/* b 10.0 m/PI) fc (m/* c 6.0 m/PI)
+                               fd (m/* d 28.0 m/PI) fe (m/* e 126.0 m/PI) fl (m// m 10.0)
+                               ff (m/* f 6.0 m/PI) fg (m/* g 18.0 m/PI) fh (m/* h 36.0 m/PI)
+                               fi (m/* i 126.0 m/PI) fm (m// m 10.0)
+                               fj (m/* j 48.0 m/PI) fk (m/* k 12.0 m/PI) ffn (m/* 2.0 n)
+                               fo (m// o 18.0)]
                            (fn [^double in]
-                             (Vec3. (+ (* fa (m/sin (* fb in)))
-                                       (* m/THIRD (m/cb (m/sin (* fc in))) (m/cos (* fd in)))
-                                       (* fl (m/sin (* fe in))))
-                                    (+ (* m/TWO_THIRD (m/cos (* ff in)))
-                                       (* m/THIRD (m/cb (m/cos (* fg in))) (m/cos (* fh in)))
-                                       (* fm (m/cos (* fi in))))
-                                    (+ 0.006666666666666667
-                                       (* fo (m/sq (m/sq (m/sin (* fj in))))
-                                          (inc (u/spow (m/sin (* fk in)) ffn)))))))
-         hamid-circle-18 (let [fa (* a 0.4) fb (* b 18.0 m/PI) fc (* c 34.0 m/PI)
-                               fj (* j 3.0) fk (/ k 3.0) fd (* d 50.0 m/PI) fl (* l 3.0)
-                               fm (* m 3.0) fe (* e 18.0 m/PI) ff (* f 34.0 m/PI) ffn (* n 3.0)
-                               fg (* g 50.0 m/PI) fo (/ o 10.0) fi (* i 58.0 m/PI) fp (/ p 10.0)]
+                             (Vec3. (m/+ (m/* fa (m/sin (m/* fb in)))
+                                       (m/* m/THIRD (m/cb (m/sin (m/* fc in))) (m/cos (m/* fd in)))
+                                       (m/* fl (m/sin (m/* fe in))))
+                                    (m/+ (m/* m/TWO_THIRD (m/cos (m/* ff in)))
+                                       (m/* m/THIRD (m/cb (m/cos (m/* fg in))) (m/cos (m/* fh in)))
+                                       (m/* fm (m/cos (m/* fi in))))
+                                    (m/+ 0.006666666666666667
+                                       (m/* fo (m/sq (m/sq (m/sin (m/* fj in))))
+                                          (m/inc (u/spow (m/sin (m/* fk in)) ffn)))))))
+         hamid-circle-18 (let [fa (m/* a 0.4) fb (m/* b 18.0 m/PI) fc (m/* c 34.0 m/PI)
+                               fj (m/* j 3.0) fk (m// k 3.0) fd (m/* d 50.0 m/PI) fl (m/* l 3.0)
+                               fm (m/* m 3.0) fe (m/* e 18.0 m/PI) ff (m/* f 34.0 m/PI) ffn (m/* n 3.0)
+                               fg (m/* g 50.0 m/PI) fo (m// o 10.0) fi (m/* i 58.0 m/PI) fp (m// p 10.0)]
                            (fn [^double in]
-                             (Vec3. (+ (* fa (m/sin (* fb in)))
-                                       (* fk (u/spow (m/sin (* fc in)) fj))
-                                       (* fm (u/spow (m/sin (* fd in)) fl)))
-                                    (+ (* m/TWO_THIRD (m/cos (* fe in)))
-                                       (* m/THIRD (m/cb (m/cos (* ff in))))
-                                       (* fo (u/spow (m/cos (* fg in)) ffn)))
-                                    (+ 0.006666666666666667
-                                       (* fp (m/sq (m/sq (m/sin (* fi in)))))))))
-         hamid-circle-19 (let [fa (* a 10.0 m/PI) fb (* b 16.0 m/PI) fi (/ i 2.0)
-                               fd (* d 10.0 m/PI) fe (* e 34.0 m/PI) fk (/ k 2.0)
-                               fh (* h 2.0) fj (* j 2.0) fg (* g 52.0 m/PI)
-                               fl (* l 4.0) fm (/ m 10.0)]
+                             (Vec3. (m/+ (m/* fa (m/sin (m/* fb in)))
+                                       (m/* fk (u/spow (m/sin (m/* fc in)) fj))
+                                       (m/* fm (u/spow (m/sin (m/* fd in)) fl)))
+                                    (m/+ (m/* m/TWO_THIRD (m/cos (m/* fe in)))
+                                       (m/* m/THIRD (m/cb (m/cos (m/* ff in))))
+                                       (m/* fo (u/spow (m/cos (m/* fg in)) ffn)))
+                                    (m/+ 0.006666666666666667
+                                       (m/* fp (m/sq (m/sq (m/sin (m/* fi in)))))))))
+         hamid-circle-19 (let [fa (m/* a 10.0 m/PI) fb (m/* b 16.0 m/PI) fi (m// i 2.0)
+                               fd (m/* d 10.0 m/PI) fe (m/* e 34.0 m/PI) fk (m// k 2.0)
+                               fh (m/* h 2.0) fj (m/* j 2.0) fg (m/* g 52.0 m/PI)
+                               fl (m/* l 4.0) fm (m// m 10.0)]
                            (fn [^double in]
-                             (Vec3. (* (m/cos (* fa in)) (- c (* fi (u/spow (m/sin (* fb in)) fh))))
-                                    (* (m/sin (* fd in)) (- f (* fk (u/spow (m/cos (* fe in)) fj))))
-                                    (+ 0.005 (* fm (u/spow (m/sin (* fg in)) fl))))))]
+                             (Vec3. (m/* (m/cos (m/* fa in)) (m/- c (m/* fi (u/spow (m/sin (m/* fb in)) fh))))
+                                    (m/* (m/sin (m/* fd in)) (m/- f (m/* fk (u/spow (m/cos (m/* fe in)) fj))))
+                                    (m/+ 0.005 (m/* fm (u/spow (m/sin (m/* fg in)) fl))))))]
      (fn [_]
-       (-> (let [iin (inc (r/lrand npoints))
-                 in (* iin npointsd)]
+       (-> (let [iin (m/inc (r/lrand npoints))
+                 in (m/* iin npointsd)]
              (case presetid
                0 (hamid-pline (hamid-line-1 in))
                1 (hamid-pline (hamid-line-2 in))
@@ -294,8 +294,8 @@
    (fn [^Vec2 v]
      (let [angle (v/heading v)
            r (v/mag v)]
-       (Vec2. (* amount (* r (m/sin (+ angle r))))
-              (* amount (* r (m/cos (- angle r)))))))))
+       (Vec2. (m/* amount (m/* r (m/sin (m/+ angle r))))
+              (m/* amount (m/* r (m/cos (m/- angle r)))))))))
 
 (defn heart
   "Heart"
@@ -304,10 +304,10 @@
    (fn [^Vec2 v]
      (let [r (v/mag v)
            theta (v/heading v)
-           rt (* r theta)
+           rt (m/* r theta)
            sr (m/sin rt)
            cr (m/cos rt)]
-       (Vec2. (* amount r sr) (- (* amount r cr)))))))
+       (Vec2. (m/* amount r sr) (m/- (m/* amount r cr)))))))
 
 (defn heartwf
   ([] {:type :regular
@@ -321,14 +321,14 @@
    (fn [^Vec2 v]
      (let [a (m/atan2 (.x v) (.y v))
            r (v/mag v)
-           t (if (neg? a)
-               (min 60.0 (- (* -19.098593171027442 a scale-r-left) shift-t))
-               (min 60.0 (- (* 19.098593171027442 a scale-r-right) shift-t)))
-           tt (- (* 40.0 t) (* t t))
+           t (if (m/neg? a)
+               (m/min 60.0 (m/- (m/* -19.098593171027442 a scale-r-left) shift-t))
+               (m/min 60.0 (m/- (m/* 19.098593171027442 a scale-r-right) shift-t)))
+           tt (m/- (m/* 40.0 t) (m/* t t))
            tr (m/radians t)
-           nx (* 0.001 (+ tt 1200.0) (m/sin tr) r)
-           nx (* amount scale-x (if (neg? a) (- nx) nx))
-           ny (* amount -0.001 (+ tt 400.0) (m/cos tr) r)]
+           nx (m/* 0.001 (m/+ tt 1200.0) (m/sin tr) r)
+           nx (m/* amount scale-x (if (m/neg? a) (m/- nx) nx))
+           ny (m/* amount -0.001 (m/+ tt 400.0) (m/cos tr) r)]
        (Vec2. nx ny)))))
 
 (defn hemisphere
@@ -336,43 +336,43 @@
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (let [r (/ amount (m/sqrt (inc (v/magsq v))))]
-       (Vec2. (* r (.x v))
-              (* r (.y v)))))))
+     (let [r (m// amount (m/sqrt (m/inc (v/magsq v))))]
+       (Vec2. (m/* r (.x v))
+              (m/* r (.y v)))))))
 
 (defn hexmodulus
   ([] {:type :regular
        :config (fn [] {:size (u/sdrand 0.5 2.0)})})
   ([^double amount {:keys [^double size]}]
-   (let [hsize (/ m/SQRT3_2 size)
-         weight (/ amount m/SQRT3_2)]
+   (let [hsize (m// m/SQRT3_2 size)
+         weight (m// amount m/SQRT3_2)]
      (fn [^Vec2 v]
        (let [^Vec2 XY (v/mult v hsize)
-             x (- (* m/SQRT3_3 (.x XY))
-                  (* m/THIRD (.y XY)))
-             z (* m/TWO_THIRD (.y XY))
-             y (- (- x) z)
+             x (m/- (m/* m/SQRT3_3 (.x XY))
+                  (m/* m/THIRD (.y XY)))
+             z (m/* m/TWO_THIRD (.y XY))
+             y (m/- (m/- x) z)
              rx (m/round x)
              ry (m/round y)
              rz (m/round z)
-             x-diff (m/abs (- rx x))
-             y-diff (m/abs (- ry y))
-             z-diff (m/abs (- rz z))
+             x-diff (m/abs (m/- rx x))
+             y-diff (m/abs (m/- ry y))
+             z-diff (m/abs (m/- rz z))
              ^Vec2 r (cond
-                       (and (> x-diff y-diff)
-                            (> x-diff z-diff)) (Vec2. (- (- ry) rz) rz)
-                       (> y-diff z-diff) (Vec2. rx rz)
-                       :else (Vec2. rx (- (- rx) ry)))
-             fx-h (+ (* m/SQRT3 (.x r)) (* m/SQRT3_2 (.y r)))
-             fy-h (* 1.5 (.y r))
-             fx (- (.x XY) fx-h)
-             fy (- (.y XY) fy-h)]
-         (Vec2. (* fx weight) (* fy weight)))))))
+                       (and (m/> x-diff y-diff)
+                            (m/> x-diff z-diff)) (Vec2. (m/- (m/- ry) rz) rz)
+                       (m/> y-diff z-diff) (Vec2. rx rz)
+                       :else (Vec2. rx (m/- (m/- rx) ry)))
+             fx-h (m/+ (m/* m/SQRT3 (.x r)) (m/* m/SQRT3_2 (.y r)))
+             fy-h (m/* 1.5 (.y r))
+             fx (m/- (.x XY) fx-h)
+             fy (m/- (.y XY) fy-h)]
+         (Vec2. (m/* fx weight) (m/* fy weight)))))))
 
 (defn- hexes-cell-centre
   ^Vec2 [^Vec2 in ^double s]
-  (Vec2. (* s (+ (* 1.5 (.x in)) (* -1.5 (.y in))))
-         (* s m/SQRT3_2 (+ (.x in) (.y in)))))
+  (Vec2. (m/* s (m/+ (m/* 1.5 (.x in)) (m/* -1.5 (.y in))))
+         (m/* s m/SQRT3_2 (m/+ (.x in) (.y in)))))
 
 (defn hexes
   ([] {:type :regular
@@ -381,12 +381,12 @@
                       :rotate (r/drand -1.0 1.0)
                       :scale (u/sdrand 0.5 2.0)})})
   ([^double amount {:keys [^double cellsize ^double power ^double rotate ^double scale]}]
-   (let [a (* rotate m/TWO_PI)
-         sr (/ cellsize)]
+   (let [a (m/* rotate m/TWO_PI)
+         sr (m// cellsize)]
      (fn [^Vec2 U]
-       (let [x (* m/THIRD (.x U))
-             y (* m/SQRT3_3 (.y U))
-             H (Vec2. (m/floor (* sr (+ x y))) (m/floor (* sr (- y x))))
+       (let [x (m/* m/THIRD (.x U))
+             y (m/* m/SQRT3_3 (.y U))
+             H (Vec2. (m/floor (m/* sr (m/+ x y))) (m/floor (m/* sr (m/- y x))))
              P (mapv #(hexes-cell-centre (v/add H %) cellsize) u/offsets)
              q (u/closest P 9 U)
              H (v/add H (u/offsets q))
@@ -394,16 +394,16 @@
              P0 (P 0)
              L1 (u/voronoi P 7 0 U)
              Do (v/sub U P0)
-             trgL (* scale (m/pow (+ L1 m/EPSILON) power))
+             trgL (m/* scale (m/pow (m/+ L1 m/EPSILON) power))
              V (v/rotate Do a)
              L2 (u/voronoi P 7 0 (v/add V P0))
-             L (max L1 L2)
-             R (if (< L 0.5)
-                 (/ trgL L1)
-                 (if (> L 0.8)
-                   (/ trgL L2)
-                   (/ (+ (* (/ trgL L1) (- 0.8 L))
-                         (* (/ trgL L2) (- L 0.5))) 0.3)))]
+             L (m/max L1 L2)
+             R (if (m/< L 0.5)
+                 (m// trgL L1)
+                 (if (m/> L 0.8)
+                   (m// trgL L2)
+                   (m// (m/+ (m/* (m// trgL L1) (m/- 0.8 L))
+                         (m/* (m// trgL L2) (m/- L 0.5))) 0.3)))]
          (v/mult (v/add (v/mult V R) P0) amount))))))
 
 (defn hole2
@@ -418,25 +418,25 @@
   ([^double amount {:keys [^double a ^double b ^double c ^double d inside shape]}]
    (fn [v]
      (let [rhosq (v/magsq v)
-           theta (* d (v/heading v))
-           delta (* c (m/pow (inc (/ theta m/PI)) a))
+           theta (m/* d (v/heading v))
+           delta (m/* c (m/pow (m/inc (m// theta m/PI)) a))
            r (case (unchecked-int shape)
-               1 (m/sqrt (+ rhosq delta))
-               2 (m/sqrt (+ rhosq (m/sin (* b theta)) delta))
-               3 (m/sqrt (+ rhosq (m/sin theta) delta))
-               4 (m/sqrt (- (inc (+ rhosq (m/sin theta))) delta))
-               5 (m/sqrt (+ rhosq (m/abs (m/tan theta)) delta))
-               6 (m/sqrt (+ rhosq (inc (m/sin (* b theta))) delta))
-               7 (m/sqrt (+ rhosq (m/abs (m/sin (* 0.5 b theta))) delta))
-               8 (m/sqrt (+ rhosq (m/sin (* m/PI (m/sin (* b theta)))) delta))
-               9 (m/sqrt (+ rhosq (* 0.5 (+ (m/sin (* b theta))
-                                            (m/sin (+ m/M_PI_2 (* 2.0 b theta))))) delta))
-               (+ delta (m/sqrt rhosq)))
+               1 (m/sqrt (m/+ rhosq delta))
+               2 (m/sqrt (m/+ rhosq (m/sin (m/* b theta)) delta))
+               3 (m/sqrt (m/+ rhosq (m/sin theta) delta))
+               4 (m/sqrt (m/- (m/inc (m/+ rhosq (m/sin theta))) delta))
+               5 (m/sqrt (m/+ rhosq (m/abs (m/tan theta)) delta))
+               6 (m/sqrt (m/+ rhosq (m/inc (m/sin (m/* b theta))) delta))
+               7 (m/sqrt (m/+ rhosq (m/abs (m/sin (m/* 0.5 b theta))) delta))
+               8 (m/sqrt (m/+ rhosq (m/sin (m/* m/PI (m/sin (m/* b theta)))) delta))
+               9 (m/sqrt (m/+ rhosq (m/* 0.5 (m/+ (m/sin (m/* b theta))
+                                            (m/sin (m/+ m/M_PI_2 (m/* 2.0 b theta))))) delta))
+               (m/+ delta (m/sqrt rhosq)))
            r1 (if inside
-                (/ amount r)
-                (* amount r))]
-       (Vec2. (* r1 (m/cos theta))
-              (* r1 (m/sin theta)))))))
+                (m// amount r)
+                (m/* amount r))]
+       (Vec2. (m/* r1 (m/cos theta))
+              (m/* r1 (m/sin theta)))))))
 
 (defn hole
   ([] {:type :regular
@@ -445,11 +445,11 @@
   ([^double amount {:keys [inside ^double a]}]
    (fn [^Vec2 v]
      (let [alpha (v/heading v)
-           delta (m/pow (inc (/ alpha m/PI)) a)
+           delta (m/pow (m/inc (m// alpha m/PI)) a)
            r (if inside
-               (* amount (/ delta (+ (v/magsq v) delta)))
-               (* amount (m/sqrt (+ (v/magsq v) delta))))]
-       (Vec2. (* r (m/cos alpha)) (* r (m/sin alpha)))))))
+               (m/* amount (m// delta (m/+ (v/magsq v) delta)))
+               (m/* amount (m/sqrt (m/+ (v/magsq v) delta))))]
+       (Vec2. (m/* r (m/cos alpha)) (m/* r (m/sin alpha)))))))
 
 (defn holesq
   ([] {:type :regular})
@@ -458,77 +458,77 @@
      (let [^Vec2 v (v/mult v amount)
            fax (m/abs (.x v))
            fay (m/abs (.y v))]
-       (if (> (+ fax fay) 1.0)
+       (if (m/> (m/+ fax fay) 1.0)
          v
-         (if (> fax fay)
-           (let [t (if (neg? (.x v))
-                     (* 0.5 (dec (+ (.x v) fay)))
-                     (* 0.5 (inc (- (.x v) fay))))]
-             (Vec2. (+ (.x v) t) (+ (.y v) (.y v))))
-           (let [t (if (neg? (.y v))
-                     (* 0.5 (dec (+ (.y v) fax)))
-                     (* 0.5 (inc (- (.y v) fax))))]
-             (Vec2. (+ (.x v) (.x v)) (+ (.y v) t)))))))))
+         (if (m/> fax fay)
+           (let [t (if (m/neg? (.x v))
+                     (m/* 0.5 (m/dec (m/+ (.x v) fay)))
+                     (m/* 0.5 (m/inc (m/- (.x v) fay))))]
+             (Vec2. (m/+ (.x v) t) (m/+ (.y v) (.y v))))
+           (let [t (if (m/neg? (.y v))
+                     (m/* 0.5 (m/dec (m/+ (.y v) fax)))
+                     (m/* 0.5 (m/inc (m/- (.y v) fax))))]
+             (Vec2. (m/+ (.x v) (.x v)) (m/+ (.y v) t)))))))))
 
 (defn horseshoe
   "Horseshoe"
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (let [r (+ m/EPSILON (v/mag v))
-           sina (/ (.x v) r)
-           cosa (/ (.y v) r)]
-       (Vec2. (* amount (- (* sina (.x v)) (* cosa (.y v))))
-              (* amount (+ (* cosa (.x v)) (* sina (.y v)))))))))
+     (let [r (m/+ m/EPSILON (v/mag v))
+           sina (m// (.x v) r)
+           cosa (m// (.y v) r)]
+       (Vec2. (m/* amount (m/- (m/* sina (.x v)) (m/* cosa (.y v))))
+              (m/* amount (m/+ (m/* cosa (.x v)) (m/* sina (.y v)))))))))
 
 (defn hyperbolicellipse
   ([] {:type :regular
        :config (fn [] {:a (u/sdrand 0.05 2.0)})})
   ([^double amount {:keys [^double a]}]
    (fn [^Vec2 v]
-     (let [ay (* a (.y v))
+     (let [ay (m/* a (.y v))
            ex+ (m/exp (.x v))
-           ex- (m/exp (- (.x v)))]
-       (Vec2. (* amount 0.5 (- ex+ ex-) (m/cos ay))
-              (* amount 0.5 (+ ex+ ex-) (m/sin ay)))))))
+           ex- (m/exp (m/- (.x v)))]
+       (Vec2. (m/* amount 0.5 (m/- ex+ ex-) (m/cos ay))
+              (m/* amount 0.5 (m/+ ex+ ex-) (m/sin ay)))))))
 
 (defn hyperbolic
   "Hyperbolic"
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (let [r (+ m/EPSILON (v/mag v))
+     (let [r (m/+ m/EPSILON (v/mag v))
            theta (v/heading v)]
-       (Vec2. (* amount (/ (m/sin theta) r))
-              (* amount (m/cos theta) r))))))
+       (Vec2. (m/* amount (m// (m/sin theta) r))
+              (m/* amount (m/cos theta) r))))))
 
 (defn hypershift2
   ([] {:type :random
        :config (fn [] {:p (r/randval (u/sirand 4 15) (u/sdrand 4.0 15.0))
                       :q (r/randval (u/sirand 4 15) (u/sdrand 4.0 15.0))})})
   ([^double amount {:keys [^double p ^double q]}]
-   (let [pq (/ m/PI q)
-         pp (/ m/PI p)
+   (let [pq (m// m/PI q)
+         pp (m// m/PI p)
          spq (m/sin pq)
          spp (m/sin pp)
-         shift (/ (m/sin (- m/HALF_PI pq pp))
-                  (m/sqrt (- 1.0 (* spq spq) (* spp spp))))
-         scale2 (* (/ (m/sqrt (dec (/ (m/sq (m/sin (+ m/HALF_PI pp))) (m/sq spq)))))
-                   (dec (/ (m/sin (+ m/HALF_PI pp)) spq)))
-         scale (- 1.0 (* shift shift))]
+         shift (m// (m/sin (m/- m/HALF_PI pq pp))
+                  (m/sqrt (m/- 1.0 (m/* spq spq) (m/* spp spp))))
+         scale2 (m/* (m// (m/sqrt (m/dec (m// (m/sq (m/sin (m/+ m/HALF_PI pp))) (m/sq spq)))))
+                   (m/dec (m// (m/sin (m/+ m/HALF_PI pp)) spq)))
+         scale (m/- 1.0 (m/* shift shift))]
      (fn [^Vec2 v]
        (let [^Vec2 F (v/mult v scale2)
-             rad (/ (v/magsq F))
-             x (+ (* rad (.x v)) shift)
-             y (* rad (.y v))
-             rad (* amount (/ scale (+ (* x x) (* y y))))
-             angle (* pp (inc (* 2.0 (mod (r/lrand) p))))
-             X (+ (* rad x) shift)
-             Y (* rad y)
+             rad (m// (v/magsq F))
+             x (m/+ (m/* rad (.x v)) shift)
+             y (m/* rad (.y v))
+             rad (m/* amount (m// scale (m/+ (m/* x x) (m/* y y))))
+             angle (m/* pp (m/inc (m/* 2.0 (m/mod (r/lrand) p))))
+             X (m/+ (m/* rad x) shift)
+             Y (m/* rad y)
              cosa (m/cos angle)
              sina (m/sin angle)]
-         (Vec2. (- (* cosa X) (* sina Y))
-                (+ (* sina X) (* cosa Y))))))))
+         (Vec2. (m/- (m/* cosa X) (m/* sina Y))
+                (m/+ (m/* sina X) (m/* cosa Y))))))))
 
 (defn hypershift
   "Hypershift"
@@ -536,62 +536,62 @@
        :config (fn [] {:shift (r/drand -2.0 2.0)
                       :stretch (r/drand -2.0 2.0)})})
   ([^double amount {:keys [^double shift ^double stretch]}]
-   (let [scale (- 1.0 (* shift shift))]
+   (let [scale (m/- 1.0 (m/* shift shift))]
      (fn [^Vec2 v]
-       (let [rad (/ (v/magsq v))
-             x (+ shift (* rad (.x v)))
-             y (* rad (.y v))
-             r (/ (* amount scale) (+ (* x x) (* y y)))]
-         (Vec2. (+ shift (* r x))
-                (* r y stretch)))))))
+       (let [rad (m// (v/magsq v))
+             x (m/+ shift (m/* rad (.x v)))
+             y (m/* rad (.y v))
+             r (m// (m/* amount scale) (m/+ (m/* x x) (m/* y y)))]
+         (Vec2. (m/+ shift (m/* r x))
+                (m/* r y stretch)))))))
 
 (defn hypertile1
   ([] {:type :random
        :config (fn [] {:p (r/randval 0.9 (u/sirand 4 15) (u/sdrand 4.0 15.0))
                       :q (r/randval (u/sirand 4 15) (u/sdrand 4.0 15.0))})})
   ([^double amount {:keys [^double p ^double q]}]
-   (let [pa (/ m/TWO_PI p)
-         pq (/ m/TWO_PI q)
-         r2 (- 1.0 (/ (dec (m/cos pa))
-                      (+ (m/cos pa) (m/cos pq))))
-         r (if (pos? r2) (/ (m/sqrt r2)) 1.0)]
+   (let [pa (m// m/TWO_PI p)
+         pq (m// m/TWO_PI q)
+         r2 (m/- 1.0 (m// (m/dec (m/cos pa))
+                      (m/+ (m/cos pa) (m/cos pq))))
+         r (if (m/pos? r2) (m// (m/sqrt r2)) 1.0)]
      (fn [^Vec2 v]
-       (let [rpa (* pa (r/lrand))
+       (let [rpa (m/* pa (r/lrand))
              sina (m/sin rpa)
              cosa (m/cos rpa)
-             re (* r cosa)
-             im (* r sina)
-             a (+ (.x v) re)
-             b (- (.y v) im)
-             c (inc (- (* re (.x v)) (* im (.y v))))
-             d (+ (* re (.y v)) (* im (.x v)))
-             vr (/ amount (+ (* c c) (* d d)))]
-         (Vec2. (* vr (+ (* a c) (* b d)))
-                (* vr (- (* b c) (* a d)))))))))
+             re (m/* r cosa)
+             im (m/* r sina)
+             a (m/+ (.x v) re)
+             b (m/- (.y v) im)
+             c (m/inc (m/- (m/* re (.x v)) (m/* im (.y v))))
+             d (m/+ (m/* re (.y v)) (m/* im (.x v)))
+             vr (m// amount (m/+ (m/* c c) (m/* d d)))]
+         (Vec2. (m/* vr (m/+ (m/* a c) (m/* b d)))
+                (m/* vr (m/- (m/* b c) (m/* a d)))))))))
 
 (defn hypertile2
   ([] {:type :random
        :config (fn [] {:p (r/randval 0.9 (u/sirand 4 15) (u/sdrand 4.0 15.0))
                       :q (r/randval (u/sirand 4 15) (u/sdrand 4.0 15.0))})})
   ([^double amount {:keys [^double p ^double q]}]
-   (let [pa (/ m/TWO_PI p)
-         pq (/ m/TWO_PI q)
-         r2 (- 1.0 (/ (dec (m/cos pa))
-                      (+ (m/cos pa) (m/cos pq))))
-         r (if (pos? r2) (/ (m/sqrt r2)) 1.0)]
+   (let [pa (m// m/TWO_PI p)
+         pq (m// m/TWO_PI q)
+         r2 (m/- 1.0 (m// (m/dec (m/cos pa))
+                      (m/+ (m/cos pa) (m/cos pq))))
+         r (if (m/pos? r2) (m// (m/sqrt r2)) 1.0)]
      (fn [^Vec2 v]
-       (let [a (+ (.x v) r)
+       (let [a (m/+ (.x v) r)
              b (.y v)
-             c (inc (* r (.x v)))
-             d (* r (.y v))
-             x (+ (* a c) (* b d))
-             y (- (* b c) (* a d))
-             vr (/ amount (+ (* c c) (* d d)))
-             rpa (* pa (r/lrand))
+             c (m/inc (m/* r (.x v)))
+             d (m/* r (.y v))
+             x (m/+ (m/* a c) (m/* b d))
+             y (m/- (m/* b c) (m/* a d))
+             vr (m// amount (m/+ (m/* c c) (m/* d d)))
+             rpa (m/* pa (r/lrand))
              sina (m/sin rpa)
              cosa (m/cos rpa)]
-         (Vec2. (* vr (+ (* x cosa) (* y sina)))
-                (* vr (- (* y cosa) (* x sina)))))))))
+         (Vec2. (m/* vr (m/+ (m/* x cosa) (m/* y sina)))
+                (m/* vr (m/- (m/* y cosa) (m/* x sina)))))))))
 
 (defn hypertile
   ([] {:type :random
@@ -599,21 +599,20 @@
                       :q (r/randval (u/sirand 4 8) (u/sdrand 4.0 8.0))
                       :n (r/randval (r/irand -10 10) (r/drand -10.0 10.0))})})
   ([^double amount {:keys [^double p ^double q ^double n]}]
-   (let [pa (/ m/TWO_PI p)
-         pq (/ m/TWO_PI q)
-         r2 (inc (/ (- 1.0 (m/cos pa))
-                    (+ (m/cos pa) (m/cos pq))))
-         r (if (pos? r2) (/ (m/sqrt r2)) 1.0)
-         a (* n pa)
-         re (* r (m/cos a))
-         im (* r (m/sin a))]
+   (let [pa (m// m/TWO_PI p)
+         pq (m// m/TWO_PI q)
+         r2 (m/inc (m// (m/- 1.0 (m/cos pa))
+                    (m/+ (m/cos pa) (m/cos pq))))
+         r (if (m/pos? r2) (m// (m/sqrt r2)) 1.0)
+         a (m/* n pa)
+         re (m/* r (m/cos a))
+         im (m/* r (m/sin a))]
      (fn [^Vec2 v]
-       (let [a (+ (.x v) re)
-             b (- (.y v) im)
-             c (inc (- (* re (.x v)) (* im (.y v))))
-             d (+ (* re (.y v)) (* im (.x v)))
-             vr (/ amount (+ (* c c) (* d d)))]
-         (Vec2. (* vr (+ (* a c) (* b d)))
-                (* vr (- (* b c) (* a d)))))))))
+       (let [a (m/+ (.x v) re)
+             b (m/- (.y v) im)
+             c (m/inc (m/- (m/* re (.x v)) (m/* im (.y v))))
+             d (m/+ (m/* re (.y v)) (m/* im (.x v)))
+             vr (m// amount (m/+ (m/* c c) (m/* d d)))]
+         (Vec2. (m/* vr (m/+ (m/* a c) (m/* b d)))
+                (m/* vr (m/- (m/* b c) (m/* a d)))))))))
 
-(m/unuse-primitive-operators)

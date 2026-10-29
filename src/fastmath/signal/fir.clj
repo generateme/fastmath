@@ -40,8 +40,8 @@
     (when-not (every? (fn [^double c] (m/< 0 c 1.0)) ncutoff)
       (throw (ex-info "Cutoff values should be 0 < v < fs/2" {:cutoff cutoff})))
     (case kind
-      :lowpass [0.0 (reduce max ncutoff)] ;; ------______
-      :highpass [(reduce min ncutoff) 1.0] ;; ______------
+      :lowpass [0.0 (reduce m/max ncutoff)] ;; ------______
+      :highpass [(reduce m/min ncutoff) 1.0] ;; ______------
       :bandstop (if elen?
                   (concat [0.0] ncutoff [1.0]) ;; --____------
                   (concat [0.0] ncutoff))      ;; --____--____
@@ -202,8 +202,8 @@
      (let [interpolator (if (fn? interpolator)
                           (interpolator freqs gains)
                           (interp/interpolation interpolator freqs gains))
-           nfreqs (max (m/inc taps)
-                       (double (or nfreqs (m/inc (m/exp2 (m/ceil (m/log2 (m/* 1.25 taps))))))))
+           nfreqs (m/long-max (m/long-inc taps)
+                              (or nfreqs (m/inc (m/exp2 (m/ceil (m/log2 (m/* 1.25 taps)))))))
            xs (m/slice-range 0.0 nyquist nfreqs)
            coeffs (t/ifft (map (fn [^double v z]
                                  (cplx/scale z v))

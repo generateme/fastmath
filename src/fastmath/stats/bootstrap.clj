@@ -6,12 +6,12 @@
             [fastmath.protocols :as prot]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defn- bootstrap-antithetic
   [rng model method samples size]
   (->> (repeatedly #(let [s (r/->seq rng size method)]
-                      [s (map (fn [^double v] (- 1.0 v)) s)]))
+                      [s (map (fn [^double v] (m/- 1.0 v)) s)]))
        (mapcat identity)
        (take samples)
        (map (fn [xs] (map (partial r/icdf model) xs)))))
@@ -26,7 +26,7 @@
                           :kde kernel
                           :bandwidth bandwidth
                           :rng rng})
-    :gaussian (let [sd (m/sqrt (/ (stats/variance data) (double (or size (count data)))))
+    :gaussian (let [sd (m/sqrt (m// (stats/variance data) (double (or size (count data)))))
                     d (r/distribution distribution {:data data :rng rng})]
                 (reify
                   prot/DistributionIdProto
@@ -75,7 +75,7 @@
         m (stats/mean ats)
         variance (stats/variance ats)
         stddev (m/sqrt variance)
-        bias (- m t0)]
+        bias (m/- m t0)]
     (assoc input 
            :statistic statistic
            :t0 t0
@@ -83,7 +83,7 @@
            :bias bias
            :mean m
            :median (stats/median ats)
-           :sem (/ stddev (m/sqrt (count data)))
+           :sem (m// stddev (m/sqrt (count data)))
            :stddev stddev
            :variance variance)))
 
@@ -288,13 +288,13 @@
   [[ci-basic]], [[ci-percentile]], [[ci-bc]], [[ci-bca]], [[ci-studentized]], [[ci-t]]."
   ([boot-data] (ci-normal boot-data 0.05))
   ([{:keys [^double t0 ts stddev bias]} ^double alpha]
-   (let [a (- 1.0 (/ alpha 2.0))
+   (let [a (m/- 1.0 (m// alpha 2.0))
          ats (delay (m/seq->double-array ts))
          ^double stddev (or stddev (stats/stddev @ats))
-         ^double bias (or bias (- (stats/mean @ats) t0))
-         tb (- t0 bias)
-         merr (* stddev ^double (r/icdf r/default-normal a))]
-     [(- tb merr) (+ tb merr) t0])))
+         ^double bias (or bias (m/- (stats/mean @ats) t0))
+         tb (m/- t0 bias)
+         merr (m/* stddev ^double (r/icdf r/default-normal a))]
+     [(m/- tb merr) (m/+ tb merr) t0])))
 
 (defn ci-basic
   "Calculates the Basic (or Percentile-t) bootstrap confidence interval.
@@ -333,10 +333,10 @@
   ([boot-data] (ci-basic boot-data 0.05))
   ([boot-data ^double alpha] (ci-basic boot-data alpha :legacy))
   ([{:keys [^double t0 ts]} ^double alpha estimation-strategy]
-   (let [a (/ alpha 2.0)
-         t2 (* 2.0 t0)
-         [^double q1 ^double q2] (stats/quantiles ts [(- 1.0 a) a] estimation-strategy)]
-     [(- t2 q1) (- t2 q2) t0])))
+   (let [a (m// alpha 2.0)
+         t2 (m/* 2.0 t0)
+         [^double q1 ^double q2] (stats/quantiles ts [(m/- 1.0 a) a] estimation-strategy)]
+     [(m/- t2 q1) (m/- t2 q2) t0])))
 
 (defn ci-percentile
   "Calculates the Percentile bootstrap confidence interval.
@@ -373,19 +373,19 @@
   ([boot-data] (ci-percentile boot-data 0.05))
   ([boot-data ^double alpha] (ci-percentile boot-data alpha :legacy))
   ([{:keys [^double t0 ts]} ^double alpha estimation-strategy]
-   (let [a (/ alpha 2.0)]
-     (conj (stats/quantiles ts [a (- 1.0 a)] estimation-strategy) t0))))
+   (let [a (m// alpha 2.0)]
+     (conj (stats/quantiles ts [a (m/- 1.0 a)] estimation-strategy) t0))))
 
 (defn- cdf-accelerated-quantile
   ^double [^double z0 ^double z ^double a]
-  (let [num (+ z0 z)
-        denom (if (zero? a) 1.0 (- 1.0 (* a num)))]
-    (->> (+ z0 (/ num denom))
+  (let [num (m/+ z0 z)
+        denom (if (m/zero? a) 1.0 (m/- 1.0 (m/* a num)))]
+    (->> (m/+ z0 (m// num denom))
          (r/cdf r/default-normal))))
 
 (defn- empirical-cdf
   ^double [vs ^double value]
-  (/ (double (count (filter (fn [^double v] (< v value)) vs))) (count vs)))
+  (m// (double (count (filter (fn [^double v] (m/< v value)) vs))) (count vs)))
 
 (defn- bca-common
   ([ats q1 q2 t0 estimation-strategy]
@@ -442,10 +442,10 @@
   ([boot-data ^double alpha] (ci-bc boot-data alpha :legacy))
   ([{:keys [^double t0 ts]} ^double alpha estimation-strategy]
    (let [ats (m/seq->double-array ts)
-         a (/ alpha 2.0)]
-     (bca-common ats a (- 1.0 a) t0 estimation-strategy))))
+         a (m// alpha 2.0)]
+     (bca-common ats a (m/- 1.0 a) t0 estimation-strategy))))
 
-(defn- acceleration [ts] (/ (stats/skewness ts :skew) -6.0))
+(defn- acceleration [ts] (m// (stats/skewness ts :skew) -6.0))
 
 (defn- multi-dim-data?
   "True if `data` looks like the sequence-of-per-dimension-sequences shape produced
@@ -513,13 +513,13 @@
   ([boot-data ^double alpha] (ci-bca boot-data alpha :legacy))
   ([{:keys [^double t0 ts data statistic]} ^double alpha estimation-strategy]
    (let [ats (m/seq->double-array ts)
-         a (/ alpha 2.0)
+         a (m// alpha 2.0)
          acc (if (or (not (and data statistic)) (multi-dim-data? data))
                (acceleration ats)
                (acceleration (->> data
                                   (jackknife)
                                   (map statistic))))]
-     (bca-common ats a (- 1.0 a) t0 acc estimation-strategy))))
+     (bca-common ats a (m/- 1.0 a) t0 acc estimation-strategy))))
 
 (defn ci-studentized
   "Calculates the Studentized (or Bootstrap-t) confidence interval.
@@ -560,13 +560,13 @@
   ([boot-data ^double alpha] (ci-studentized boot-data alpha :legacy))
   ([{:keys [^double t0 ts data samples]} ^double alpha estimation-strategy]
    (assert (and (seq data) (seq samples)) "Bootstrap samples can't be empty.")
-   (let [a (/ alpha 2.0)
+   (let [a (m// alpha 2.0)
          z (map (fn [^double t s]
-                  (/ (- t t0) (stats/stddev s))) ts samples)
+                  (m// (m/- t t0) (stats/stddev s))) ts samples)
          stddev (stats/stddev data)
-         [^double q1 ^double q2] (stats/quantiles z [(- 1.0 a) a] estimation-strategy)]
-     [(- t0 (* stddev q1))
-      (- t0 (* stddev q2))
+         [^double q1 ^double q2] (stats/quantiles z [(m/- 1.0 a) a] estimation-strategy)]
+     [(m/- t0 (m/* stddev q1))
+      (m/- t0 (m/* stddev q2))
       t0])))
 
 (defn ci-t
@@ -594,9 +594,8 @@
   [[ci-normal]], [[ci-basic]], [[ci-percentile]], [[ci-bc]], [[ci-bca]], [[ci-studentized]]."
   ([boot-data] (ci-t boot-data 0.05))
   ([{:keys [^double t0 ts stddev]} ^double alpha]
-   (let [a (/ alpha 2.0)
+   (let [a (m// alpha 2.0)
          ^double stddev (or stddev (stats/stddev ts))
-         t (* stddev ^double (r/icdf (r/distribution :t {:degrees-of-freedom (dec (count ts))}) (- 1.0 a)))]
-     [(- t0 t) (+ t0 t) t0])))
+         t (m/* stddev ^double (r/icdf (r/distribution :t {:degrees-of-freedom (m/dec (count ts))}) (m/- 1.0 a)))]
+     [(m/- t0 t) (m/+ t0 t) t0])))
 
-(m/unuse-primitive-operators)

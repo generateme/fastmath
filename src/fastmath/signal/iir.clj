@@ -138,9 +138,9 @@
    (when (empty? seq-of-coeffs)
      (throw (ex-info "At least one section is required." {})))
    (doseq [row seq-of-coeffs]
-     (when-not (and (sequential? row) (== 6 (count row)) (every? number? row))
+     (when-not (and (sequential? row) (m/== 6 (count row)) (every? number? row))
        (throw (ex-info "A section should be 6 numbers [b0 b1 b2 a0 a1 a2]." {:section row})))
-     (when (zero? (double (nth row 3)))
+     (when (m/zero? (double (nth row 3)))
        (throw (ex-info "Section coefficient a0 should not be 0." {:section row}))))
    (doto (SOSCascade.) (.setup (m/seq->double-double-array seq-of-coeffs) (int (direct-form-constant df))))))
 

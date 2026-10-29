@@ -173,6 +173,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.random` discrete distributions and `fastmath.stats/wquantile` skip zero probabilities and weights in their step interpolators (they used to fail with duplicated nodes)
 * [breaking] `fastmath.solver/find-root`: the tolerance is `absolute + relative * |root|` with the defaults 1e-300 and four times the machine epsilon (was 1e-6 absolute), `:max-iters` is the limit of function evaluations (default 1200), an unknown `:solver` and invalid options throw `ex-info`, reversed bounds are swapped, failures are `ex-info` with the data `:status` (`:no-bracket`, `:max-evals`, `:nan`, `:diverged`, `:invalid-result`), the option `:info?` returns `{:root :evaluations :status}`; `:initial-value` is used by `:brent`, `:muller`, `:newton` and `:halley`
 * [breaking] `fastmath.solver/quadratic` and `cubic` return the real roots in ascending order padded with `NaN` (no `nil`, no exception), `cubic` is accurate for roots of very different sizes
+* Removed `use-primitive-operators` from the implementation namespaces; `fastmath.core` still provides it.
 
 ## [3.0.0 alpha9]
 

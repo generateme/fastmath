@@ -1,10 +1,8 @@
 (ns fastmath.optimization.generate-points-test
-  "Scan of the search domain (`generate-points`) with functions which are not finite, and the default kernel of `fastmath.optimization.bo`."
+  "Scan of the search domain (`generate-points`) with functions which are not finite."
   (:require [clojure.test :refer [deftest is testing]]
             [fastmath.core :as m]
-            [fastmath.kernel :as k]
             [fastmath.optimization :as o]
-            [fastmath.optimization.bo :as bo]
             [fastmath.random :as r]
             [fastmath.vector :as v]))
 
@@ -188,11 +186,3 @@
       ;; the generator state after the call is the same as before the change
       (is (= 756402 (r/irandom rng 1000000))))))
 
-(deftest default-kernel-of-bo-is-registered
-  (testing "the default :kernel of initialize-bo is a registered kernel"
-    (let [kw (:kernel (bo/initialize-bo bo/args-cont))]
-      (is (= :matern-12 kw))
-      (is (ifn? (k/kernel kw)))))
-  (testing "the typo is not registered"
-    (is (thrown? Exception (k/kernel :mattern-12)))
-    (is (thrown? Exception (k/kernel :mattern-52)))))

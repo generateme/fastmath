@@ -164,7 +164,7 @@
                     (if (m/<= j last-j)
                       (let [j2 (m/sq j)]
                         (m// j2 (m/dec (m/* 4.0 j2)) ))
-                      0.0)) (range 1 (inc (m/* 2 n))))]
+                      0.0)) (range 1 (m/inc (m/* 2 n))))]
       (kronrodjacobi b n))))
 
 (def ^{:arglists '([n])
@@ -195,7 +195,7 @@
         lastxw (m/long-dec (count w))
         lastxw- (m/long-dec lastxw)
         lastgw (m/long-dec (count gw))
-        n1 (m/long-sub 1 (bit-and (m/long-inc lastxw) 1))
+        n1 (m/long-sub 1 (m/bit-and (m/long-inc lastxw) 1))
         a (.x ab)
         ^double f0 (f (m/+ a s))
         Igk (if (m/zero? n1)

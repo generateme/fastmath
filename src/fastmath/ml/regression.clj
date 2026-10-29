@@ -426,7 +426,7 @@
         raw (positive-only raw weights)
         skew (stats/skewness weighted :g1)
         kurt (stats/kurtosis weighted :kurt)
-        normality (stats/normality-test weighted skew (- kurt 3.0) nil)]
+        normality (stats/normality-test weighted skew (m/- kurt 3.0) nil)]
     {:skewness skew
      :kurtosis kurt
      :durbin-watson {:raw (stats/durbin-watson raw)
@@ -521,7 +521,7 @@
                                    :denominator-degrees-of-freedom n-p})
             dffits-v (m/* 3.0 (m/sqrt (m// (double p) n-p)))
             covratio-v (m// (m/* 3.0 p) n-p)
-            hat-v (m// (* 3.0 p) n)
+            hat-v (m// (m/* 3.0 p) n)
             res {:cooks-distance (influential-rows (:cooks-distance influence)
                                                    (fn [^double x] (m/> (r/cdf pf x) 0.5)))
                  :dffits (influential-rows (:dffits influence) (fn [^double x] (m/> (m/abs x) dffits-v)))
@@ -796,8 +796,8 @@
                                       (m/* 0.5 (v/sum (v/log (filter m/pos? weights)))))
                   mlogsigma (m/* nobs (m/log (m// rss nobs)))]
               {:log-likelihood log-likelihood
-               :aic (m/+ (m/* -2.0 log-likelihood) (* 2.0 (m/inc ed)))
-               :bic (m/+ (m/* -2.0 log-likelihood) (* logm (inc ed)))
+               :aic (m/+ (m/* -2.0 log-likelihood) (m/* 2.0 (m/inc ed)))
+               :bic (m/+ (m/* -2.0 log-likelihood) (m/* logm (m/inc ed)))
                :aic-rss (m/+ mlogsigma (m/* 2.0 ed))
                :bic-rss (m/+ mlogsigma (m/* logm ed))})
 
@@ -1225,8 +1225,8 @@
   [residuals hat ^double dp]
   (map (fn [^double r ^double h]
          (if (m/< h 1.0)
-           (* (m/sq (m// r (m/- 1.0 h)))
-              (m// h dp))
+           (m/* (m/sq (m// r (m/- 1.0 h)))
+                (m// h dp))
            ##NaN)) residuals hat))
 
 (defn- glm-standardize-residuals
@@ -1887,7 +1887,7 @@
          n (count estimates)]
      (doseq [[option ^long id] [[:intercept-id intercept-id] [:coeff-id coeff-id]]]
        (when (and (m/> n 1) (not (and (m/>= id 0) (m/< id n))))
-         (invalid-option option id (str "an index of a coefficient, 0.." (dec n)))))
+         (invalid-option option id (str "an index of a coefficient, 0.." (m/dec n)))))
      (if (m/> n 1)
        (let [e (double (link-fun p))
              submatrix-idxs (int-array [intercept-id coeff-id])
@@ -1911,11 +1911,11 @@
   "Summary statistics used for printing residuals with model"
   [residuals]
   [(zipmap [:min :q1 :median :q3 :max]
-           (map #(m/approx % 6) [(apply min residuals)
+           (map #(m/approx % 6) [(apply m/min residuals)
                                  (stats/quantile residuals 0.25)
                                  (stats/median residuals)
                                  (stats/quantile residuals 0.75)
-                                 (apply max residuals)]))])
+                                 (apply m/max residuals)]))])
 
 (defn- coefficients-table
   [nm coefficient]
@@ -2005,7 +2005,7 @@
     (when-not (m/>= different 2)
       (invalid-option :xs xs "at least two different values"))
     (when-not (and (m/>= degree 1) (m/< degree different))
-      (invalid-option :degree degree (str "an integer between 1 and " (dec different) " (the number of different values of xs minus one)"))))
+      (invalid-option :degree degree (str "an integer between 1 and " (m/dec different) " (the number of different values of xs minus one)"))))
   (let [degree+ (m/inc degree)
         r (range degree+)
         m (stats/mean xs)
@@ -2153,7 +2153,7 @@
                         {:option :xs :value (count xs) :expected n})))
       (when-let [[x] (first-invalid finite-number? xs)]
         (invalid-option :xs x "finite numbers"))
-      (when-not (every? true? (map <= (map double xs) (map double (rest xs))))
+      (when-not (every? true? (map m/<= xs (rest xs)))
         (invalid-option :xs "unsorted" "values in the ascending order")))))
 
 (defn pava

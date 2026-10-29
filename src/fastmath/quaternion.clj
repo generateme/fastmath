@@ -26,6 +26,7 @@
            [fastmath.matrix Mat3x3]))
 
 (set! *warn-on-reflection* true)
+
 (set! *unchecked-math* :warn-on-boxed)
 
 (def ^{:doc "The zero quaternion, 0+0i+0j+0k."} ZERO (v/vec4))
@@ -225,9 +226,9 @@
   "Conjugate of the quaternion, `a-bi-cj-dk`."
   ^Vec4 [^Vec4 quaternion]
   (Vec4. (.x quaternion)
-         (- (.y quaternion))
-         (- (.z quaternion))
-         (- (.w quaternion))))
+         (m/- (.y quaternion))
+         (m/- (.z quaternion))
+         (m/- (.w quaternion))))
 
 (defn reciprocal
   "Reciprocal (multiplicative inverse) of the quaternion, `conjugate(q) / |q|^2`.
@@ -299,11 +300,11 @@
         b (.y quaternion)
         c (.z quaternion)
         d (.w quaternion)
-        aa (* 2.0 a)]
-    (Vec4. (m/- (* a a) (* b b) (* c c) (* d d))
-           (* aa b)
-           (* aa c)
-           (* aa d))))
+        aa (m/* 2.0 a)]
+    (Vec4. (m/- (m/* a a) (m/* b b) (m/* c c) (m/* d d))
+           (m/* aa b)
+           (m/* aa c)
+           (m/* aa d))))
 
 (defn qsgn
   "Computes the signum of a quaternion.
@@ -324,8 +325,8 @@
 (defn- vector-part
   "Component of the vector part for the direction `b/absim` and the imaginary part `imz` of the complex result."
   ^double [^double b ^double absim ^double imz]
-  (let [u (/ b absim)]
-    (if (m/zero? u) u (* u imz))))
+  (let [u (m// b absim)]
+    (if (m/zero? u) u (m/* u imz))))
 
 (defmacro ^:private gen-from-complex
   [sym desc]
@@ -707,7 +708,7 @@
               [t (Vec4. (m/- (.a21 m) (.a12 m)) t (m/+ (.a10 m) (.a01 m)) (m/+ (.a20 m) (.a02 m)))])
             (let [t (m/inc (m/- (.a11 m) (.a00 m) (.a22 m)))]
               [t (Vec4. (m/- (.a02 m) (.a20 m)) (m/+ (.a10 m) (.a01 m)) t (m/+ (.a21 m) (.a12 m)))]))
-          (if (m/< (.a00 m) (- (.a11 m)))
+          (if (m/< (.a00 m) (m/- (.a11 m)))
             (let [t (m/inc (m/- (.a22 m) (.a00 m) (.a11 m)))]
               [t (Vec4. (m/- (.a10 m) (.a01 m)) (m/+ (.a02 m) (.a20 m)) (m/+ (.a21 m) (.a12 m)) t)])
             (let [t (m/inc (m/+ (.a00 m) (.a11 m) (.a22 m)))]

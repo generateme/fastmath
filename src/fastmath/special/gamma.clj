@@ -3,8 +3,8 @@
   (:require [fastmath.core :as m]
             [fastmath.polynomials :as poly])
   (:import [fastmath.java Array]
-           [fastmath.vector Vec2])
-  (:import [org.apache.commons.math3.special Gamma]))
+           [fastmath.vector Vec2]
+           [org.apache.commons.math3.special Gamma]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)

@@ -894,7 +894,7 @@
         poly (if (m/< v (m/+ 5.0 (m/* 0.998 x) (m/* 10.542 (m/cbrt (m/- x)))))
                (spoly/uk-poly-10 p2-)
                (spoly/uk-poly-20 p2-))
-        uk-yn (second (spoly/split-poly-c (v/div (Vec2. 0.0 (- p)) v) poly))]
+        uk-yn (second (spoly/split-poly-c (v/div (Vec2. 0.0 (m/- p)) v) poly))]
     (cplx/mult coef uk-yn)))
 
 (defn- bessel-j-power-series
@@ -1089,14 +1089,14 @@
     (m/pos-inf? x) 0.0
     (or (m/neg? x) (m/invalid-double? x)) ##NaN
     (m/< x 5.0) (let [z (m/* x x)
-                      w (* x (m// (poly/mevalpoly z -7.78877196265950026825E17, 2.02439475713594898196E17,
-                                                  -8.12770255501325109621E15, 1.14509511541823727583E14,
-                                                  -6.47355876379160291031E11, 1.26320474790178026440E9)
-                                  (poly/mevalpoly z 3.97270608116560655612E18, 6.87141087355300489866E16,
-                                                  6.20557727146953693363E14, 3.88231277496238566008E12,
-                                                  1.87601316108706159478E10, 7.34811944459721705660E7,
-                                                  2.35564092943068577943E5, 5.94301592346128195359E2,
-                                                  1.00000000000000000000E0)))]
+                      w (m/* x (m// (poly/mevalpoly z -7.78877196265950026825E17, 2.02439475713594898196E17,
+                                                    -8.12770255501325109621E15, 1.14509511541823727583E14,
+                                                    -6.47355876379160291031E11, 1.26320474790178026440E9)
+                                    (poly/mevalpoly z 3.97270608116560655612E18, 6.87141087355300489866E16,
+                                                    6.20557727146953693363E14, 3.88231277496238566008E12,
+                                                    1.87601316108706159478E10, 7.34811944459721705660E7,
+                                                    2.35564092943068577943E5, 5.94301592346128195359E2,
+                                                    1.00000000000000000000E0)))]
                   (m/+ w (m/* m/M_2_PI (m/- (m/* (bessel-J1 x) (m/log x)) (m// x)))))
     (m/< x 25.0) (let [w (m// 5.0 x)
                        z (m/* w w)
@@ -2233,7 +2233,7 @@
                                                                      0.37388510548029219241E11 0.26028585666152144496E13
                                                                      0.85134283716950697226E14 0.11304079361627952930E16
                                                                      0.42519841479489798424E16)))))))
-        :else (if (neg? x) m/-HALF_PI m/HALF_PI)))))
+        :else (if (m/neg? x) m/-HALF_PI m/HALF_PI)))))
 
 (defn si
   "Sine integral [[Si]] shifted down by `pi/2`, i.e. `si(x) = Si(x) - pi/2`.
@@ -2292,7 +2292,7 @@
   See also [[Cin]] (the closely related entire cosine integral, defined for
   all real `x`), [[Si]], [[si]] (the sine integral)."
   ^double [^double x]
-  (assert (not (neg? x)) "x must be non-negative")
+  (assert (not (m/neg? x)) "x must be non-negative")
   (if (m/nan? x)
     ##NaN
     (let [t (m/* x x)]
@@ -3517,15 +3517,15 @@
   [ps qs]
   (loop [ps (vec ps) qs (vec qs)]
     (let [match (first (for [i (range (count ps))
-                              j (range (count qs))
-                              :let [a (double (ps i))]
-                              :when (and (== a (double (qs j)))
-                                         (not (nonpos-int? a)))]
-                          [i j]))]
+                             j (range (count qs))
+                             :let [a (double (ps i))]
+                             :when (and (m/== a (double (qs j)))
+                                        (not (nonpos-int? a)))]
+                         [i j]))]
       (if match
         (let [[^long i ^long j] match]
-          (recur (into (subvec ps 0 i) (subvec ps (inc i)))
-                 (into (subvec qs 0 j) (subvec qs (inc j)))))
+          (recur (into (subvec ps 0 i) (subvec ps (m/long-inc i)))
+                 (into (subvec qs 0 j) (subvec qs (m/long-inc j)))))
         [ps qs]))))
 
 (defn- pfq-terminating-n
@@ -3534,7 +3534,7 @@
   term index `n`. Returns `nil` if no numerator parameter terminates it."
   [ps]
   (let [ns (keep (fn [^double a] (when (nonpos-int? a) (long (m/- a)))) ps)]
-    (when (seq ns) (long (apply min ns)))))
+    (when (seq ns) (long (apply m/min ns)))))
 
 (defn- pfq-pole-m
   "Minimum `m` such that some denominator parameter equals `-m` (a
@@ -3543,7 +3543,7 @@
   denominator parameter is a non-positive integer."
   [qs]
   (let [ms (keep (fn [^double b] (when (nonpos-int? b) (long (m/- b)))) qs)]
-    (when (seq ms) (long (apply min ms)))))
+    (when (seq ms) (long (apply m/min ms)))))
 
 (defn- pfq-integer-coincidence-pair
   "Finds a numerator/denominator index pair `[i j]` where `ps[i] = qs[j]`
@@ -3554,7 +3554,7 @@
   (first (for [i (range (count ps))
                j (range (count qs))
                :let [a (double (nth ps i))]
-               :when (and (== a (double (nth qs j))) (nonpos-int? a))]
+               :when (and (m/== a (double (nth qs j))) (nonpos-int? a))]
            [i j])))
 
 (defn- pfq-truncated-sum
@@ -3630,8 +3630,8 @@
        ;; (its ratio recursion hits the same 0/0 exactly at k=n)
        (and m n (m/== (long m) (long n)))
        (let [[^long i ^long j] (pfq-integer-coincidence-pair ps qs)]
-         (pfq-truncated-sum (into (subvec ps 0 i) (subvec ps (inc i)))
-                            (into (subvec qs 0 j) (subvec qs (inc j)))
+         (pfq-truncated-sum (into (subvec ps 0 i) (subvec ps (m/long-inc i)))
+                            (into (subvec qs 0 j) (subvec qs (m/long-inc j)))
                             x n))
 
        ;; a denominator parameter is a genuine, unavoidable pole only if
@@ -3768,8 +3768,8 @@
                          [i j]))]
       (if match
         (let [[^long i ^long j] match]
-          (recur (into (subvec ps 0 i) (subvec ps (inc i)))
-                 (into (subvec qs 0 j) (subvec qs (inc j)))))
+          (recur (into (subvec ps 0 i) (subvec ps (m/long-inc i)))
+                 (into (subvec qs 0 j) (subvec qs (m/long-inc j)))))
         [ps qs]))))
 
 (defn- pfq-terminating-n-complex
@@ -3857,8 +3857,8 @@
       ;; docstring for the real-valued derivation this mirrors
       (and m n (m/== (long m) (long n)))
       (let [[^long i ^long j] (pfq-integer-coincidence-pair-complex ps qs)]
-        (pfq-complex-data-true (pfq-truncated-sum-complex (into (subvec ps 0 i) (subvec ps (inc i)))
-                                                          (into (subvec qs 0 j) (subvec qs (inc j)))
+        (pfq-complex-data-true (pfq-truncated-sum-complex (into (subvec ps 0 i) (subvec ps (m/long-inc i)))
+                                                          (into (subvec qs 0 j) (subvec qs (m/long-inc j)))
                                                           z n)))
 
       ;; a denominator parameter is a genuine, unavoidable pole only if

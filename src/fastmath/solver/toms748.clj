@@ -10,7 +10,7 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(def ^{:private true :const true :tag 'double} EPS2 (* 2.0 m/MACHINE-EPSILON2))
+(def ^{:private true :const true :tag 'double} EPS2 (m/* 2.0 m/MACHINE-EPSILON2))
 (def ^{:private true :const true :tag 'double} MIN-DIFF 1.0E-306)
 
 ;; the state is a double array: a, b, fa, fb, d, fd, e, fe; (a, b) is the bracket, d the point dropped last and e the one dropped before

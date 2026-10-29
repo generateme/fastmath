@@ -7,14 +7,14 @@
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defn acosech
   "Acosech"
   ([] {:type :random})
   ([^double amount _]
    (fn [^Vec2 v]
-     (let [z (-> v c/acsch c/flip (c/scale (* amount m/M_2_PI)))]
+     (let [z (-> v c/acsch c/flip (c/scale (m/* amount m/M_2_PI)))]
        (r/randval z (c/neg z))))))
 
 (defn acosh
@@ -22,7 +22,7 @@
   ([] {:type :random})
   ([^double amount _]
    (fn [^Vec2 v]
-     (let [z (-> v c/acosh (c/scale (* amount m/M_2_PI)))]
+     (let [z (-> v c/acosh (c/scale (m/* amount m/M_2_PI)))]
        (r/randval z (c/neg z))))))
 
 (defn acoth
@@ -30,7 +30,7 @@
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (-> v c/acoth c/flip (c/scale (* amount m/M_2_PI))))))
+     (-> v c/acoth c/flip (c/scale (m/* amount m/M_2_PI))))))
 
 (defn anamorphcyl
   "AnamorphCyl"
@@ -40,14 +40,14 @@
                       :k (u/sdrand 0.01 2.0)})})
   ([^double amount {:keys [^double a ^double b ^double k]}]
    (fn [^Vec2 v]
-     (let [by (* a amount (+ b (.y v)))
-           kx (* k (.x v))]
-       (Vec2. (* by (m/cos kx))
-              (* by (m/sin kx)))))))
+     (let [by (m/* a amount (m/+ b (.y v)))
+           kx (m/* k (.x v))]
+       (Vec2. (m/* by (m/cos kx))
+              (m/* by (m/sin kx)))))))
 
-(def ^{:private true :const true :tag 'double} apocarpet_r (/ (inc m/SQRT2)))
-(def ^:private apocarpet+r-r (Vec2. apocarpet_r (- apocarpet_r)))
-(def ^:private apocarpet-r+r (Vec2. (- apocarpet_r) apocarpet_r))
+(def ^{:private true :const true :tag 'double} apocarpet_r (m// (m/inc m/SQRT2)))
+(def ^:private apocarpet+r-r (Vec2. apocarpet_r (m/- apocarpet_r)))
+(def ^:private apocarpet-r+r (Vec2. (m/- apocarpet_r) apocarpet_r))
 
 (defn apocarpet
   "Apolonian carpet"
@@ -56,18 +56,18 @@
    (fn [^Vec2 v]
      (let [denom (v/magsq v)]
        (-> (case (unchecked-int (r/irand 6))
-             0 (v/div (Vec2. (* 2.0 (.x v) (.y v))
-                             (- (m/sq (.x v)) (m/sq (.y v)))) denom)
-             1 (v/shift (v/mult v apocarpet_r) (- apocarpet_r))
+             0 (v/div (Vec2. (m/* 2.0 (.x v) (.y v))
+                             (m/- (m/sq (.x v)) (m/sq (.y v)))) denom)
+             1 (v/shift (v/mult v apocarpet_r) (m/- apocarpet_r))
              2 (v/shift (v/mult v apocarpet_r) apocarpet_r)
              3 (v/add (v/mult v apocarpet_r) apocarpet+r-r)
              4 (v/add (v/mult v apocarpet_r) apocarpet-r+r)
-             5 (v/div (Vec2. (- (m/sq (.x v)) (m/sq (.y v)))
-                             (* 2.0 (.x v) (.y v))) denom))
+             5 (v/div (Vec2. (m/- (m/sq (.x v)) (m/sq (.y v)))
+                             (m/* 2.0 (.x v) (.y v))) denom))
            (v/mult amount))))))
 
-(def ^{:private true :const true :tag 'double} apollony-inc-sqrt3 (inc m/SQRT3))
-(def ^{:private true :const true :tag 'double} apollony-inc-sqrt3-div (/ apollony-inc-sqrt3 (inc apollony-inc-sqrt3)))
+(def ^{:private true :const true :tag 'double} apollony-inc-sqrt3 (m/inc m/SQRT3))
+(def ^{:private true :const true :tag 'double} apollony-inc-sqrt3-div (m// apollony-inc-sqrt3 (m/inc apollony-inc-sqrt3)))
 
 (defn apollony
   "Apollony"
@@ -75,22 +75,22 @@
   ([^double amount _]
    (fn [^Vec2 v]
      (let [sqy (m/sq (.y v))
-           sx (- apollony-inc-sqrt3 (.x v))
-           p (+ (m/sq sx) sqy)
-           a (- (/ (* 3.0 sx) p)
+           sx (m/- apollony-inc-sqrt3 (.x v))
+           p (m/+ (m/sq sx) sqy)
+           a (m/- (m// (m/* 3.0 sx) p)
                 apollony-inc-sqrt3-div)
-           b (/ (* 3.0 (.y v)) p)
-           r (mod (long (r/drand 4.0)) 3)]
-       (-> (if (zero? r)
+           b (m// (m/* 3.0 (.y v)) p)
+           r (m/mod (long (r/drand 4.0)) 3)]
+       (-> (if (m/zero? r)
              (Vec2. a b)
-             (let [denom (+ (* a a) (* b b))
-                   f1x (/ a denom)
-                   f1y (/ (- b) denom)]
+             (let [denom (m/+ (m/* a a) (m/* b b))
+                   f1x (m// a denom)
+                   f1y (m// (m/- b) denom)]
                (-> (if (m/one? r)
-                     (Vec2. (- (- f1x ) (* m/SQRT3 f1y))
-                            (- (* m/SQRT3 f1x) f1y))
-                     (Vec2. (+ (- f1x ) (* m/SQRT3 f1y))
-                            (- (- (* m/SQRT3 f1x)) f1y)))
+                     (Vec2. (m/- (m/- f1x ) (m/* m/SQRT3 f1y))
+                            (m/- (m/* m/SQRT3 f1x) f1y))
+                     (Vec2. (m/+ (m/- f1x ) (m/* m/SQRT3 f1y))
+                            (m/- (m/- (m/* m/SQRT3 f1x)) f1y)))
                    (v/mult 0.5))))
            (v/mult amount))))))
 
@@ -102,34 +102,34 @@
                         :thickness (r/drand 0.01 0.99)
                         :radius radius
                         :legacy? (r/brand)
-                        :tiles-per-row (r/irand 4 (/ 3.0 radius))
-                        :tiles-per-col (r/irand 4 (/ 3.0 radius))}))})
+                        :tiles-per-row (r/irand 4 (m// 3.0 radius))
+                        :tiles-per-col (r/irand 4 (m// 3.0 radius))}))})
   ([^double amount {:keys [seed ^double thickness ^double radius
                            ^long tiles-per-row ^long tiles-per-col legacy?]}]
    (let [rng (r/rng :well19937c seed)
-         tilesize (* 2.0 radius)
-         number-of-tiles (* tiles-per-row tiles-per-col)
-         tilt-array (vec (repeatedly number-of-tiles #(m/radians (* 90 (r/lrandom rng 4)))))
-         r+t (+ radius thickness)
-         hthickness (* 0.5 thickness)
-         gamma (/ (* thickness (+ tilesize thickness)) r+t)
-         shift (Vec2. (* 0.5 tilesize tiles-per-row)
-                      (* 0.5 tilesize tiles-per-col))
-         rfun (if legacy? #(- r+t (r/drand gamma)) #(- radius (r/drand (- hthickness) hthickness)))]
+         tilesize (m/* 2.0 radius)
+         number-of-tiles (m/long-mult tiles-per-row tiles-per-col)
+         tilt-array (vec (repeatedly number-of-tiles #(m/radians (m/* 90 (r/lrandom rng 4)))))
+         r+t (m/+ radius thickness)
+         hthickness (m/* 0.5 thickness)
+         gamma (m// (m/* thickness (m/+ tilesize thickness)) r+t)
+         shift (Vec2. (m/* 0.5 tilesize tiles-per-row)
+                      (m/* 0.5 tilesize tiles-per-col))
+         rfun (if legacy? #(m/- r+t (r/drand gamma)) #(m/- radius (r/drand (m/- hthickness) hthickness)))]
      (fn [_]
        (let [side (r/lrand 2)
-             phi1 (if (zero? side) 0.0 m/PI)
+             phi1 (if (m/zero? side) 0.0 m/PI)
              i (r/lrandom rng tiles-per-row)
              j (r/lrandom rng tiles-per-col)
-             ^double tilt (tilt-array (+ i (* j tiles-per-row)))
+             ^double tilt (tilt-array (m/+ i (m/* j tiles-per-row)))
              ^double r (rfun)
-             phi (+ phi1 (r/drand m/HALF_PI))
-             p (v/rotate (Vec2. (* r (m/cos phi)) (* r (m/sin phi))) tilt)
-             radio (if (zero? side) radius (- radius))
+             phi (m/+ phi1 (r/drand m/HALF_PI))
+             p (v/rotate (Vec2. (m/* r (m/cos phi)) (m/* r (m/sin phi))) tilt)
+             radio (if (m/zero? side) radius (m/- radius))
              vradio (v/rotate (Vec2. radio radio) tilt)]
          (-> p
              (v/sub vradio)
-             (v/add (Vec2. (+ radius (* i tilesize)) (+ radius (* j tilesize))))
+             (v/add (Vec2. (m/+ radius (m/* i tilesize)) (m/+ radius (m/* j tilesize))))
              (v/sub shift)
              (v/mult amount)))))))
 
@@ -138,13 +138,13 @@
   ([] {:type :pattern})
   ([^double amount _]
    (fn [_]
-     (let [ang (* amount (r/drand m/PI))
+     (let [ang (m/* amount (r/drand m/PI))
            sinr (m/sin ang)
            cosr (m/cos ang)]
-       (if (zero? cosr)
+       (if (m/zero? cosr)
          u/zerov
-         (Vec2. (* amount sinr)
-                (* amount (/ (m/sq sinr) cosr))))))))
+         (Vec2. (m/* amount sinr)
+                (m/* amount (m// (m/sq sinr) cosr))))))))
 
 (defn arcsech2
   "Arcsech2"
@@ -154,17 +154,17 @@
      (let [z (c/reciprocal v)
            z2 (-> z (c/sub c/ONE) c/sqrt)
            z3 (-> z (c/add c/ONE) c/sqrt (c/mult z2))
-           z (-> z (c/add z3) c/log (c/scale (* amount m/M_2_PI)))]
-       (if (neg? (c/im z))
-         (Vec2. (c/re z) (inc (c/im z)))
-         (Vec2. (- (c/re z)) (dec (c/im z))))))))
+           z (-> z (c/add z3) c/log (c/scale (m/* amount m/M_2_PI)))]
+       (if (m/neg? (c/im z))
+         (Vec2. (c/re z) (m/inc (c/im z)))
+         (Vec2. (m/- (c/re z)) (m/dec (c/im z))))))))
 
 (defn arcsinh
   "Arcsinh"
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (-> v c/asinh (c/scale (* amount m/M_2_PI))))))
+     (-> v c/asinh (c/scale (m/* amount m/M_2_PI))))))
 
 (def ^:deprecated asinh arcsinh)
 
@@ -174,7 +174,7 @@
   ([^double amount _]
    (fn [^Vec2 v]
      (let [z2 (-> v (c/scale -1.0) (c/add c/ONE))]
-       (-> v (c/add c/ONE) (c/div z2) c/log (c/scale (* amount m/M_2_PI)))))))
+       (-> v (c/add c/ONE) (c/div z2) c/log (c/scale (m/* amount m/M_2_PI)))))))
 
 (def ^:deprecated atanh arctanh)
 
@@ -183,30 +183,30 @@
   ([] {:type :random
        :config (fn [] {:alpha (r/drand -5 5)})})
   ([^double amount {:keys [^double alpha]}]
-   (let [sina (m/sin (* m/PI alpha))
-         cosa (m/cos (* m/PI alpha))]
+   (let [sina (m/sin (m/* m/PI alpha))
+         cosa (m/cos (m/* m/PI alpha))]
      (fn [^Vec2 v]
        (let [^Vec2 v0 (v/mult v amount)
              r (v/magsq v0)
-             xx (m/sq (dec (m/abs (.x v0))))
-             yy (m/sq (dec (m/abs (.y v0))))
-             r2 (m/sqrt (+ xx yy))
-             in (< r 1.0)
-             in1 (if (and (< r 1.0) (< r2 1.0))
+             xx (m/sq (m/dec (m/abs (.x v0))))
+             yy (m/sq (m/dec (m/abs (.y v0))))
+             r2 (m/sqrt (m/+ xx yy))
+             in (m/< r 1.0)
+             in1 (if (and (m/< r 1.0) (m/< r2 1.0))
                    (r/brand 0.65)
                    (not in))]
          (if in1
            v0
-           (let [xx (- (* cosa (.x v0))
-                       (* sina (.y v0)))
-                 yy (+ (* sina (.x v0))
-                       (* cosa (.y v0)))
-                 nx (* (/ xx (m/sqrt (- 1.0 (* yy yy))))
-                       (- 1.0 (m/sqrt (- 1.0 (m/sq (inc (- (m/abs yy))))))))]
-             (Vec2. (+ (* cosa nx)
-                       (* sina yy))
-                    (+ (- (* sina nx))
-                       (* cosa yy))))))))))
+           (let [xx (m/- (m/* cosa (.x v0))
+                       (m/* sina (.y v0)))
+                 yy (m/+ (m/* sina (.x v0))
+                       (m/* cosa (.y v0)))
+                 nx (m/* (m// xx (m/sqrt (m/- 1.0 (m/* yy yy))))
+                       (m/- 1.0 (m/sqrt (m/- 1.0 (m/sq (m/inc (m/- (m/abs yy))))))))]
+             (Vec2. (m/+ (m/* cosa nx)
+                       (m/* sina yy))
+                    (m/+ (m/- (m/* sina nx))
+                       (m/* cosa yy))))))))))
 
 (defn atan2spirals
   "Atan2 Spirals"
@@ -233,11 +233,11 @@
      (let [xs+ys (v/magsq v)
            xy2 (m/pow xs+ys x2y2-power)
            r (m/pow xs+ys r-power)
-           fx (- (+ x-add (* x-mult (m/atan2 (+ r-add (* r r-mult))
-                                             (+ xy2-add (* xy2 xy2-mult))))) m/PI)
-           fy (* y-mult (m/sin (+ sin-add (m/atan2 (+ yy-add (/ (.y v) yy-div))
-                                                   (+ yx-add (/ (.x v) yx-div))))))]
-       (v/mult (Vec2. (if (neg? (.x v)) fx (- fx)) fy) amount)))))
+           fx (m/- (m/+ x-add (m/* x-mult (m/atan2 (m/+ r-add (m/* r r-mult))
+                                             (m/+ xy2-add (m/* xy2 xy2-mult))))) m/PI)
+           fy (m/* y-mult (m/sin (m/+ sin-add (m/atan2 (m/+ yy-add (m// (.y v) yy-div))
+                                                   (m/+ yx-add (m// (.x v) yx-div))))))]
+       (v/mult (Vec2. (if (m/neg? (.x v)) fx (m/- fx)) fy) amount)))))
 
 (defn atan
   "Atan"
@@ -246,15 +246,15 @@
                       :stretch (u/sdrand 0.01 2.0)})})
   ([^double amount {:keys [^long mode ^double stretch]}]
    (let [m (m/constrain mode 0 2)
-         norm (/ 1.0 (* m/M_PI_2 amount))]
+         norm (m// 1.0 (m/* m/M_PI_2 amount))]
      (fn [^Vec2 v]
        (case m
          0 (Vec2. (.x v)
-                  (* norm (m/atan (* stretch (.y v)))))
-         1 (Vec2. (* norm (m/atan (* stretch (.x v))))
+                  (m/* norm (m/atan (m/* stretch (.y v)))))
+         1 (Vec2. (m/* norm (m/atan (m/* stretch (.x v))))
                   (.y v))
-         (Vec2. (* norm (m/atan (* stretch (.x v))))
-                (* norm (m/atan (* stretch (.y v))))))))))
+         (Vec2. (m/* norm (m/atan (m/* stretch (.x v))))
+                (m/* norm (m/atan (m/* stretch (.y v))))))))))
 
 (defn auger
   "Auger by Xyrus02"
@@ -267,12 +267,11 @@
    (fn [^Vec2 v]
      (let [x (.x v)
            y (.y v)
-           s (m/sin (* freq x))
-           t (m/sin (* freq y))
-           dy (+ y (* weight (+ (m/abs y) (* 0.5 s scale)) s))
-           dx (+ x (* weight (+ (m/abs x) (* 0.5 t scale)) t))
-           xx (* amount (+ x (* sym (- dx x))))
-           yy (* amount dy)]
+           s (m/sin (m/* freq x))
+           t (m/sin (m/* freq y))
+           dy (m/+ y (m/* weight (m/+ (m/abs y) (m/* 0.5 s scale)) s))
+           dx (m/+ x (m/* weight (m/+ (m/abs x) (m/* 0.5 t scale)) t))
+           xx (m/* amount (m/+ x (m/* sym (m/- dx x))))
+           yy (m/* amount dy)]
        (Vec2. xx yy)))))
 
-(m/unuse-primitive-operators)

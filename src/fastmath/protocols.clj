@@ -14,32 +14,32 @@
   (irandom [rng] [rng mx] [rng mn mx]
     "Random integer.
 
-As default returns random integer from full integer range. 
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.")
+  As default returns random integer from full integer range. 
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.")
   (drandom [rng] [rng mx] [rng mn mx]
     "Random double.
 
-As default returns random double from `[0,1)` range.
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.")
+  As default returns random double from `[0,1)` range.
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.")
   (lrandom [rng] [rng mx] [rng mn mx]
     "Random long.
 
-As default returns random long from full long range. 
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.")
+  As default returns random long from full long range. 
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.")
   (frandom [rng] [rng mx] [rng mn mx]
     "Random float.
 
-As default returns random float from `[0,1)` range.
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.")
+  As default returns random float from `[0,1)` range.
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.")
   (grandom [rng] [rng std] [rng mean std]
     "Random double from gaussian distribution.
 
-As default returns random double from `N(0,1)`. 
-When `std` is passed, `N(0,std)` is used. When `mean` is passed, distribution is set to `N(mean, std)`.")
+  As default returns random double from `N(0,1)`. 
+  When `std` is passed, `N(0,std)` is used. When `mean` is passed, distribution is set to `N(mean, std)`.")
   (brandom [rng] [rng p]
     "Boolean random.
 
-Returns true or false with equal probability. You can set `p` probability for `true`")
+  Returns true or false with equal probability. You can set `p` probability for `true`")
   (set-seed! [rng v] "Sets seed. Returns `rng`")
   (set-seed [rng v] "Sets seed. Returns new `rng` object")
   (->seq [rng] [rng n] "Returns lazy sequence of random samples (can be limited to optional `n` values)."))

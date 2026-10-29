@@ -370,7 +370,7 @@
   "Returns a function of `N` (a long `>= 2`) which returns the discrete triangular window `1 - abs(n - (N-1)/2) / floor((N - 1 + shift) / 2)`, `n = 0, ..., N-1`, for the integer `shift >= 1`; `shift = 2` is equal to `scipy.signal.windows.triang`."
   [^long shift]
   (fn [^long N]
-    (let [N- (dec N)
+    (let [N- (m/long-dec N)
           L (m/+ N- shift)
           hN- (m// N- 2.0)
           hL (m// L 2)]

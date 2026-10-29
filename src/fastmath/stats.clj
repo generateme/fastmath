@@ -2240,9 +2240,9 @@
   "Jensen-Shannon divergence of two sequences."
   (^double [[vs1 vs2]] (jensen-shannon-divergence vs1 vs2))
   (^double [vs1 vs2]
-   (let [m (v/mult (mapv + vs1 vs2) 0.5)]
+   (let [m (v/mult (mapv m/+ vs1 vs2) 0.5)]
      (m/* 0.5 (m/+ (kullback-leibler-divergence vs1 m)
-               (kullback-leibler-divergence vs2 m))))))
+                   (kullback-leibler-divergence vs2 m))))))
 
 (defn coefficient-matrix
   "Generates a matrix of pairwise coefficients from a sequence of sequences.
@@ -2368,7 +2368,7 @@
   (^double [[vs1 vs2-or-val]] (me vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map - v1 v2))))
+     (mean (map m/- v1 v2))))
   (^double [vs1 vs2-or-val weights]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (m// (sum (map (fn [^double a ^double b ^double w] (m/* w (m/- a b))) v1 v2 weights))
@@ -2400,7 +2400,7 @@
   (^double [[vs1 vs2-or-val]] (mae vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map (comp m/abs -) v1 v2))))
+     (mean (map (comp m/abs m/-) v1 v2))))
   (^double [vs1 vs2-or-val weights]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (m// (sum (map (fn [^double a ^double b ^double w] (m/* w (m/abs (m/- a b)))) v1 v2 weights))
@@ -2467,7 +2467,7 @@
   (^double [[vs1 vs2-or-val]] (rss vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (sum (map (comp m/sq -) v1 v2)))))
+     (sum (map (comp m/sq m/-) v1 v2)))))
 
 (defn r2
   "Calculates the Coefficient of Determination ($R^2$) or adjusted version between two sequences or a sequence and a constant value.
@@ -2558,7 +2558,7 @@
   (^double [[vs1 vs2-or-val]] (mse vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map (comp m/sq -) v1 v2))))
+     (mean (map (comp m/sq m/-) v1 v2))))
   (^double [vs1 vs2-or-val weights]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (m// (sum (map (fn [^double a ^double b ^double w] (m/* w (m/sq (m/- a b)))) v1 v2 weights))
@@ -5537,7 +5537,7 @@
 
 (defn- cov-for-acf
   ^double [xs1 xs2]
-  (reduce + 0.0 (map * xs1 xs2)))
+  (reduce m/+ 0.0 (map m/* xs1 xs2)))
 
 ;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l12
 (defn acf
@@ -6517,7 +6517,7 @@
                         (m/> nx 1) (m/> ny 1))) (throw (ex-info "Not enough observations." {:nx nx :ny ny :equal-variances? equal-variances?})))
      (when (and paired? (m/not== nx ny)) (throw (ex-info "Lengths of xs and ys should be equal." {:nx nx :ny ny})))
      (if paired?
-       (-> (t-test-one-sample (map - xs ys) params)
+       (-> (t-test-one-sample (map m/- xs ys) params)
            (assoc :paired? true))
        (let [{:keys [test-type ^double stat ^double alpha ^double df ^double mu ^double stderr]
               :as res} (test-two-samples-not-paired xs ys params)
@@ -6580,7 +6580,7 @@
                         (m/> nx 1) (m/> ny 1))) (throw (ex-info "Not enough observations." {:nx nx :ny ny :equal-variances? equal-variances?})))
      (when (and paired? (m/not== nx ny)) (throw (ex-info "Lengths of xs and ys should be equal." {:nx nx :ny ny})))
      (if paired?
-       (-> (z-test-one-sample (map - xs ys) params)
+       (-> (z-test-one-sample (map m/- xs ys) params)
            (assoc :paired? true))
        (let [{:keys [test-type ^double stat ^double alpha ^double ^double mu ^double stderr]
               :as res} (test-two-samples-not-paired xs ys params)
@@ -6935,7 +6935,7 @@
   See also [[brown-forsythe-test]]."
   ([xss] (levene-test xss {}))
   ([xss {:keys [sides statistic scorediff]
-         :or {sides :one-sided-greater statistic mean scorediff abs}}]
+         :or {sides :one-sided-greater statistic mean scorediff m/abs}}]
    (let [res (update-f-p-value (anova (map (fn [xs]
                                              (let [s (double (statistic xs))]
                                                (map (fn [^double v]
@@ -6992,7 +6992,7 @@
          :or {sides :one-sided-greater}}]
    (let [Z (mapcat (fn [xs]
                      (let [s (median xs)]
-                       (map (fn [^double v] (abs (m/- v s))) xs))) xss)
+                       (map (fn [^double v] (m/abs (m/- v s))) xs))) xss)
          ranks (m/rank Z)
          rden (m// (m/* 2.0 (m/inc (count ranks))))
          qij (map (fn [^double r]
@@ -7015,10 +7015,10 @@
 (defn- a2-stat
   ^double [^doubles xs d]
   (let [n (alength xs)]
-    (reduce - (m/- n) (map (fn [^long idx]
-                             (m/* (m// (m/+ idx idx 1.0) n)
-                                  (m/+ (m/log (r/cdf d (Array/aget xs idx)))
-                                       (m/log (r/ccdf d (Array/aget xs (m/- n idx 1))))))) (range n)))))
+    (reduce m/- (m/- n) (map (fn [^long idx]
+                               (m/* (m// (m/+ idx idx 1.0) n)
+                                    (m/+ (m/log (r/cdf d (Array/aget xs idx)))
+                                         (m/log (r/ccdf d (Array/aget xs (m/- n idx 1))))))) (range n)))))
 
 (defn ad-test-one-sample
   "Performs the Anderson-Darling (AD) test for goodness-of-fit.

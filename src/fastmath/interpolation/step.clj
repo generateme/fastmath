@@ -48,7 +48,7 @@
   (let [xs (m/seq->double-array xs)
         ys (m/seq->double-array ys)
         _ (ic/validate-xy! :step-before xs ys {:min-points 1})
-        l (dec (alength xs))]
+        l (m/dec (alength xs))]
     (fn ^double [^double x]
       (let [b (java.util.Arrays/binarySearch xs x)
             ^long i (if (m/neg? b) (m/constrain (m/dec (m/- b)) 0 l) b)]

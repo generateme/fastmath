@@ -125,7 +125,7 @@
     (fn
       ([] @calls)
       ([x]
-       (when (m/> (long (swap! calls inc)) max-evals)
+       (when (m/> (long (swap! calls m/long-inc)) max-evals)
          (throw (ex-info "Maximum number of evaluations exceeded" {:max-evals max-evals :evaluations max-evals})))
        (let [value (m/* sign (double (f x)))]
          (Point. x (if (m/nan? value) ##Inf value)))))))
@@ -369,7 +369,7 @@
        :evaluations (evaluate)
        :iterations iteration
        :status status
-       :complexes (quot (count population) (long complex-size))}
+       :complexes (m/quot (count population) (long complex-size))}
       [point value])))
 
 (defn sceua

@@ -499,7 +499,7 @@
                                rule non-negative? max-iters stats?]
                         :or {goal :minimize epsilon 1.0e-6 max-ulps 10 cut-off 1.0e-10
                              rule :dantzig non-negative? false}}]
-   (when-not (zero? (rem (count constraints) 3))
+   (when-not (m/zero? (m/rem (count constraints) 3))
      (throw (ex-info "Constraints should be a sequence of triplets: left, relation, right" {:count (count constraints)})))
    (let [goal (common/goal-type goal)
          rule (pivot-rule rule)

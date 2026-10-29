@@ -344,7 +344,7 @@
   (loop [lo 0
          hi (alength a)]
     (if (m/< lo hi)
-      (let [mid (unsigned-bit-shift-right (m/+ lo hi) 1)]
+      (let [mid (m/unsigned-bit-shift-right (m/long-add lo hi) 1)]
         (if (m/< (Array/aget a mid) v)
           (recur (m/inc mid) hi)
           (recur lo mid)))
@@ -356,7 +356,7 @@
   (loop [lo 0
          hi (alength a)]
     (if (m/< lo hi)
-      (let [mid (unsigned-bit-shift-right (m/+ lo hi) 1)]
+      (let [mid (m/unsigned-bit-shift-right (m/long-add lo hi) 1)]
         (if (m/<= (Array/aget a mid) v)
           (recur (m/inc mid) hi)
           (recur lo mid)))
@@ -386,10 +386,10 @@
   "Linear binning of sorted `data` on the regular grid `g0 + j * delta`, returns the node weights."
   ^doubles [^doubles data ^double g0 ^double delta ^long nodes]
   (let [counts (double-array nodes)
-        last-node (m/dec nodes)]
+        last-node (m/long-dec nodes)]
     (dotimes [i (alength data)]
       (let [t (m// (m/- (Array/aget data i) g0) delta)
-            j (m/min last-node (long (m/floor t)))
+            j (m/long-min last-node (long (m/floor t)))
             frac (m/- t (double j))]
         (Array/add counts j (m/- 1.0 frac))
         (when (m/< j last-node)
@@ -415,7 +415,7 @@
                                           ", use a larger bandwidth or divisor, or no binning")
                                      binned? (str "at most " MAX-BINNED-NODES " grid nodes")))
                    (let [^doubles counts (binned-nodes data mn delta (long nodes-d))
-                         last-node (double (m/dec (alength counts)))]
+                         last-node (double (m/long-dec (alength counts)))]
                      (fn ^double [^double x]
                        (if (m/nan? x)
                          ##NaN
@@ -424,14 +424,14 @@
                            (m/* factor
                                 (double
                                  (loop [j lo
-                                       s 0.0]
-                                  (if (m/<= j hi)
-                                    (let [c (Array/aget counts j)]
-                                      (recur (m/inc j)
-                                             (if (m/pos? c)
-                                               (m/+ s (m/* c (.invokePrim kernel (m// (m/- x (m/+ mn (m/* (double j) delta))) h))))
-                                               s)))
-                                    s)))))))))
+                                        s 0.0]
+                                   (if (m/<= j hi)
+                                     (let [c (Array/aget counts j)]
+                                       (recur (m/inc j)
+                                              (if (m/pos? c)
+                                                (m/+ s (m/* c (.invokePrim kernel (m// (m/- x (m/+ mn (m/* (double j) delta))) h))))
+                                                s)))
+                                     s)))))))))
                  (fn ^double [^double x]
                    (if (m/nan? x)
                      ##NaN
@@ -455,15 +455,15 @@
               (if (m/< i n)
                 (recur (m/inc i) (m/+ s (m/sq (m/- (Array/aget data i) mean))))
                 s)))]
-    [mean (m/sqrt (m// ss (double (m/dec n))))]))
+    [mean (m/sqrt (m// ss (double (m/long-dec n))))]))
 
 (defn- quantile-7
   "Quantile `p` of sorted `data`, linear interpolation of the order statistics (type 7, the default of R)."
   ^double [^doubles data ^double p]
-  (let [pos (m/* p (double (m/dec (alength data))))
+  (let [pos (m/* p (m/dec (alength data)))
         lo (long (m/floor pos))
         hi (m/min (m/inc lo) (m/dec (alength data)))
-        frac (m/- pos (double lo))
+        frac (m/- pos lo)
         a (Array/aget data lo)
         b (Array/aget data hi)]
     (m/+ a (m/* frac (m/- b a)))))
@@ -543,7 +543,7 @@
               w (double-array bins)]
           (dotimes [i n]
             (let [b (m/- (aget idx i) (long mn-idx))]
-              (when (m/< b (long bins))
+              (when (m/< b bins)
                 (Array/add w b 1.0))))
           (dotimes [ii bins]
             (let [wi (Array/aget w ii)]
@@ -564,26 +564,26 @@
   of the gaussian kernel at the bandwidth `h` from the pair counts."
   [^doubles counts ^double n ^double d]
   (fn ^double [^double h ^long order]
-  (let [len (alength counts)
-        total (double
-               (loop [i 0
-                      s 0.0]
-                (if (m/< i len)
-                  (let [delta (m/sq (m// (m/* (double i) d) h))]
-                    (if (m/>= delta SJ-DELMAX)
-                      s
-                      (recur (m/inc i)
-                             (m/+ s (m/* (Array/aget counts i)
-                                         (m/* (m/exp (m/* -0.5 delta))
-                                              (if (m/== order 4)
-                                                (m/+ (m/- (m/* delta delta) (m/* 6.0 delta)) 3.0)
-                                                (m/+ (m/- (m/* delta delta delta) (m/* 15.0 delta delta))
-                                                     (m/- (m/* 45.0 delta) 15.0)))))))))
-                  s)))
-        sum (if (m/== order 4)
-              (m/+ (m/* 2.0 total) (m/* n 3.0))
-              (m/- (m/* 2.0 total) (m/* n 15.0)))]
-    (m// sum (m/* n (m/- n 1.0) (m/pow h (double (m/inc order))) m/SQRT2PI)))))
+    (let [len (alength counts)
+          total (double
+                 (loop [i 0
+                        s 0.0]
+                   (if (m/< i len)
+                     (let [delta (m/sq (m// (m/* (double i) d) h))]
+                       (if (m/>= delta SJ-DELMAX)
+                         s
+                         (recur (m/inc i)
+                                (m/+ s (m/* (Array/aget counts i)
+                                            (m/* (m/exp (m/* -0.5 delta))
+                                                 (if (m/== order 4)
+                                                   (m/+ (m/- (m/* delta delta) (m/* 6.0 delta)) 3.0)
+                                                   (m/+ (m/- (m/* delta delta delta) (m/* 15.0 delta delta))
+                                                        (m/- (m/* 45.0 delta) 15.0)))))))))
+                     s)))
+          sum (if (m/== order 4)
+                (m/+ (m/* 2.0 total) (m/* n 3.0))
+                (m/- (m/* 2.0 total) (m/* n 15.0)))]
+      (m// sum (m/* n (m/- n 1.0) (m/fpow h (m/long-inc order)) m/SQRT2PI)))))
 
 (defn- zeroin
   "Brent root finding `R_zeroin2` of R for `f` on `[ax, bx]` where `f` has values of opposite signs."
@@ -662,7 +662,7 @@
         phi4 (fn ^double [^double h] (double (phi h 4)))
         td (m/- (double (phi b 6)))
         sparse! (fn [what] (invalid-input! :bandwidth :data (str "sample is too sparse to find " what) len
-                                           "a sample with a positive spread"))]
+                                          "a sample with a positive spread"))]
     (when-not (and (m/valid-double? td) (m/pos? td))
       (sparse! "TD"))
     (if (= method :dpi)
@@ -682,7 +682,7 @@
                                 (m/<= p 0.0) [lower upper]
                                 (m/> itry 99) (invalid-input! :bandwidth :data "no solution in the specified range of bandwidths" len
                                                               "a sample with a positive spread")
-                                (odd? itry) (recur lower (m/* upper 1.2) (m/inc itry))
+                                (m/odd? itry) (recur lower (m/* upper 1.2) (m/inc itry))
                                 :else (recur (m// lower 1.2) upper (m/inc itry)))))]
         (zeroin fsd (double lower) (double upper) (m/* 0.1 (double lower)))))))
 
@@ -696,7 +696,7 @@
   "Leave-one-out density at every data point: the point itself is left out and the sum is rescaled by `1/((n-1) h)`."
   ^doubles [{:keys [^doubles data ^long len ^IFn$DD kernel ^double radius]} ^double h]
   (let [span (m/* 1.01 h radius)
-        factor (m// (m/* (double (m/dec len)) h))
+        factor (m// (m/* (m/dec len) h))
         out (double-array len)]
     (dotimes [i len]
       (Array/set out i (m/* factor (window-sum data kernel h span (Array/aget data i) i))))
@@ -710,8 +710,8 @@
         reach (m/* h (m/min extent CV-MAX-EXTENT))
         lo (m/- (Array/aget data 0) reach)
         hi (m/+ (Array/aget data (m/dec len)) reach)
-        steps (m/min CV-MAX-INTEGRAL-STEPS (long (m/ceil (m/* (m// (m/- hi lo) h) CV-GRID-DENSITY))))
-        dt (m// (m/- hi lo) (double steps))]
+        steps (m/long-min CV-MAX-INTEGRAL-STEPS (long (m/ceil (m/* (m// (m/- hi lo) h) CV-GRID-DENSITY))))
+        dt (m// (m/- hi lo) steps)]
     (m/* dt (double
              (loop [i 1
                     s (m/* 0.5 (m/+ (.invokePrim g (.invokePrim f lo)) (.invokePrim g (.invokePrim f hi))))]
@@ -808,7 +808,7 @@
         h-lo (m/* scale lo-f)
         h-hi (m/* scale hi-f)
         log-ratio (m/ln (m// h-hi h-lo))
-        hs (mapv (fn [^long k] (m/* h-lo (m/exp (m/* log-ratio (m// (double k) (double (m/dec g)))))))
+        hs (mapv (fn [^long k] (m/* h-lo (m/exp (m/* log-ratio (m// (double k) (double (m/long-dec g)))))))
                  (range g))
         sign (if (= criterion :lscv) -1.0 1.0)
         score (fn ^double [^double h]

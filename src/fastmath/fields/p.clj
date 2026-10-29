@@ -8,7 +8,7 @@
            [fastmath.fields.utils Pair]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 (defn pdj
   "PDJ"
@@ -19,8 +19,8 @@
                       :d (r/drand -6.0 6.0)})})
   ([^double amount {:keys [^double a ^double b ^double c ^double d]}]
    (fn [^Vec2 v]
-     (Vec2. (* amount (- (m/sin (* a (.y v))) (m/cos (* b (.x v)))))
-            (* amount (- (m/sin (* c (.x v))) (m/cos (* d (.y v)))))))))
+     (Vec2. (m/* amount (m/- (m/sin (m/* a (.y v))) (m/cos (m/* b (.x v)))))
+            (m/* amount (m/- (m/sin (m/* c (.x v))) (m/cos (m/* d (.y v)))))))))
 
 (defn ptransform
   ([] {:type :regular
@@ -31,38 +31,38 @@
                       :log? (r/brand)})})
   ([^double amount {:keys [^double rotate ^double power ^double move ^double split log?]}]
    (fn [^Vec2 v]
-     (let [rho (+ (/ (if log?
+     (let [rho (m/+ (m// (if log?
                        (m/log (v/mag v))
                        (v/mag v)) power) move)
-           theta (+ (v/heading v) rotate)
-           rho (if (pos? (.x v))
-                 (+ rho split)
-                 (- rho split))
-           arho (* amount (if log? (m/exp rho) rho))]
-       (Vec2. (* arho (m/cos theta))
-              (* arho (m/sin theta)))))))
+           theta (m/+ (v/heading v) rotate)
+           rho (if (m/pos? (.x v))
+                 (m/+ rho split)
+                 (m/- rho split))
+           arho (m/* amount (if log? (m/exp rho) rho))]
+       (Vec2. (m/* arho (m/cos theta))
+              (m/* arho (m/sin theta)))))))
 
 (defn panorama1
   "Panorama1"
   ([] {:type :regular})
   ([^double amount _]
    (fn [v]
-     (let [aux (/ (m/sqrt (inc (v/magsq v))))
+     (let [aux (m// (m/sqrt (m/inc (v/magsq v))))
            nv (v/mult v aux)
            aux (v/mag nv)]
-       (Vec2. (* amount m/M_1_PI (v/heading nv))
-              (* amount (- aux 0.5)))))))
+       (Vec2. (m/* amount m/M_1_PI (v/heading nv))
+              (m/* amount (m/- aux 0.5)))))))
 
 (defn panorama2
   "Panorama2"
   ([] {:type :regular})
   ([^double amount _]
    (fn [v]
-     (let [aux (/ (inc (m/sqrt (v/magsq v))))
+     (let [aux (m// (m/inc (m/sqrt (v/magsq v))))
            nv (v/mult v aux)
            aux (v/mag nv)]
-       (Vec2. (* amount m/M_1_PI (v/heading nv))
-              (* amount (- aux 0.5)))))))
+       (Vec2. (m/* amount m/M_1_PI (v/heading nv))
+              (m/* amount (m/- aux 0.5)))))))
 (defn parabola
   "Parabola fn"
   ([] {:type :random
@@ -73,8 +73,8 @@
      (let [r (v/mag v)
            sr (m/sin r)
            cr (m/cos r)]
-       (Vec2. (* amount height sr sr (r/drand))
-              (* amount width cr (r/drand)))))))
+       (Vec2. (m/* amount height sr sr (r/drand))
+              (m/* amount width cr (r/drand)))))))
 
 (defn parallel
   ([] {:type :random
@@ -94,24 +94,24 @@
                            ^double x1mod2 ^double x1height ^double x1move
                            ^double x2width ^double x2tilesize ^double x2mod1
                            ^double x2mod2 ^double x2height ^double x2move]}]
-   (let [xr1 (* x1mod2 x1mod1)
-         xr2 (* x2mod2 x2mod1)]
+   (let [xr1 (m/* x1mod2 x1mod1)
+         xr2 (m/* x2mod2 x2mod1)]
      (fn [^Vec2 v]
        (r/randval
-        (let [x1 (r/randval x1width (- x1width))
-              amove (* amount x1move)]
-          (Vec2. (* x1tilesize (+ (.x v) (m/round (* x1 (m/log (r/drand))))))
+        (let [x1 (r/randval x1width (m/- x1width))
+              amove (m/* amount x1move)]
+          (Vec2. (m/* x1tilesize (m/+ (.x v) (m/round (m/* x1 (m/log (r/drand))))))
                  (cond
-                   (> (.y v) x1mod1) (+ (* x1height (- (mod (+ (.y v) x1mod1) xr1) x1mod1)) amove)
-                   (< (.y v) (- x1mod1)) (+ (* x1height (- x1mod1 (mod (- x1mod1 (.y v)) xr1)) amove))
-                   :else (+ (* x1height (.y v)) amove))))
-        (let [x2 (r/randval x2width (- x2width))
-              amove (* amount x2move)]
-          (Vec2. (* x2tilesize (+ (.x v) (m/round (* x2 (m/log (r/drand))))))
+                   (m/> (.y v) x1mod1) (m/+ (m/* x1height (m/- (m/mod (m/+ (.y v) x1mod1) xr1) x1mod1)) amove)
+                   (m/< (.y v) (m/- x1mod1)) (m/+ (m/* x1height (m/- x1mod1 (m/mod (m/- x1mod1 (.y v)) xr1)) amove))
+                   :else (m/+ (m/* x1height (.y v)) amove))))
+        (let [x2 (r/randval x2width (m/- x2width))
+              amove (m/* amount x2move)]
+          (Vec2. (m/* x2tilesize (m/+ (.x v) (m/round (m/* x2 (m/log (r/drand))))))
                  (cond
-                   (> (.y v) x2mod1) (+ (* x2height (- (mod (+ (.y v) x2mod1) xr2) x2mod1)) amove)
-                   (< (.y v) (- x2mod1)) (+ (* x2height (- x2mod1 (mod (- x2mod1 (.y v)) xr2)) amove))
-                   :else (+ (* x2height (.y v)) amove)))))))))
+                   (m/> (.y v) x2mod1) (m/+ (m/* x2height (m/- (m/mod (m/+ (.y v) x2mod1) xr2) x2mod1)) amove)
+                   (m/< (.y v) (m/- x2mod1)) (m/+ (m/* x2height (m/- x2mod1 (m/mod (m/- x2mod1 (.y v)) xr2)) amove))
+                   :else (m/+ (m/* x2height (.y v)) amove)))))))))
 
 (defn perspective
   "Perspective"
@@ -119,13 +119,13 @@
        :config (fn [] {:angle (u/sdrand 0.2 m/PI)
                       :dist (r/drand -5.0 5.0)})})
   ([^double amount {:keys [^double angle ^double dist]}]
-   (let [ang (* m/HALF_PI angle)
+   (let [ang (m/* m/HALF_PI angle)
          vsin (m/sin ang)
-         vfcos (* dist (m/cos ang))]
+         vfcos (m/* dist (m/cos ang))]
      (fn [^Vec2 v]
-       (let [t (/ amount (- dist (* (.y v) vsin)))]
-         (Vec2. (* t dist (.x v))
-                (* t vfcos (.y v))))))))
+       (let [t (m// amount (m/- dist (m/* (.y v) vsin)))]
+         (Vec2. (m/* t dist (.x v))
+                (m/* t vfcos (.y v))))))))
 
 (defn petal
   "Petal"
@@ -133,10 +133,10 @@
   ([^double amount _]
    (fn [^Vec2 v]
      (let [a (m/cos (.x v))
-           bx (m/pow (* (m/cos (.x v)) (m/cos (.y v))) 3.0)
-           by (m/pow (* (m/sin (.x v)) (m/cos (.y v))) 3.0)]
-       (Vec2. (* amount a bx)
-              (* amount a by))))))
+           bx (m/pow (m/* (m/cos (.x v)) (m/cos (.y v))) 3.0)
+           by (m/pow (m/* (m/sin (.x v)) (m/cos (.y v))) 3.0)]
+       (Vec2. (m/* amount a bx)
+              (m/* amount a by))))))
 
 (defn phoenix-julia
   "Phoenix julia"
@@ -146,19 +146,19 @@
                       :x-distort (r/drand -2.0 2.0)
                       :y-distort (r/drand -2.0 2.0)})})
   ([^double amount {:keys [^double power ^double dist ^double x-distort ^double y-distort]}]
-   (let [inv-n (/ dist power)
-         inv2pi-n (/ m/TWO_PI power)
-         c-n (* 0.5 inv-n)]
+   (let [inv-n (m// dist power)
+         inv2pi-n (m// m/TWO_PI power)
+         c-n (m/* 0.5 inv-n)]
      (fn [^Vec2 v]
-       (let [pre-x (* (.x v) x-distort)
-             pre-y (* (.y v) y-distort)
-             a (+ (* (m/atan2 pre-y pre-x) inv-n)
-                  (* (r/lrand) inv2pi-n))
+       (let [pre-x (m/* (.x v) x-distort)
+             pre-y (m/* (.y v) y-distort)
+             a (m/+ (m/* (m/atan2 pre-y pre-x) inv-n)
+                  (m/* (r/lrand) inv2pi-n))
              sina (m/sin a)
              cosa (m/cos a)
-             r (* amount (m/pow (v/magsq v) c-n))]
-         (Vec2. (* r cosa)
-                (* r sina)))))))
+             r (m/* amount (m/pow (v/magsq v) c-n))]
+         (Vec2. (m/* r cosa)
+                (m/* r sina)))))))
 
 (defn pie
   "pie from jwildfire"
@@ -168,26 +168,26 @@
                       :thickness (r/drand -1.0 1.0)})})
   ([^double amount {:keys [^double slices ^double rotation ^double thickness]}]
    (fn [_]
-     (let [sl (m/round (+ 0.5 (r/drand slices)))
+     (let [sl (m/round (m/+ 0.5 (r/drand slices)))
            a (-> (r/drand thickness)
-                 (+ sl)
-                 (* m/TWO_PI)
-                 (/ slices)
-                 (+ rotation))
-           r (* amount (r/drand))]
-       (Vec2. (* r (m/cos a))
-              (* r (m/sin a)))))))
+                 (m/+ sl)
+                 (m/* m/TWO_PI)
+                 (m// slices)
+                 (m/+ rotation))
+           r (m/* amount (r/drand))]
+       (Vec2. (m/* r (m/cos a))
+              (m/* r (m/sin a)))))))
 
 (defn- pixelflow-hash
   ^double [^long a]
   (as-> (unchecked-int a) a
-    (bit-xor (bit-xor a 61)
-             (bit-shift-right a 16))
-    (+ a (bit-shift-left a 3))
-    (bit-xor a (bit-shift-right a 4))
-    (unchecked-int (* a 0x27d4eb2d))
-    (bit-xor a (bit-shift-right a 15))
-    (/ (double (bit-and a 0xffffffff)) Integer/MAX_VALUE)))
+    (m/bit-xor (m/bit-xor a 61)
+             (m/bit-shift-right a 16))
+    (m/+ a (m/bit-shift-left a 3))
+    (m/bit-xor a (m/bit-shift-right a 4))
+    (unchecked-int (m/* a 0x27d4eb2d))
+    (m/bit-xor a (m/bit-shift-right a 15))
+    (m// (double (m/bit-and a 0xffffffff)) Integer/MAX_VALUE)))
 
 (defn pixelflow
   "Pixel Flow"
@@ -198,16 +198,16 @@
                       :seed (r/lrand)})})
   ([^double amount {:keys [^double angle ^double len ^double width ^long seed]}]
    (let [vin (Vec2. (m/cos angle) (m/sin angle))
-         seed2 (/ seed 2)
-         -seed (- seed)]
+         seed2 (m// seed 2)
+         -seed (m/- seed)]
      (fn [^Vec2 v]
-       (let [blockx (int (m/floor (* width (.x v))))
-             blockx (+ blockx (- 2.0 (* 4.0 (pixelflow-hash (inc (* seed blockx))))))
-             blocky (int (m/floor (* width (.y v))))
-             blocky (+ blocky (- 2.0 (* 4.0 (pixelflow-hash (inc (* seed blocky))))))
-             flen (* 0.5 (+ (pixelflow-hash (+ blocky (* blockx -seed)))
-                            (pixelflow-hash (+ blockx (* blocky seed2)))))]
-         (v/add v (v/mult vin (* amount flen (m/sq (m/sq (r/drand))) len))))))))
+       (let [blockx (int (m/floor (m/* width (.x v))))
+             blockx (m/+ blockx (m/- 2.0 (m/* 4.0 (pixelflow-hash (m/long-inc (m/long-mult seed blockx))))))
+             blocky (int (m/floor (m/* width (.y v))))
+             blocky (m/+ blocky (m/- 2.0 (m/* 4.0 (pixelflow-hash (m/long-inc (m/long-mult seed blocky))))))
+             flen (m/* 0.5 (m/+ (pixelflow-hash (unchecked-long (m/+ blocky (m/* blockx -seed))))
+                            (pixelflow-hash (unchecked-long (m/+ blockx (m/* blocky seed2))))))]
+         (v/add v (v/mult vin (m/* amount flen (m/sq (m/sq (r/drand))) len))))))))
 
 (defn plusrecip
   ([] {:type :regular
@@ -216,34 +216,34 @@
   ([^double amount {:keys [^double ar ^double ai]}]
    (let [a (c/complex ar ai)]
      (fn [^Vec2 z]
-       (let [aa (m/sqrt (+ (v/magsq z) m/EPSILON))
+       (let [aa (m/sqrt (m/+ (v/magsq z) m/EPSILON))
              k (-> (c/sq z)
                    (c/sub a)
                    (c/sqrt)
                    (c/add z))
-             k (if (< (m/sqrt (+ (v/magsq (c/sq k)) m/EPSILON)) aa)
+             k (if (m/< (m/sqrt (m/+ (v/magsq (c/sq k)) m/EPSILON)) aa)
                  (-> (c/conjugate k)
-                     (c/mult (c/scale a (/ -1.0 aa))))
+                     (c/mult (c/scale a (m// -1.0 aa))))
                  k)
-             k (if (neg? (c/re k)) (c/neg k) k)]
+             k (if (m/neg? (c/re k)) (c/neg k) k)]
          (c/scale k amount))))))
 
 (defn polar2
   "Polar2"
   ([] {:type :regular})
   ([^double amount _]
-   (let [p2v (/ amount m/PI)
-         p2v2 (* 0.5 p2v)]
-     (fn [^Vec2 v] (Vec2. (* p2v (v/heading v)) (* p2v2 (m/log (v/magsq v))))))))
+   (let [p2v (m// amount m/PI)
+         p2v2 (m/* 0.5 p2v)]
+     (fn [^Vec2 v] (Vec2. (m/* p2v (v/heading v)) (m/* p2v2 (m/log (v/magsq v))))))))
 
 (defn polar
   "Polar"
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (let [ny (dec (v/mag v))]
-       (Vec2. (* amount (v/heading v) m/M_1_PI)
-              (* amount ny))))))
+     (let [ny (m/dec (v/mag v))]
+       (Vec2. (m/* amount (v/heading v) m/M_1_PI)
+              (m/* amount ny))))))
 
 (def ^:private rznegodd [-0.08333333333333333,
                        0.008333333333333333,
@@ -384,12 +384,12 @@
 (defn- polylogarithm-Z
   ^double [^long N]
   (cond
-    (> N 33) 1.0
-    (< N -200) 1.0e250
-    (neg? N) (let [M (- N)]
-               (if (even? M)
+    (m/> N 33) 1.0
+    (m/< N -200) 1.0e250
+    (m/neg? N) (let [M (m/long-sub N)]
+               (if (m/even? M)
                  0.0
-                 (rznegodd (/ (dec M) 2))))
+                 (rznegodd (m// (m/dec M) 2))))
     :else (rzposint N)))
 
 (defn polylogarithm
@@ -397,20 +397,20 @@
        :config (fn [] {:n (r/irand 1 21)
                       :zpow (u/sdrand 0.1 3.0)})})
   ([^double amount {:keys [^long n ^double zpow]}]
-   (let [N (min 19 n)
-         N- (dec N)
+   (let [N (m/long-min 19 n)
+         N- (m/long-dec N)
          cpow (c/complex zpow 0.0)
-         HSTerm (c/complex (if (< N 1)
+         HSTerm (c/complex (if (m/< N 1)
                              0.0
                              (reduce m/+ (map (fn [^double i]
-                                                (/ (inc i))) (range N)))) 0.0)
-         series (mapv #(c/complex (m/pow % (- N)) 0.0) (range 1 20))]
+                                                (m// (m/inc i))) (range N)))) 0.0)
+         series (mapv #(c/complex (m/pow % (m/- N)) 0.0) (range 1 20))]
      (fn [^Vec2 v]
        (let [z (-> v (c/pow cpow))
              zmag2 (v/magsq z)]
-         (if (> zmag2 250000.0)
+         (if (m/> zmag2 250000.0)
            (v/mult v amount)
-           (if (< zmag2 0.07)
+           (if (m/< zmag2 0.07)
              (-> (->> (iterate #(c/mult % z) z)
                       (map c/mult series)
                       (reduce c/add))
@@ -420,14 +420,14 @@
                                      lin c/ZERO
                                      zpl1 c/ZERO
                                      z' z]
-                                (if (< i 20)
-                                  (let [rf (/ 1.0 (m/factorial20 i))
-                                        zee (* rf (polylogarithm-Z (- N i)) )
+                                (if (m/< i 20)
+                                  (let [rf (m// 1.0 (m/factorial20 i))
+                                        zee (m/* rf (polylogarithm-Z (m/long-sub N i)) )
                                         nlin (c/add lin (c/scale z' zee))
                                         nz (c/mult z' z)]
-                                    (if (== i N-)
-                                      (recur (inc i) nlin (c/scale z' rf) nz)
-                                      (recur (inc i) nlin zpl1 nz)))
+                                    (if (m/== i N-)
+                                      (recur (m/inc i) nlin (c/scale z' rf) nz)
+                                      (recur (m/inc i) nlin zpl1 nz)))
                                   (Pair. zpl1 lin)))]
                (-> (c/neg z)
                    (c/log)
@@ -447,19 +447,19 @@
   ([^double amount {:keys [^double x ^double y ^double c]}]
    (fn [^Vec2 v]
      (let [xx (->> (.y v)
-                   (* c)
+                   (m/* c)
                    (m/tan)
                    (m/sin)
-                   (* x)
-                   (+ (.x v))
-                   (* amount))
+                   (m/* x)
+                   (m/+ (.x v))
+                   (m/* amount))
            yy (->> (.x v)
-                   (* c)
+                   (m/* c)
                    (m/tan)
                    (m/sin)
-                   (* y)
-                   (+ (.y v))
-                   (* amount))]
+                   (m/* y)
+                   (m/+ (.y v))
+                   (m/* amount))]
        (Vec2. xx yy)))))
 
 (defn popcorn
@@ -479,16 +479,16 @@
                       :correctd (r/drand -2.0 2.0)})})
   ([^double amount {:keys [^double numerator ^double denominator ^double root
                            ^double correctn ^double correctd]}]
-   (let [power (/ (* denominator correctn) (+ m/EPSILON (m/abs correctd)))
-         power (if (< (m/abs power) m/EPSILON) m/EPSILON power)
-         power (/ (* 0.5 numerator) power) 
-         deneps (/ (if (< (m/abs denominator) m/EPSILON) m/EPSILON denominator))]
+   (let [power (m// (m/* denominator correctn) (m/+ m/EPSILON (m/abs correctd)))
+         power (if (m/< (m/abs power) m/EPSILON) m/EPSILON power)
+         power (m// (m/* 0.5 numerator) power) 
+         deneps (m// (if (m/< (m/abs denominator) m/EPSILON) m/EPSILON denominator))]
      (fn [^Vec2 v]
        (let [theta (v/heading v)
-             r2 (* amount (m/pow (v/magsq v) power))
-             ran (+ (* numerator (+ (* theta deneps) (* root m/TWO_PI (m/floor (r/drand denominator)) deneps))))]
-         (Vec2. (* r2 (m/cos ran))
-                (* r2 (m/sin ran))))))))
+             r2 (m/* amount (m/pow (v/magsq v) power))
+             ran (m/+ (m/* numerator (m/+ (m/* theta deneps) (m/* root m/TWO_PI (m/floor (r/drand denominator)) deneps))))]
+         (Vec2. (m/* r2 (m/cos ran))
+                (m/* r2 (m/sin ran))))))))
 (defn power
   "Power"
   ([] {:type :regular})
@@ -497,8 +497,8 @@
      (let [theta (v/heading v)
            sa (m/sin theta)
            ca (m/cos theta)
-           pow (* amount (m/pow (v/mag v) sa))]
-       (Vec2. (* pow ca) (* pow sa))))))
+           pow (m/* amount (m/pow (v/mag v) sa))]
+       (Vec2. (m/* pow ca) (m/* pow sa))))))
 
 (defn pressure-wave
   "Pressure Wave"
@@ -506,17 +506,17 @@
        :config (fn [] {:x-freq (r/drand -6.0 6.0)
                       :y-freq (r/drand -6.0 6.0)})})
   ([^double amount {:keys [^double x-freq ^double y-freq]}]
-   (let [[^double pwx ^double ipwx] (if (zero? x-freq)
+   (let [[^double pwx ^double ipwx] (if (m/zero? x-freq)
                                       [1.0 1.0]
-                                      (let [pwx (* x-freq m/TWO_PI)]
-                                        [pwx (/ pwx)]))
-         [^double pwy ^double ipwy] (if (zero? y-freq)
+                                      (let [pwx (m/* x-freq m/TWO_PI)]
+                                        [pwx (m// pwx)]))
+         [^double pwy ^double ipwy] (if (m/zero? y-freq)
                                       [1.0 1.0]
-                                      (let [pwy (* y-freq m/TWO_PI)]
-                                        [pwy (/ pwy)]))]
+                                      (let [pwy (m/* y-freq m/TWO_PI)]
+                                        [pwy (m// pwy)]))]
      (fn [^Vec2 v]
-       (Vec2. (* amount (+ (.x v) (* ipwx (m/sin (* pwx (.x v))))))
-              (* amount (+ (.y v) (* ipwy (m/sin (* pwy (.y v)))))))))))
+       (Vec2. (m/* amount (m/+ (.x v) (m/* ipwx (m/sin (m/* pwx (.x v))))))
+              (m/* amount (m/+ (.y v) (m/* ipwy (m/sin (m/* pwy (.y v)))))))))))
 
 (defn projective
   ([] {:type :regular
@@ -533,9 +533,9 @@
                            ^double A1 ^double B1 ^double C1
                            ^double A2 ^double B2 ^double C2]}]
    (fn [^Vec2 v]
-     (let [aU (/ amount (+ (* A (.x v)) (* B (.y v)) C))]
-       (Vec2. (* aU (+ (* A1 (.x v)) (* B1 (.y v)) C1))
-              (* aU (+ (* A2 (.x v)) (* B2 (.y v)) C2)))))))
+     (let [aU (m// amount (m/+ (m/* A (.x v)) (m/* B (.y v)) C))]
+       (Vec2. (m/* aU (m/+ (m/* A1 (.x v)) (m/* B1 (.y v)) C1))
+              (m/* aU (m/+ (m/* A2 (.x v)) (m/* B2 (.y v)) C2)))))))
 
 (defn pulse
   ([] {:type :regular
@@ -582,15 +582,14 @@
   ([^double amount {:keys [^double ar ^double ai]}]
    (let [a (c/complex ar ai)]
      (fn [^Vec2 z]
-       (let [aa (m/sqrt (+ (v/magsq z) m/EPSILON))
+       (let [aa (m/sqrt (m/+ (v/magsq z) m/EPSILON))
              k (-> (c/sq z)
                    (c/sub a)
                    (c/sqrt)
                    (c/add z))
-             k (if (< (m/sqrt (+ (v/magsq (c/sq k)) m/EPSILON)) aa)
+             k (if (m/< (m/sqrt (m/+ (v/magsq (c/sq k)) m/EPSILON)) aa)
                  (-> (c/conjugate k)
-                     (c/scale (/ -1.0 aa)))
+                     (c/scale (m// -1.0 aa)))
                  k)]
          (c/scale k amount))))))
 
-(m/unuse-primitive-operators)

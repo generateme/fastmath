@@ -73,7 +73,7 @@
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(set! *warn-on-reflection* true)
 
 ;; Two atoms to store variation names. One for non-random functions and second for random.
 
@@ -207,8 +207,8 @@
      (fn [^Vec2 v]
        (let [^Vec2 gxv (gx v)
              ^Vec2 gyv (gy v)]
-         (- (* (.x gxv) (.y gyv))
-            (* (.x gyv) (.y gxv))))))))
+         (m/- (m/* (.x gxv) (.y gyv))
+            (m/* (.x gyv) (.y gxv))))))))
 
 (defn divergence
   "Divergence of the field.
@@ -221,7 +221,7 @@
      (fn ^double [v]
        (let [^Vec2 gxv (gx v)
              ^Vec2 gyv (gy v)]
-         (+ (.x gxv) (.y gyv)))))))
+         (m/+ (.x gxv) (.y gyv)))))))
 
 (defn curl
   "Curl (2d version) of the field.
@@ -234,7 +234,7 @@
      (fn ^double [v]
        (let [^Vec2 gxv (gx v)
              ^Vec2 gyv (gy v)]
-         (- (.x gyv) (.y gxv)))))))
+         (m/- (.x gyv) (.y gxv)))))))
 
 (defn magnitude
   "Magnitude of the vectors from field."
@@ -331,8 +331,8 @@ Resulting value is from range `[-PI,PI]`."}
          (let [amount1 (if (#{:comp :angles} name) 1.0 (r/drand -2.0 2.0))
                amount2 (if (#{:comp :angles} name) 1.0 (r/drand -2.0 2.0))
                amount (case name
-                        :add (/ 1.0 (+ (m/abs amount1) (m/abs amount2)))
-                        :mult (/ 1.0 (* amount1 amount2))
+                        :add (m// 1.0 (m/+ (m/abs amount1) (m/abs amount2)))
+                        :mult (m// 1.0 (m/* amount1 amount2))
                         1.0)]
            (assoc f :amount amount
                   :var1 (assoc (randomize-configuration (:var1 f)) :amount amount1)
@@ -347,8 +347,8 @@ Resulting value is from range `[-PI,PI]`."}
   ([] (random-configuration (r/lrand 5)))
   ([depth] (random-configuration depth (build-random-variation-step)))
   ([^long depth f]
-   (if (pos? depth)
-     (random-configuration (dec depth) (randomize-configuration (build-random-parametrization-step f)))
+   (if (m/pos? depth)
+     (random-configuration (m/long-dec depth) (randomize-configuration (build-random-parametrization-step f)))
      f)))
 
 (defn combine
@@ -398,4 +398,3 @@ Resulting value is from range `[-PI,PI]`."}
   ([] (combine))
   ([depth] (combine (random-configuration depth))))
 
-(m/unuse-primitive-operators)
