@@ -428,3 +428,285 @@
             {:name :sigma :domain :positive :role :shape}
             {:name :bd :domain :positive :role :integer}]
    :valid? #(count-data-error % 2 0)})
+
+;; heavy-tailed, location-scale and bounded distributions
+
+(defn- sd-of
+  ^double [data]
+  (m/sqrt (central-moment-of data 2)))
+
+(defn- median-of
+  "Median of the sorted `double[]`."
+  ^double [^doubles xs]
+  (let [n (alength xs)
+        h (m/quot n 2)]
+    (if (m/even? n)
+      (m/* 0.5 (m/+ (Array/aget xs (m/dec h)) (Array/aget xs h)))
+      (Array/aget xs h))))
+
+(defn- quantile-of
+  "Value of the sorted `double[]` at the probability `p` (the nearest rank)."
+  ^double [^doubles xs ^double p]
+  (Array/aget xs (m/constrain (long (m/round (m/* p (m/dec (alength xs))))) 0 (m/dec (alength xs)))))
+
+(defn- below-minimum
+  "A point a little below the minimum of the sorted `double[]`: a tenth of the distance of the minimum from the median (a hundredth of the range when they are equal)."
+  ^double [^doubles xs]
+  (let [lowest (Array/aget xs 0)
+        gap (m/- (median-of xs) lowest)
+        gap (if (m/pos? gap) gap (m/* 0.01 (m/- (Array/aget xs (m/dec (alength xs))) lowest)))]
+    (m/- lowest (m/* 0.1 (if (m/pos? gap) gap 1.0)))))
+
+(defn- spacing-of
+  "A tenth of the average distance of neighbouring observations of the sorted `double[]` (`1.0` for a constant sample)."
+  ^double [^doubles xs]
+  (let [n (alength xs)
+        range (m/- (Array/aget xs (m/dec n)) (Array/aget xs 0))]
+    (if (m/pos? range) (m// range (m/* 10.0 n)) 1.0)))
+
+(def laplace
+  "Specification of the Laplace distribution (`:mu`, `:beta`): the maximum likelihood estimate is the sample median and the mean absolute deviation from it."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :beta :domain :positive :role :scale}]
+   :valid? #(real-data-error % 2)
+   :estimators {:mle {:exact? true
+                      :estimate (fn [^doubles data]
+                                  (let [mu (median-of data)
+                                        beta (m// (double (reduce (fn [^double s ^double x] (m/+ s (m/abs (m/- x mu)))) 0.0 data))
+                                                  (alength data))]
+                                    (when (m/pos? beta) {:mu mu :beta beta})))}}})
+
+(def logistic
+  "Specification of the logistic distribution (`:mu`, `:s`): the starting values are the sample mean and the scale from the standard deviation."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :s :domain :positive :role :scale}]
+   :valid? #(real-data-error % 2)
+   :initial (fn [data] {:mu (mean-of data) :s (m// (m/* (sd-of data) (m/sqrt 3.0)) m/PI)})})
+
+(def gumbel
+  "Specification of the Gumbel distribution of maxima (`:mu`, `:beta`): the starting values come from the method of moments."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :beta :domain :positive :role :scale}]
+   :valid? #(real-data-error % 2)
+   :initial (fn [data]
+              (let [beta (m// (m/* (sd-of data) (m/sqrt 6.0)) m/PI)]
+                (when (m/pos? beta) {:mu (m/- (mean-of data) (m/* m/GAMMA beta)) :beta beta})))})
+
+(def levy
+  "Specification of the Levy distribution (`:mu` the lower end of the support, `:c`): the starting values put `mu` a little below the minimum and `c` is the maximum likelihood estimate for it."
+  {:params [{:name :mu :domain :real :role :lower-bound}
+            {:name :c :domain :positive :role :scale}]
+   :valid? #(real-data-error % 2)
+   :initial (fn [^doubles data]
+              (let [mu (below-minimum data)]
+                {:mu mu :c (m// (alength data) (double (reduce (fn [^double s ^double x] (m/+ s (m// (m/- x mu)))) 0.0 data)))}))})
+
+(def pareto
+  "Specification of the Pareto distribution (`:scale` the lowest value, `:shape`): the maximum likelihood estimate is the sample minimum and the reciprocal of the mean logarithm of the observations relative to it."
+  {:params [{:name :scale :domain :positive :role :lower-bound}
+            {:name :shape :domain :positive :role :shape}]
+   :valid? #(positive-data-error % 2)
+   :estimators {:mle {:exact? true
+                      :estimate (fn [^doubles data]
+                                  (let [lowest (Array/aget data 0)
+                                        s (m// (double (reduce (fn [^double s ^double x] (m/+ s (m/log (m// x lowest)))) 0.0 data))
+                                               (alength data))]
+                                    (when (m/pos? s) {:scale lowest :shape (m// s)})))}}})
+
+(defn- log-moments
+  "Mean and standard deviation of `ln(x - location)`."
+  [data ^double location]
+  (let [logs (map (fn [^double x] (m/log (m/- x location))) data)]
+    [(mean-of logs) (sd-of logs)]))
+
+(def frechet
+  "Specification of the Frechet distribution (`:alpha` the shape, `:beta` the scale, `:delta` the lower end of the support): the starting values put `delta` a little below the minimum and use the Gumbel distribution of the logarithms."
+  {:params [{:name :alpha :domain :positive :role :shape}
+            {:name :beta :domain :positive :role :scale}
+            {:name :delta :domain :real :role :lower-bound}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [^doubles data]
+              (let [delta (below-minimum data)
+                    [^double mean ^double sd] (log-moments data delta)
+                    alpha (m// m/PI (m/* (m/sqrt 6.0) sd))]
+                (when (m/valid-double? alpha)
+                  {:alpha alpha :beta (m/exp (m/- mean (m// m/GAMMA alpha))) :delta delta})))})
+
+(def log-logistic
+  "Specification of the log-logistic distribution (`:alpha` the shape, `:beta` the scale, the median): the starting values come from the median and the quartiles."
+  {:params [{:name :alpha :domain :positive :role :shape}
+            {:name :beta :domain :positive :role :scale}]
+   :valid? #(positive-data-error % 3)
+   :initial (fn [^doubles data]
+              (let [q1 (quantile-of data 0.25)
+                    q3 (quantile-of data 0.75)
+                    alpha (m// (m/* 2.0 (m/log 3.0)) (m/log (m// q3 q1)))]
+                (when (m/pos? alpha) {:alpha alpha :beta (median-of data)})))})
+
+(def triangular
+  "Specification of the triangular distribution (`:a` the lower end, `:c` the mode, `:b` the upper end): the starting values put the ends slightly outside of the sample and the mode from the mean."
+  {:params [{:name :a :domain :real :role :lower-bound}
+            {:name :c :domain :real :role :location}
+            {:name :b :domain :real :role :upper-bound}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [^doubles data]
+              (let [lowest (Array/aget data 0)
+                    highest (Array/aget data (m/dec (alength data)))
+                    h (spacing-of data)
+                    a (m/- lowest h)
+                    b (m/+ highest h)]
+                {:a a :b b :c (m/constrain (m/- (m/* 3.0 (mean-of data)) a b) lowest highest)}))})
+
+(def power
+  "Specification of the power-function distribution (`:a` the lower end, `:b` the upper end, `:c` the shape): the starting values put the ends slightly outside of the sample and `c` is the maximum likelihood estimate for them."
+  {:params [{:name :a :domain :real :role :lower-bound}
+            {:name :b :domain :real :role :upper-bound}
+            {:name :c :domain :positive :role :shape}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [^doubles data]
+              (let [h (spacing-of data)
+                    a (m/- (Array/aget data 0) h)
+                    b (m/+ (Array/aget data (m/dec (alength data))) h)
+                    s (m// (double (reduce (fn [^double s ^double x] (m/+ s (m/log (m// (m/- x a) (m/- b a))))) 0.0 data))
+                           (alength data))]
+                (when (m/neg? s) {:a a :b b :c (m/- (m// s))})))})
+
+(def reciprocal
+  "Specification of the reciprocal distribution (`:a` the lower end, `:b` the upper end): the maximum likelihood estimate is the sample minimum and maximum."
+  {:params [{:name :a :domain :positive :role :lower-bound}
+            {:name :b :domain :positive :role :upper-bound}]
+   :valid? #(positive-data-error % 2)
+   :estimators {:mle {:exact? true
+                      :estimate (fn [^doubles data]
+                                  (let [a (Array/aget data 0)
+                                        b (Array/aget data (m/dec (alength data)))]
+                                    (when (m/< a b) {:a a :b b})))}}})
+
+(def johnson-su
+  "Specification of the Johnson SU distribution (`:gamma` and `:delta` shapes, `:xi` location, `:lambda` scale): no starting values, the parameters are found from the scan."
+  {:params [{:name :gamma :domain :real :role :shape}
+            {:name :delta :domain :positive :role :shape}
+            {:name :xi :domain :real :role :location}
+            {:name :lambda :domain :positive :role :scale}]
+   :valid? #(real-data-error % 4)})
+
+(def johnson-sb
+  "Specification of the Johnson SB distribution (`:gamma` and `:delta` shapes, `:xi` the lower end of the support, `:lambda` the width of the support): no starting values, the parameters are found from the scan."
+  {:params [{:name :gamma :domain :real :role :shape}
+            {:name :delta :domain :positive :role :shape}
+            {:name :xi :domain :real :role :lower-bound}
+            {:name :lambda :domain :positive :role :scale}]
+   :valid? #(real-data-error % 4)})
+
+(def johnson-sl
+  "Specification of the Johnson SL distribution (`:gamma` and `:delta` shapes, `:xi` the lower end of the support, `:lambda` the scale). `gamma` and `lambda` can't be told apart (only `ln(lambda) - gamma / delta` matters): fix one of them, for example `{:fixed {:lambda 1.0}}`."
+  {:params [{:name :gamma :domain :real :role :shape}
+            {:name :delta :domain :positive :role :shape}
+            {:name :xi :domain :real :role :lower-bound}
+            {:name :lambda :domain :positive :role :scale}]
+   :valid? #(real-data-error % 4)})
+
+(def fatigue-life
+  "Specification of the fatigue life distribution (`:alpha` the lower end of the support, `:beta` the scale, `:gamma` the shape): the starting values put `alpha` a little below the minimum and use the modified moment estimates of the Birnbaum-Saunders distribution."
+  {:params [{:name :alpha :domain :real :role :lower-bound}
+            {:name :beta :domain :positive :role :scale}
+            {:name :gamma :domain :positive :role :shape}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [^doubles data]
+              (let [alpha (below-minimum data)
+                    shifted (map (fn [^double x] (m/- x alpha)) data)
+                    s (mean-of shifted)
+                    r (m// (mean-of (map m// shifted)))
+                    gamma (m/sqrt (m/* 2.0 (m/dec (m/sqrt (m// s r)))))]
+                (when (m/valid-double? gamma) {:alpha alpha :beta (m/sqrt (m/* s r)) :gamma gamma})))})
+
+(def hyperbolic-secant
+  "Specification of the hyperbolic secant distribution (`:mu`, `:sigma`): the starting values are the sample mean and standard deviation."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :sigma :domain :positive :role :scale}]
+   :valid? #(real-data-error % 2)
+   :initial (fn [data] {:mu (mean-of data) :sigma (sd-of data)})})
+
+(def half-cauchy
+  "Specification of the half-Cauchy distribution (`:mu` the lower end of the support, `:scale`): the starting values put `mu` a little below the minimum and the scale is the median distance from it."
+  {:params [{:name :mu :domain :real :role :lower-bound}
+            {:name :scale :domain :positive :role :scale}]
+   :valid? #(real-data-error % 2)
+   :initial (fn [^doubles data]
+              (let [mu (below-minimum data)]
+                {:mu mu :scale (m/- (median-of data) mu)}))})
+
+(def half-logistic
+  "Specification of the half-logistic distribution (`:scale`): the starting value comes from the mean, which is `2 ln(2) scale`."
+  {:params [{:name :scale :domain :positive :role :scale}]
+   :valid? #(non-negative-data-error % 1)
+   :initial (fn [data] {:scale (m// (mean-of data) (m/* 2.0 (m/log 2.0)))})})
+
+(def folded-normal
+  "Specification of the folded normal distribution (`:mu`, not negative, `:sigma` of the normal distribution before the folding): the starting values are the mean and the standard deviation of the sample."
+  {:params [{:name :mu :domain :non-negative :role :location}
+            {:name :sigma :domain :positive :role :scale}]
+   :valid? #(non-negative-data-error % 2)
+   :initial (fn [data] {:mu (mean-of data) :sigma (sd-of data)})})
+
+(def beta-symmetrical
+  "Specification of the symmetrical beta distribution (`:alpha`, `:d` is the precision of the computation and is not fitted): the starting value comes from the variance, `1 / (4 (2 alpha + 1))`."
+  {:params [{:name :alpha :domain :positive :role :shape}]
+   :valid? #(unit-data-error % 2)
+   :initial (fn [data]
+              (let [alpha (m/* 0.5 (m/dec (m// (m/* 4.0 (central-moment-of data 2)))))]
+                (when (m/pos? alpha) {:alpha alpha})))})
+
+(defn- von-mises-concentration
+  "Concentration of the von Mises distribution from the mean resultant length `r` (the approximation of Best and Fisher)."
+  ^double [^double r]
+  (cond
+    (m/< r 0.53) (m/+ (m/* 2.0 r) (m/* r r r) (m// (m/* 5.0 (m/fpow r 5)) 6.0))
+    (m/< r 0.85) (m/+ -0.4 (m/* 1.39 r) (m// 0.43 (m/- 1.0 r)))
+    :else (m// (m/- (m/+ (m/* r r r) (m/* 3.0 r)) (m/* 4.0 r r)))))
+
+(def von-mises
+  "Specification of the von Mises distribution (`:mu` the mean direction, `:kappa` the concentration): the maximum likelihood estimate of `mu` is the circular mean, the starting value of `kappa` comes from the mean resultant length. The distribution is not wrapped, its support is `[mu - pi, mu + pi]`: the angles have to lie in an interval of the length `2 pi` which contains this window, move them to the window around the circular mean first."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :kappa :domain :non-negative :role :shape}]
+   :valid? #(or (real-data-error % 2)
+                (when (m/> (m/- (double (reduce m/max %)) (double (reduce m/min %))) (m/* 2.0 m/PI))
+                  "angles have to lie in an interval of the length 2 pi"))
+   :initial (fn [data]
+              (let [n (count data)
+                    c (m// (double (reduce (fn [^double s ^double x] (m/+ s (m/cos x))) 0.0 data)) n)
+                    s (m// (double (reduce (fn [^double s ^double x] (m/+ s (m/sin x))) 0.0 data)) n)
+                    r (m/hypot c s)]
+                (when (m/pos? r) {:mu (m/atan2 s c) :kappa (von-mises-concentration (m/min r 0.999))})))})
+
+(defn- ex-gaussian-moments
+  "Method of moments of the ex-Gaussian distribution: `tau` from the skewness."
+  [data]
+  (let [sd (sd-of data)
+        skew (m// (central-moment-of data 3) (m/fpow sd 3))
+        tau (m/* sd (m/cbrt (m/* 0.5 (m/max skew 0.05))))
+        variance (m/- (m/sq sd) (m/sq tau))]
+    {:mu (m/- (mean-of data) tau) :sigma (m/sqrt (m/max variance (m/* 0.01 (m/sq sd)))) :tau tau}))
+
+(def ex-gaussian
+  "Specification of the ex-Gaussian distribution (`:mu`, `:sigma`, `:tau`): the starting values come from the method of moments."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :sigma :domain :positive :role :scale}
+            {:name :tau :domain :positive :role :scale}]
+   :valid? #(real-data-error % 3)
+   :initial ex-gaussian-moments})
+
+(def exgaus
+  "Specification of the ex-Gaussian distribution with the gamlss parameters (`:mu`, `:sigma`, `:nu` the mean of the exponential part): the starting values come from the method of moments."
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :sigma :domain :positive :role :scale}
+            {:name :nu :domain :positive :role :scale}]
+   :valid? #(real-data-error % 3)
+   :initial (fn [data] (let [{:keys [mu sigma tau]} (ex-gaussian-moments data)] {:mu mu :sigma sigma :nu tau}))})
+
+(def pearson-6
+  "Specification of the Pearson type VI distribution (`:alpha1` and `:alpha2` shapes, `:beta` the scale): no starting values, the parameters are found from the scan."
+  {:params [{:name :alpha1 :domain :positive :role :shape}
+            {:name :alpha2 :domain :positive :role :shape}
+            {:name :beta :domain :positive :role :scale}]
+   :valid? #(positive-data-error % 3)})

@@ -8,9 +8,9 @@
 
 ;; fit-spec: protocol plumbing and the shape of the specifications
 
-(def ^:private fit-spec-keys #{:params :valid? :feasible? :transform :estimators :initial :moments :lmoments})
+(def ^:private fit-spec-keys #{:params :valid? :estimators :initial :moments :lmoments})
 (def ^:private fit-spec-domains #{:real :positive :non-negative :unit})
-(def ^:private fit-spec-roles #{:location :scale :shape :probability :integer :other})
+(def ^:private fit-spec-roles #{:location :scale :shape :probability :integer :lower-bound :upper-bound :other})
 (def ^:private fit-spec-config-keys #{:rng :inverse-abs-accuracy})
 
 (defn- fit-spec-errors
@@ -23,9 +23,9 @@
      (map #(str "unknown key " %) (remove fit-spec-keys (keys spec)))
      (when-not (and (vector? (:params spec)) (seq (:params spec))) ["params must be a non-empty vector"])
      (when-not (fn? (:valid? spec)) ["valid? must be a function"])
-     (for [k [:feasible? :initial :moments :lmoments] :when (and (contains? spec k) (not (fn? (get spec k))))]
+     (for [k [:initial :moments :lmoments] :when (and (contains? spec k) (not (fn? (get spec k))))]
        (str k " must be a function"))
-     (for [k [:transform :estimators] :when (and (contains? spec k) (not (map? (get spec k))))]
+     (for [k [:estimators] :when (and (contains? spec k) (not (map? (get spec k))))]
        (str k " must be a map"))
      (for [[method {:keys [estimate exact?] :as est}] (:estimators spec)
            e [(when-not (keyword? method) "estimator method must be a keyword")

@@ -2631,7 +2631,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
    (check-parameter! 'beta-symmetrical :alpha alpha (and (finite-number? alpha) (m/pos? alpha)) "a finite number > 0")
    (let [d (int-parameter 'beta-symmetrical :d d 14)]
      (check-parameter! 'beta-symmetrical :d d (m/<= 0 d 35) "an integer from 0 to 35")
-     (distr/ssj-continuous :beta-symmetrical (BetaSymmetricalDist. alpha d) rng [:alpha :d :rng]))))
+     (distr/ssj-continuous :beta-symmetrical (BetaSymmetricalDist. alpha d) rng [:alpha :d :rng] fit-specs/beta-symmetrical))))
 
 (add-distr-method beta-symmetrical)
 
@@ -2810,7 +2810,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (fatigue-life nil))
   ([{:keys [^double alpha ^double beta ^double gamma rng]
      :or {alpha 0.0 beta 1.0 gamma 1.0}}]
-   (distr/ssj-continuous :fatigue-life (FatigueLifeDist. alpha beta gamma) rng [:alpha :beta :gamma :rng])))
+   (distr/ssj-continuous :fatigue-life (FatigueLifeDist. alpha beta gamma) rng [:alpha :beta :gamma :rng] fit-specs/fatigue-life)))
 
 (add-distr-method fatigue-life)
 
@@ -2833,7 +2833,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (folded-normal nil))
   ([{:keys [^double mu ^double sigma rng]
      :or {mu 0.0 sigma 1.0}}]
-   (distr/ssj-continuous :folded-normal (FoldedNormalDist. mu sigma) rng [:mu :sigma :rng])))
+   (distr/ssj-continuous :folded-normal (FoldedNormalDist. mu sigma) rng [:mu :sigma :rng] fit-specs/folded-normal)))
 
 (add-distr-method folded-normal)
 
@@ -2857,7 +2857,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (frechet nil))
   ([{:keys [^double alpha ^double beta ^double delta rng]
      :or {alpha 1.0 beta 1.0 delta 0.0}}]
-   (distr/ssj-continuous :frechet (FrechetDist. alpha beta delta) rng [:alpha :beta :delta :rng])))
+   (distr/ssj-continuous :frechet (FrechetDist. alpha beta delta) rng [:alpha :beta :delta :rng] fit-specs/frechet)))
 
 (add-distr-method frechet)
 
@@ -2903,7 +2903,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (hyperbolic-secant nil))
   ([{:keys [^double mu ^double sigma rng]
      :or {mu 0.0 sigma 1.0}}]
-   (distr/ssj-continuous :hyperbolic-secant (HyperbolicSecantDist. mu sigma) rng [:mu :sigma :rng])))
+   (distr/ssj-continuous :hyperbolic-secant (HyperbolicSecantDist. mu sigma) rng [:mu :sigma :rng] fit-specs/hyperbolic-secant)))
 
 (add-distr-method hyperbolic-secant)
 
@@ -3039,7 +3039,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (johnson-sb nil))
   ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
      :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
-   (distr/ssj-continuous :johnson-sb (JohnsonSBDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng])))
+   (distr/ssj-continuous :johnson-sb (JohnsonSBDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] fit-specs/johnson-sb)))
 
 (add-distr-method johnson-sb)
 
@@ -3064,7 +3064,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (johnson-sl nil))
   ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
      :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
-   (distr/ssj-continuous :johnson-sl (JohnsonSLDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng])))
+   (distr/ssj-continuous :johnson-sl (JohnsonSLDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] fit-specs/johnson-sl)))
 
 (add-distr-method johnson-sl)
 
@@ -3089,7 +3089,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (johnson-su nil))
   ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
      :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
-   (distr/ssj-continuous :johnson-su (JohnsonSUDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng])))
+   (distr/ssj-continuous :johnson-su (JohnsonSUDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] fit-specs/johnson-su)))
 
 (add-distr-method johnson-su)
 
@@ -3203,7 +3203,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (log-logistic nil))
   ([{:keys [^double alpha ^double beta rng]
      :or {alpha 1.0 beta 1.0}}]
-   (distr/ssj-continuous :log-logistic (LoglogisticDist. alpha beta) rng [:alpha :beta :rng])))
+   (distr/ssj-continuous :log-logistic (LoglogisticDist. alpha beta) rng [:alpha :beta :rng] fit-specs/log-logistic)))
 
 (add-distr-method log-logistic)
 
@@ -3255,7 +3255,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([{:keys [^double alpha1 ^double alpha2 ^double beta rng]
      :or {alpha1 1.0 alpha2 1.0 beta 1.0}}]
    (distr/ssj-continuous :pearson-6 (Pearson6Dist. alpha1 alpha2 beta) rng
-                         [:alpha1 :alpha2 :beta :rng])))
+                         [:alpha1 :alpha2 :beta :rng] fit-specs/pearson-6)))
 
 (add-distr-method pearson-6)
 
@@ -3285,7 +3285,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
    (check-parameter! 'power :b b (and (finite-number? b) (m/> b a)) "a finite number > a")
    (check-parameter! 'power :c c (and (finite-number? c) (m/pos? c)) "a finite number > 0")
    (distr/ssj-continuous :power (PowerDist. a b c) rng
-                         [:a :b :c :rng])))
+                         [:a :b :c :rng] fit-specs/power)))
 
 (add-distr-method power)
 
@@ -3975,7 +3975,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([{:keys [^double mu ^double sigma ^double nu rng]
      :or {mu 0.0 sigma 1.0 nu 1.0}}]
    (distr/ex-gaussian {:mu mu :sigma sigma :tau nu :rng rng :normal normal :exponential exponential
-                       :parameters [:mu :sigma :nu :rng]})))
+                       :parameters [:mu :sigma :nu :rng] :fit-spec fit-specs/exgaus})))
 
 (add-distr-method exgaus)
 
@@ -5048,10 +5048,8 @@ It is one shared mutable object created with an unseeded generator: sampling fro
 
   Returns a map, or `nil` when the distribution can't be fitted (test statistic distributions, multivariate distributions, distributions defined by data, [[truncated]], [[mixture]], [[constant]], and every distribution which has no specification yet). The specification does not depend on the parameter values of `d`, only on its kind. Keys of the map:
 
-  - `:params` (vector): the fitted parameters, in the order of the constructor arguments, as maps with the keys `:name` (a key of [[distribution-parameters]], never `:rng` or `:inverse-abs-accuracy`), `:domain` and `:role`, and for a parameter with the `:integer` role optionally `:range`, a function of the sorted data (a `double[]`) returning `[lo hi start]`, the integers between which the parameter is searched from `start`; an integer parameter without a range has to be fixed. The `:domain` is one of `:real`, `:positive`, `:non-negative`, `:unit` (the open interval from `0` to `1`) or a vector `[lo hi]`. The `:role` is one of `:location`, `:scale`, `:shape`, `:probability`, `:integer` or `:other`.
+  - `:params` (vector): the fitted parameters, in the order of the constructor arguments, as maps with the keys `:name` (a key of [[distribution-parameters]], never `:rng` or `:inverse-abs-accuracy`), `:domain` and `:role`, and for a parameter with the `:integer` role optionally `:range`, a function of the sorted data (a `double[]`) returning `[lo hi start]`, the integers between which the parameter is searched from `start`; an integer parameter without a range has to be fixed. The `:domain` is one of `:real`, `:positive`, `:non-negative`, `:unit` (the open interval from `0` to `1`) or a vector `[lo hi]`. The `:role` is one of `:location`, `:scale`, `:shape`, `:probability`, `:integer`, `:lower-bound`, `:upper-bound` or `:other`. A parameter with the role `:lower-bound` or `:upper-bound` is an end of the support of the distribution: the fit looks for it as a distance from the sample minimum or maximum which can't be negative, so the whole sample stays inside the support.
   - `:valid?` (function): takes the data and returns `nil` when the data can be fitted, otherwise a message (a string).
-  - `:feasible?` (function, optional): takes a map of parameters and returns a truthy value when the combination is allowed by the constraints between parameters.
-  - `:transform` (map, optional): an unconstrained reparametrisation of the parameters.
   - `:estimators` (map, optional): closed form estimators by method (for example `:mle`), each a map with the key `:estimate` (a function of the sorted data as a `double[]`, returning a map of parameters, or `nil` when the data have no estimate), `:exact?`, and optionally `:fixed`, a set of names of parameters: the estimator is declared for exactly these fixed parameters, takes their map as the second argument and returns the other parameters. Without `:fixed` it is for no fixed parameter. `:exact?` is `true` when the estimate is the exact result of the method and `false` when it is only a starting point for a numerical fit.
   - `:initial` (function, optional): takes the sorted data as a `double[]` and returns a map of starting values of the parameters, or `nil`.
   - `:moments`, `:lmoments` (functions, optional): take a map of parameters and return the theoretical moments (L-moments).

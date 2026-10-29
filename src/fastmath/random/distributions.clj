@@ -99,7 +99,19 @@
   UniformIntegerDistribution
   (fit-spec [_] fit-specs/uniform-int)
   ZipfDistribution
-  (fit-spec [_] fit-specs/zipf))
+  (fit-spec [_] fit-specs/zipf)
+  LaplaceDistribution
+  (fit-spec [_] fit-specs/laplace)
+  LogisticDistribution
+  (fit-spec [_] fit-specs/logistic)
+  GumbelDistribution
+  (fit-spec [_] fit-specs/gumbel)
+  LevyDistribution
+  (fit-spec [_] fit-specs/levy)
+  ParetoDistribution
+  (fit-spec [_] fit-specs/pareto)
+  TriangularDistribution
+  (fit-spec [_] fit-specs/triangular))
 
 (extend RealDistribution
   prot/DistributionProto
@@ -1269,6 +1281,7 @@
                      :continuous? true
                      :name :half-cauchy
                      :parameters [:mu :scale :rng]
+                     :fit-spec fit-specs/half-cauchy
                      :mean ##NaN
                      :variance ##NaN
                      :lower-bound 0.0
@@ -1708,6 +1721,7 @@
                      :continuous? true
                      :name :reciprocal
                      :parameters [:a :b :rng]
+                     :fit-spec fit-specs/reciprocal
                      :mean mean
                      :variance (m/- (m/* 0.5 (m/- (m/sq b) (m/sq a)) rldiff) (m/sq mean))
                      :lower-bound a
@@ -1730,8 +1744,8 @@
   Parameters (a map): `mu`, `sigma`, `tau` (doubles), `rng` (`nil`: a fresh generator), `normal` and `exponential` (the constructors of these distributions, functions of a map, passed by `fastmath.random`), `parameters` (vector reported by `distribution-parameters`, default `[:mu :sigma :tau :rng]`).
 
   The density and the cdf are closed forms with `erfc`, evaluated in log space in the far tails; `icdf` is found by root finding. `mean` is `mu + tau`, `variance` is `sigma^2 + tau^2`. Returns a univariate continuous distribution."
-  [{:keys [^double mu ^double sigma ^double tau rng normal exponential parameters]
-    :or {parameters [:mu :sigma :tau :rng]}}]
+  [{:keys [^double mu ^double sigma ^double tau rng normal exponential parameters fit-spec]
+    :or {parameters [:mu :sigma :tau :rng] fit-spec fit-specs/ex-gaussian}}]
   (let [rng (or rng (JDKRandomGenerator.))
         N (normal {:mu mu :sd sigma :rng rng})
         E (exponential {:mean tau :rng rng})
@@ -1773,6 +1787,7 @@
                      :continuous? true
                      :name :ex-gaussian
                      :parameters parameters
+                     :fit-spec fit-spec
                      :lower-bound ##-Inf
                      :upper-bound ##Inf})))
 
@@ -2637,6 +2652,7 @@
                      :continuous? true
                      :name :half-logistic
                      :parameters [:scale :rng]
+                     :fit-spec fit-specs/half-logistic
                      :lower-bound 0
                      :upper-bound ##Inf})))
 
@@ -2977,6 +2993,7 @@
                      :continuous? true
                      :name :von-mises
                      :parameters [:mu :kappa :rng]
+                     :fit-spec fit-specs/von-mises
                      :lower-bound mn
                      :upper-bound mx})))
 

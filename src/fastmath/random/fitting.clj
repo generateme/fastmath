@@ -20,6 +20,9 @@
 
 (def ^{:private true :const true :tag 'double} lower-limit 1.0e-10)
 
+(def ^{:private true :const true :tag 'double} l-moment-tail-limit 36.0)
+(def ^{:private true :const true :tag 'double} l-moment-tail-limit-start 30.0)
+
 (def ^:private seed-probabilities (vec (range 0.025 0.9751 0.05)))
 
 (def ^:private methods-list [:mle :ks :cvm :ad :adr :adl :ad2r :ad2l :ad2 :mps :qme :mme :lmme])
@@ -70,6 +73,24 @@
     :unit [0.01 0.99]
     domain))
 
+(defn- bound-role?
+  "Is `role` the role of a parameter which is an end of the support of the distribution?"
+  [role]
+  (contains? #{:lower-bound :upper-bound} role))
+
+(defn- codec
+  "How a free parameter is seen by the optimizer: a parameter which is an end of the support is searched as the distance of the end from the sample minimum (the lower end) or maximum (the upper end), which can't be negative, the others as they are."
+  [{:keys [role]} ^double xmin ^double xmax]
+  (case role
+    :lower-bound {:decode (fn [^double v] (m/- xmin v)) :encode (fn [^double a] (m/max 0.0 (m/- xmin a)))}
+    :upper-bound {:decode (fn [^double v] (m/+ xmax v)) :encode (fn [^double a] (m/max 0.0 (m/- a xmax)))}
+    {:decode identity :encode identity}))
+
+(defn- search-bounds
+  "Bounds of the free parameter as the optimizer sees it."
+  [{:keys [role domain]}]
+  (if (bound-role? role) [0.0 ##Inf] (domain-bounds domain)))
+
 (defn- seed-range
   "Finite range of the scan for a parameter, from its role and the sorted data `xs`, inside its domain."
   [{:keys [domain role]} ^doubles xs ^double scale]
@@ -79,8 +100,10 @@
         [^double lo ^double hi] (case role
                                   :location (if (m/< mn mx) [mn mx] [(m/- mn 1.0) (m/+ mx 1.0)])
                                   :scale [(m/* 0.01 scale) (m/* 10.0 scale)]
+                                  (:lower-bound :upper-bound) [0.0 scale]
                                   :probability [0.01 0.99]
                                   (shape-range domain))
+        [^double dlo ^double dhi] (if (bound-role? role) [0.0 ##Inf] [dlo dhi])
         lo (m/max lo dlo)
         hi (m/min hi dhi)]
     (if (m/< lo hi) [lo hi] [(m/max dlo -1.0) (m/min dhi 1.0)])))
@@ -99,11 +122,11 @@
         s))))
 
 (defn- objective-function
-  "Function of a point (values of the free parameters) returning `(objective d params)` for the distribution `d` with the parameters `params`, `##Inf` when the value is not finite or the distribution can't be created."
-  [dist-key fixed names objective]
+  "Function of a point (values of the free parameters as the optimizer sees them, `decode` turns them into the parameters) returning `(objective d params)` for the distribution `d` with the parameters `params`, `##Inf` when the value is not finite or the distribution can't be created."
+  [dist-key fixed names decode objective]
   (fn ^double [point]
     (try
-      (let [params (merge fixed (zipmap names point))
+      (let [params (merge fixed (zipmap names (decode point)))
             value (double (objective (r/distribution dist-key params) params))]
         (if (m/valid-double? value) value ##Inf))
       (catch Exception _ ##Inf))))
@@ -160,13 +183,27 @@
       (when-not (every? m/valid-double? res) (undefined-moments! d "moments"))
       res)))
 
+(defn- l-moment-integral
+  "The L-moment of the order `r`: the integral of the quantile function times the shifted Legendre polynomial. Each half of the unit interval is integrated in the variable `v = -ln(distance from the end)`, `v` from `ln 2` to `tail-limit`, where the heavy tails of the quantile function become exponentially decaying integrands."
+  ^double [d ^long r]
+  (let [ln2 (m/log 2.0)
+        part (fn ^double [upper?]
+               (double (calc/integrate (fn ^double [^double v]
+                                         (let [e (m/exp (m/- v))
+                                               u (if upper? (m/- 1.0 e) e)
+                                               x (m/* (double (r/icdf d u))
+                                                      (poly/eval-legendre-P (m/long-dec r) (m/dec (m/* 2.0 u)))
+                                                      e)]
+                                           ;; the quantile function is infinite at the end, the weight underflows
+                                           (if (and (m/invalid-double? x) (m/> v l-moment-tail-limit-start)) 0.0 x)))
+                                       ln2 l-moment-tail-limit)))]
+    (m/+ (double (part false)) (double (part true)))))
+
 (defn- l-moments
-  "First `k` L-moments of the distribution: the integrals of the quantile function times the shifted Legendre polynomials."
+  "First `k` L-moments of the distribution; they exist when the mean is finite."
   [d ^long k]
   (when-not (m/valid-double? (r/mean d)) (undefined-moments! d "L-moments"))
-  (let [res (mapv (fn [^long r]
-                    (calc/integrate (fn [^double u] (m/* (double (r/icdf d u)) (poly/eval-legendre-P (m/long-dec r) (m/dec (m/* 2.0 u))))) 0.0 1.0))
-                  (range 1 (m/inc k)))]
+  (let [res (mapv #(l-moment-integral d %) (range 1 (m/inc k)))]
     (when-not (every? m/valid-double? res) (undefined-moments! d "L-moments"))
     res))
 
@@ -215,11 +252,11 @@
 
 (defn- scanned-starts
   "Starting points: the best results of a scan of the parameter space with the quantile matching objective."
-  [dist-key fixed free xs scale restarts rng]
+  [dist-key fixed free decode xs scale restarts rng]
   (let [names (mapv :name free)
         bounds (mapv #(seed-range % xs scale) free)
         res (opt/scan-and-minimize :lbfgsb
-                                   (objective-function dist-key fixed names (quantile-matching xs seed-probabilities :r7))
+                                   (objective-function dist-key fixed names decode (quantile-matching xs seed-probabilities :r7))
                                    {:bounds bounds :N (m/* 50 (count free)) :n restarts :take-last-n restarts
                                     :rng rng :stats? true})]
     (map :point (if (map? res) [res] res))))
@@ -230,15 +267,26 @@
   (mapv (fn [^double x] (let [h (m/max (m/* 0.1 (m/abs x)) 1.0e-3)] [(m/- x h) (m/+ x h)])) start))
 
 (defn- polish
-  "Minimizes the objective from `start`, inside the domain `bounds`; `nil` when the optimization fails."
+  "Minimizes the objective from `start`, inside the domain `bounds`; `nil` when the optimization fails. A quasi-Newton step which ends above the starting value (a very steep or ill-conditioned objective, for example with the ends of the support as parameters) is repeated with the simplex method, and when nothing is better than the start the start is the result, as not converged."
   [optimizer objective bounds start]
-  (try
-    (let [start (clamp-to-bounds bounds start)
-          res (if (= :lbfgsb optimizer)
-                (opt/minimize optimizer objective {:bounds bounds :initial start :stats? true})
-                (opt/minimize optimizer objective {:bounds (simplex-bounds start) :length 1.0 :initial start :stats? true}))]
-      (when (m/valid-double? (:value res)) res))
-    (catch Exception _ nil)))
+  (let [start (clamp-to-bounds bounds start)
+        start-value (double (objective start))
+        run (fn [method]
+              (try
+                (let [res (if (= :lbfgsb method)
+                            (opt/minimize method objective {:bounds bounds :initial start :stats? true})
+                            (opt/minimize method objective {:bounds (simplex-bounds start) :length 1.0 :initial start :stats? true}))]
+                  (when (m/valid-double? (:value res)) res))
+                (catch Exception _ nil)))
+        first-result (run optimizer)]
+    (if (and first-result (m/<= (double (:value first-result)) start-value))
+      first-result
+      (let [fallback (when (= :lbfgsb optimizer) (run :nelder-mead))
+            best (first (sort-by :value (filter #(and % (m/<= (double (:value %)) start-value)) [first-result fallback])))]
+        (cond
+          best best
+          (m/valid-double? start-value) {:point start :value start-value :iterations 0 :status :max-iterations}
+          :else nil)))))
 
 (defn- information-criteria
   [^double ll ^long k ^long n]
@@ -305,15 +353,18 @@
       (let [result (build-result dist-key spec shown-fixed method fixed :closed-form true 0 xs k)]
         {:result result :value (value-of result)})
       :else
-      (let [bounds (mapv (comp domain-bounds :domain) free)
+      (let [bounds (mapv search-bounds free)
             scale (robust-scale xs)
-            objective-fn (objective-function dist-key fixed free-names objective)
+            codecs (let [^doubles sorted xs]
+                     (mapv #(codec % (Array/aget sorted 0) (Array/aget sorted (m/dec (alength sorted)))) free))
+            decode (fn [point] (mapv (fn [c v] ((:decode c) v)) codecs point))
+            objective-fn (objective-function dist-key fixed free-names decode objective)
             seed (or estimated
                      (when-let [initial (:initial spec)] (initial xs))
                      (estimate (:mle estimators) xs fixed false))
             starts (if (and seed (every? #(contains? seed %) free-names))
-                     [(mapv seed free-names)]
-                     (scanned-starts dist-key fixed free xs scale restarts rng))
+                     [(mapv (fn [c nm] ((:encode c) (seed nm))) codecs free-names)]
+                     (scanned-starts dist-key fixed free decode xs scale restarts rng))
             best (->> starts
                       (keep #(polish optimizer objective-fn bounds %))
                       (filter #(m/valid-double? (double (:value %))))
@@ -323,7 +374,7 @@
           (if (#{:mme :lmme} method)
             (undefined-moments! dist-key "moments to match")
             (throw (ex-info "fit: no usable estimate was found" {:type :not-converged :function 'fit :distribution dist-key}))))
-        (let [result (build-result dist-key spec shown-fixed method (merge fixed (zipmap free-names (:point best)))
+        (let [result (build-result dist-key spec shown-fixed method (merge fixed (zipmap free-names (decode (:point best))))
                                    :numeric (contains? #{nil :converged :stalled} (:status best)) (or (:iterations best) 0) xs k)]
           {:result result :value (:value best)})))))
 
