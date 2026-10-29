@@ -2654,7 +2654,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   See also [[distribution]], [[chi-squared]], [[normal]]."
   ([] (chi nil))
   ([{:keys [nu rng]}]
-   (distr/ssj-continuous :chi (ChiDist. (int-parameter 'chi :nu nu 1)) rng [:nu :rng])))
+   (distr/ssj-continuous :chi (ChiDist. (int-parameter 'chi :nu nu 1)) rng [:nu :rng] fit-specs/chi)))
 
 (add-distr-method chi)
 
@@ -3546,7 +3546,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   `d = ((r - 1/2) log1p(k/r) - k) + (mu - r log1p(mu/r)) + k log1p((k - mu) / (r + mu)) + s(r + k) - s(r)`, where `s` is the error of the Stirling formula.
   Each term is small, the log-gamma difference `log(gamma(r + k)) - log(gamma(r))` (of the order of `r log r`, which is
   not accurate enough for a large `r`) is not evaluated. `cdf` and the quantile are those of `fastmath.random.distributions/negative-binomial`."
-  [mu r variance rng parameters]
+  [mu r variance rng parameters fit-spec]
   (let [mu (double mu)
         r (double r)
         variance (double variance)
@@ -3581,19 +3581,20 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
                            :continuous? false
                            :name :negative-binomial
                            :parameters parameters
+                           :fit-spec fit-spec
                            :mean mu
                            :variance variance
                            :lower-bound 0
                            :upper-bound Integer/MAX_VALUE})))
 
 (defn- negative-binomial-mean
-  "Negative binomial distribution with the mean `mu`, the size `r` and the given `variance`; reports `parameters`."
-  [mu r variance rng parameters]
+  "Negative binomial distribution with the mean `mu`, the size `r` and the given `variance`; reports `parameters` and `fit-spec`."
+  [mu r variance rng parameters fit-spec]
   (let [mu (double mu)
         r (double r)]
     (if (m/< r negative-binomial-large-size)
-      (distr/negative-binomial r (m// r (m/+ r mu)) rng parameters)
-      (negative-binomial-large-size-distribution mu r variance rng parameters))))
+      (distr/negative-binomial r (m// r (m/+ r mu)) rng parameters fit-spec)
+      (negative-binomial-large-size-distribution mu r variance rng parameters fit-spec))))
 
 (defn nbi
   "Creates a negative binomial (type I) distribution object, using gamlss-style parameter names.
@@ -3624,7 +3625,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
          sigma (double sigma)]
      (if (m/< (m/* sigma mu) negative-binomial-poisson-limit)
        (poisson {:p mu :rng rng})
-       (negative-binomial-mean mu (m// 1.0 sigma) (m/+ mu (m/* sigma mu mu)) rng [:mu :sigma :rng])))))
+       (negative-binomial-mean mu (m// 1.0 sigma) (m/+ mu (m/* sigma mu mu)) rng [:mu :sigma :rng] fit-specs/nbi)))))
 
 (add-distr-method nbi)
 
@@ -3657,7 +3658,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
          sigma (double sigma)]
      (if (m/< sigma negative-binomial-poisson-limit)
        (poisson {:p mu :rng rng})
-       (negative-binomial-mean mu (m// mu sigma) (m/* mu (m/inc sigma)) rng [:mu :sigma :rng])))))
+       (negative-binomial-mean mu (m// mu sigma) (m/* mu (m/inc sigma)) rng [:mu :sigma :rng] fit-specs/nbii)))))
 
 (add-distr-method nbii)
 
@@ -4022,7 +4023,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (bb nil))
   ([{:keys [^double mu ^double sigma bd rng]
      :or {mu 0.5 sigma 1.0}}]
-   (distr/beta-binomial (m// mu sigma) (m// (m/- 1.0 mu) sigma) (long-parameter 'bb :bd bd 10) rng [:mu :sigma :bd :rng])))
+   (distr/beta-binomial (m// mu sigma) (m// (m/- 1.0 mu) sigma) (long-parameter 'bb :bd bd 10) rng [:mu :sigma :bd :rng] fit-specs/bb)))
 
 (add-distr-method bb)
 
@@ -5047,15 +5048,15 @@ It is one shared mutable object created with an unseeded generator: sampling fro
 
   Returns a map, or `nil` when the distribution can't be fitted (test statistic distributions, multivariate distributions, distributions defined by data, [[truncated]], [[mixture]], [[constant]], and every distribution which has no specification yet). The specification does not depend on the parameter values of `d`, only on its kind. Keys of the map:
 
-  - `:params` (vector): the fitted parameters, in the order of the constructor arguments, as maps with the keys `:name` (a key of [[distribution-parameters]], never `:rng` or `:inverse-abs-accuracy`), `:domain` and `:role`. The `:domain` is one of `:real`, `:positive`, `:non-negative`, `:unit` (the open interval from `0` to `1`) or a vector `[lo hi]`. The `:role` is one of `:location`, `:scale`, `:shape`, `:probability`, `:integer` or `:other`.
+  - `:params` (vector): the fitted parameters, in the order of the constructor arguments, as maps with the keys `:name` (a key of [[distribution-parameters]], never `:rng` or `:inverse-abs-accuracy`), `:domain` and `:role`, and for a parameter with the `:integer` role optionally `:range`, a function of the sorted data (a `double[]`) returning `[lo hi start]`, the integers between which the parameter is searched from `start`; an integer parameter without a range has to be fixed. The `:domain` is one of `:real`, `:positive`, `:non-negative`, `:unit` (the open interval from `0` to `1`) or a vector `[lo hi]`. The `:role` is one of `:location`, `:scale`, `:shape`, `:probability`, `:integer` or `:other`.
   - `:valid?` (function): takes the data and returns `nil` when the data can be fitted, otherwise a message (a string).
   - `:feasible?` (function, optional): takes a map of parameters and returns a truthy value when the combination is allowed by the constraints between parameters.
   - `:transform` (map, optional): an unconstrained reparametrisation of the parameters.
-  - `:estimators` (map, optional): closed form estimators by method (for example `:mle`), each a map with the key `:estimate` (a function of the sorted data as a `double[]`, returning a map of parameters, or `nil` when the data have no estimate) and `:exact?` (`true` when the estimate is the exact result of the method, `false` when it is only a starting point for a numerical fit).
+  - `:estimators` (map, optional): closed form estimators by method (for example `:mle`), each a map with the key `:estimate` (a function of the sorted data as a `double[]`, returning a map of parameters, or `nil` when the data have no estimate), `:exact?`, and optionally `:fixed`, a set of names of parameters: the estimator is declared for exactly these fixed parameters, takes their map as the second argument and returns the other parameters. Without `:fixed` it is for no fixed parameter. `:exact?` is `true` when the estimate is the exact result of the method and `false` when it is only a starting point for a numerical fit.
   - `:initial` (function, optional): takes the sorted data as a `double[]` and returns a map of starting values of the parameters, or `nil`.
   - `:moments`, `:lmoments` (functions, optional): take a map of parameters and return the theoretical moments (L-moments).
 
-  Distributions with the same kind (aliases of a key, like `:gev` and `:generalized-extreme-value`) have the same specification.
+  Distributions with the same kind (aliases of a key, like `:gev` and `:generalized-extreme-value`) have the same specification. A key with other parameters than the distribution it is built from (the reparametrised `:nbi`, `:nbii` and `:bb`) has its own. `:bernoulli` is a binomial distribution with one trial and has the specification of `:binomial`: fit it with `{:fixed {:trials 1}}`.
 
   See also [[distribution]], [[distribution-parameters]], [[distribution-id]]."
   [d]

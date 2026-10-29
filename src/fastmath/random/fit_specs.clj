@@ -3,7 +3,7 @@
 
   A specification is a map: `:params` (the fitted parameters with their domains and roles), `:valid?` (the validation of the data) and, optionally, `:estimators` (closed form estimators by method), `:initial` (starting values), `:moments` and `:lmoments`. See `fastmath.random/fit-spec` for the meaning of the keys.
 
-  The functions of `:valid?` take the sample as given by the user. The functions of `:estimators` and `:initial` take the sample as a sorted `double[]`, they return a map of parameters or `nil` when the sample has no estimate (for example when the variance is too large for the method of moments).
+  The functions of `:valid?` take the sample as given by the user. The functions of `:estimators` and `:initial` take the sample as a sorted `double[]`, they return a map of parameters or `nil` when the sample has no estimate (for example when the variance is too large for the method of moments). An estimator which is declared for fixed parameters (the `:fixed` set of its entry) takes also the map of the fixed parameters and returns the other parameters. A parameter with the `:integer` role may have a `:range`, a function of the sorted sample returning `[lo hi start]`, the integers between which the parameter is searched from `start`.
 
   The namespace has the data checks used by the specifications and one specification per distribution kind, defined with the distribution (`fastmath.random.distributions` for the Apache Commons Math classes and the custom distributions, `fastmath.random` for the constructors which wrap SSJ distributions)."
   (:require [fastmath.core :as m]
@@ -39,6 +39,14 @@
   [data ^long min-count]
   (or (real-data-error data min-count)
       (when-not (every? (fn [^double x] (m/< 0.0 x 1.0)) data) "data must be inside the interval (0, 1)")))
+
+(defn count-data-error
+  "Message when `data` is not a sequence of at least `min-count` integers not below `lower`, otherwise `nil`."
+  [data ^long min-count ^long lower]
+  (cond
+    (not (every? (fn [x] (and (number? x) (m/valid-double? x) (m/== (double x) (m/floor (double x))))) data)) "data must be integers"
+    (not (every? (fn [^double x] (m/>= x lower)) data)) (str "data must not be below " lower)
+    (m/< (count data) min-count) (str "data must have at least " min-count " observations")))
 
 ;; sample statistics (population versions: the maximum likelihood and moment estimates divide by n)
 
@@ -200,6 +208,14 @@
    :valid? #(positive-data-error % 1)
    :initial (fn [data] {:degrees-of-freedom (mean-of data)})})
 
+;; chi
+
+(def chi
+  "Specification of the chi distribution (`:nu` the integer degrees of freedom): `nu` is searched from the value given by the sample mean, `mean^2 + 1/2` (the mean of the distribution is about `sqrt(nu - 1/2)`)."
+  {:params [{:name :nu :domain :positive :role :integer
+             :range (fn [data] [1 100000 (m/max 1 (long (m/round (m/+ (m/sq (mean-of data)) 0.5))))])}]
+   :valid? #(positive-data-error % 1)})
+
 ;; erlang
 
 (def erlang
@@ -289,3 +305,126 @@
    :initial (fn [data]
               (let [excess (m/- (m// (central-moment-of data 4) (m/sq (central-moment-of data 2))) 3.0)]
                 {:degrees-of-freedom (if (m/pos? excess) (m/max 4.5 (m/+ 4.0 (m// 6.0 excess))) 30.0)}))})
+
+;; discrete distributions
+
+(defn- variance-of
+  ^double [data]
+  (central-moment-of data 2))
+
+(def poisson
+  "Specification of the Poisson distribution (`:p` the rate): the maximum likelihood estimate is the sample mean."
+  {:params [{:name :p :domain :positive :role :scale}]
+   :valid? #(count-data-error % 1 0)
+   :estimators {:mle {:exact? true
+                      :estimate (fn [data] (let [mean (mean-of data)] (when (m/pos? mean) {:p mean})))}}})
+
+(def geometric
+  "Specification of the geometric distribution (`:p`, the number of failures before the first success): the maximum likelihood estimate is `1 / (1 + mean)`."
+  {:params [{:name :p :domain :unit :role :probability}]
+   :valid? #(count-data-error % 1 0)
+   :estimators {:mle {:exact? true
+                      :estimate (fn [data] {:p (m// (m/inc (mean-of data)))})}}})
+
+(def binomial
+  "Specification of the binomial distribution (`:trials` an integer, `:p`): for given trials the maximum likelihood estimate is `mean / trials`. Without fixed trials they are searched from the largest observation, starting from the method of moments estimate (a sample which is not under-dispersed has no finite maximum, the search stops at the limit of `1000000` trials)."
+  {:params [{:name :trials :domain :positive :role :integer
+             :range (fn [^doubles data]
+                      (let [lo (m/max 1 (long (Array/aget data (m/dec (alength data)))))
+                            mean (mean-of data)
+                            variance (variance-of data)
+                            start (if (m/< variance mean) (long (m/round (m// (m/sq mean) (m/- mean variance)))) lo)]
+                        [lo 1000000 (m/max lo start)]))}
+            {:name :p :domain :unit :role :probability}]
+   :valid? #(count-data-error % 1 0)
+   :estimators {:mle {:exact? true
+                      :fixed #{:trials}
+                      :estimate (fn [data fixed]
+                                  (let [p (m// (mean-of data) (double (:trials fixed)))]
+                                    (when (m/<= 0.0 p 1.0) {:p p})))}}})
+
+(def pascal
+  "Specification of the Pascal distribution (`:r` the integer number of successes, `:p`; the number of failures before `r` successes): for given `r` the maximum likelihood estimate is `r / (r + mean)`. Without fixed `r` it is searched, starting from the method of moments estimate (up to `1000000`)."
+  {:params [{:name :r :domain :positive :role :integer
+             :range (fn [data]
+                      (let [mean (mean-of data)
+                            variance (variance-of data)
+                            start (if (m/> variance mean) (long (m/round (m// (m/sq mean) (m/- variance mean)))) 1)]
+                        [1 1000000 (m/max 1 start)]))}
+            {:name :p :domain :unit :role :probability}]
+   :valid? #(count-data-error % 1 0)
+   :estimators {:mle {:exact? true
+                      :fixed #{:r}
+                      :estimate (fn [data fixed]
+                                  (let [r (double (:r fixed))] {:p (m// r (m/+ r (mean-of data)))}))}}})
+
+(def negative-binomial
+  "Specification of the negative binomial distribution (`:r` real, `:p`): the starting values come from the method of moments."
+  {:params [{:name :r :domain :positive :role :shape}
+            {:name :p :domain :unit :role :probability}]
+   :valid? #(count-data-error % 2 0)
+   :initial (fn [data]
+              (let [mean (mean-of data)
+                    variance (variance-of data)]
+                (when (m/> variance mean)
+                  {:r (m// (m/sq mean) (m/- variance mean)) :p (m// mean variance)})))})
+
+(def nbi
+  "Specification of the negative binomial distribution type I (`:mu` the mean, `:sigma`, the variance is `mu + sigma mu^2`): the starting values come from the method of moments."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :positive :role :shape}]
+   :valid? #(count-data-error % 2 0)
+   :initial (fn [data]
+              (let [mean (mean-of data)
+                    variance (variance-of data)]
+                (when (m/pos? mean)
+                  {:mu mean :sigma (if (m/> variance mean) (m// (m/- variance mean) (m/sq mean)) 0.1)})))})
+
+(def nbii
+  "Specification of the negative binomial distribution type II (`:mu` the mean, `:sigma`, the variance is `mu (1 + sigma)`): the starting values come from the method of moments."
+  {:params [{:name :mu :domain :positive :role :scale}
+            {:name :sigma :domain :positive :role :shape}]
+   :valid? #(count-data-error % 2 0)
+   :initial (fn [data]
+              (let [mean (mean-of data)
+                    variance (variance-of data)]
+                (when (m/pos? mean)
+                  {:mu mean :sigma (if (m/> variance mean) (m// (m/- variance mean) mean) 0.1)})))})
+
+(def logarithmic
+  "Specification of the logarithmic distribution (`:p`, support from `1`): the starting value is chosen from the sample mean, `1 - 1 / mean` kept away from the ends."
+  {:params [{:name :p :domain :unit :role :probability}]
+   :valid? #(count-data-error % 1 1)
+   :initial (fn [data] {:p (m/constrain (m/- 1.0 (m// (mean-of data))) 0.05 0.95)})})
+
+(def uniform-int
+  "Specification of the discrete uniform distribution (`:lower`, `:upper`, integers): the maximum likelihood estimate is the sample minimum and maximum."
+  {:params [{:name :lower :domain :real :role :integer
+             :range (fn [^doubles data] (let [mn (long (Array/aget data 0))] [mn mn mn]))}
+            {:name :upper :domain :real :role :integer
+             :range (fn [^doubles data] (let [mx (long (Array/aget data (m/dec (alength data))))] [mx mx mx]))}]
+   :valid? #(count-data-error % 1 Long/MIN_VALUE)
+   :estimators {:mle {:exact? true
+                      :estimate (fn [^doubles data]
+                                  {:lower (Array/aget data 0) :upper (Array/aget data (m/dec (alength data)))})}}})
+
+(def zipf
+  "Specification of the Zipf distribution (`:number-of-elements` the integer highest rank, `:exponent`): the number of elements is searched at the largest observation, where the likelihood is the largest."
+  {:params [{:name :number-of-elements :domain :positive :role :integer
+             :range (fn [^doubles data] (let [mx (long (Array/aget data (m/dec (alength data))))] [mx mx mx]))}
+            {:name :exponent :domain :non-negative :role :shape}]
+   :valid? #(count-data-error % 1 1)})
+
+(def beta-binomial
+  "Specification of the beta-binomial distribution (`:alpha`, `:beta`, `:n` the integer number of trials, which has to be fixed)."
+  {:params [{:name :alpha :domain :positive :role :shape}
+            {:name :beta :domain :positive :role :shape}
+            {:name :n :domain :positive :role :integer}]
+   :valid? #(count-data-error % 2 0)})
+
+(def bb
+  "Specification of the beta-binomial distribution with the gamlss parameters (`:mu` the mean probability, `:sigma`, `:bd` the integer binomial denominator, which has to be fixed)."
+  {:params [{:name :mu :domain :unit :role :probability}
+            {:name :sigma :domain :positive :role :shape}
+            {:name :bd :domain :positive :role :integer}]
+   :valid? #(count-data-error % 2 0)})

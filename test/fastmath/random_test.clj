@@ -31,7 +31,9 @@
            e [(when-not (keyword? method) "estimator method must be a keyword")
               (when-not (fn? estimate) (str method " estimator must have a function under :estimate"))
               (when-not (boolean? exact?) (str method " estimator must have a boolean :exact?"))
-              (when-not (and (map? est) (= #{:estimate :exact?} (set (keys est)))) (str method " estimator has wrong keys"))]
+              (when-not (and (map? est) (every? #{:estimate :exact? :fixed} (keys est)) (every? #(contains? est %) [:estimate :exact?]))
+                (str method " estimator has wrong keys"))
+              (when (and (map? est) (contains? est :fixed) (not (set? (:fixed est)))) (str method " estimator :fixed must be a set"))]
            :when e] e)
      (for [{:keys [name domain role] :as prm} (:params spec)
            e [(when-not (keyword? name) "name must be a keyword")
@@ -41,7 +43,10 @@
                             (and (vector? domain) (= 2 (count domain)) (every? number? domain) (< (first domain) (second domain))))
                 (str name " has a wrong domain " domain))
               (when-not (fit-spec-roles role) (str name " has a wrong role " role))
-              (when-not (= #{:name :domain :role} (set (keys prm))) (str name " has wrong keys"))]
+              (when-not (and (every? #{:name :domain :role :range} (keys prm))
+                             (every? prm [:name :domain :role])) (str name " has wrong keys"))
+              (when (and (contains? prm :range) (not (and (fn? (:range prm)) (= :integer role))))
+                (str name " has a :range which is not a function or the parameter is not an integer"))]
            :when e] e)
      (when-not (= (count names) (count (set names))) ["duplicated parameter names"])
      (when-not (= positions (sort positions)) ["params are not in the order of the constructor arguments"]))))
@@ -101,13 +106,20 @@
       (t/is (seq (fit-spec-errors d (assoc ok :unknown 1))))
       (t/is (empty? (fit-spec-errors d (assoc ok :estimators {:mle {:estimate identity :exact? true}}))))
       (t/is (seq (fit-spec-errors d (assoc ok :estimators {:mle identity}))))
-      (t/is (seq (fit-spec-errors d (assoc ok :estimators {:mle {:estimate identity}}))))))
+      (t/is (seq (fit-spec-errors d (assoc ok :estimators {:mle {:estimate identity}}))))
+      (t/is (empty? (fit-spec-errors d (assoc ok :estimators {:mle {:estimate identity :exact? false :fixed #{:mu}}}))))
+      (t/is (seq (fit-spec-errors d (assoc ok :estimators {:mle {:estimate identity :exact? false :fixed [:mu]}}))))
+      (t/is (seq (fit-spec-errors d (assoc-in ok [:params 0 :range] (fn [_] [1 2 1])))))
+      (t/is (empty? (fit-spec-errors d (assoc-in ok [:params 0 :role] :integer))))
+      (t/is (empty? (fit-spec-errors d (update-in (assoc-in ok [:params 0 :role] :integer) [:params 0] assoc :range (fn [_] [1 2 1])))))))
   (t/testing "aliases and the id of an object give the same specification"
     (doseq [k sut/distributions-list
             :let [d (sut/distribution k)
                   id (sut/distribution-id d)]
             :when (and (not= k id) (some #{id} sut/distributions-list)
-                       (= (class d) (class (sut/distribution id))))]
+                       (= (class d) (class (sut/distribution id)))
+                       ;; a reparametrised key (:nbi, :nbii, :bb) has its own parameters and specification
+                       (= (sut/distribution-parameters d) (sut/distribution-parameters id)))]
       (t/is (= (sut/fit-spec k) (sut/fit-spec id)) (str k " vs " id)))))
 
 ;; reference values from R's gamlss.dist package: dZAGA/pZAGA/qZAGA

@@ -87,7 +87,19 @@
   TDistribution
   (fit-spec [_] fit-specs/t)
   NakagamiDistribution
-  (fit-spec [_] fit-specs/nakagami))
+  (fit-spec [_] fit-specs/nakagami)
+  PoissonDistribution
+  (fit-spec [_] fit-specs/poisson)
+  GeometricDistribution
+  (fit-spec [_] fit-specs/geometric)
+  BinomialDistribution
+  (fit-spec [_] fit-specs/binomial)
+  PascalDistribution
+  (fit-spec [_] fit-specs/pascal)
+  UniformIntegerDistribution
+  (fit-spec [_] fit-specs/uniform-int)
+  ZipfDistribution
+  (fit-spec [_] fit-specs/zipf))
 
 (extend RealDistribution
   prot/DistributionProto
@@ -1103,18 +1115,23 @@
 (defn negative-binomial
   "Negative binomial distribution `(r, p)`: the number of failures before `r` successes with the success probability `p`
   (`r > 0`, `0 < p <= 1`). The optional `parameters` (default `[:r :p :rng]`) is what `distribution-parameters` reports,
-  for the constructors accepting other parameters (`nbi`, `nbii`)."
-  ([^double r ^double p rng] (negative-binomial r p rng [:r :p :rng]))
-  ([^double r ^double p rng parameters]
+  for the constructors accepting other parameters (`nbi`, `nbii`), and `fit-spec` the value of `fit-spec` (`nil`: the distribution can't be fitted)."
+  ([^double r ^double p rng] (negative-binomial r p rng [:r :p :rng] fit-specs/negative-binomial))
+  ([^double r ^double p rng parameters] (negative-binomial r p rng parameters nil))
+  ([r p rng parameters fit-spec]
+   (let [r (double r)
+         p (double p)]
    (when-not (and (m/pos? r) (m/< r ##Inf))
      (invalid-input! 'negative-binomial :r "has to be positive and finite" r "r > 0"))
    (when-not (and (m/pos? p) (m/<= p 1.0))
      (invalid-input! 'negative-binomial :p "has to be from the range (0, 1]" p "0 < p <= 1"))
-   (negative-binomial-core r p rng parameters)))
+   (negative-binomial-core r p rng parameters fit-spec))))
 
 (defn- negative-binomial-core
-  [^double r ^double p rng parameters]
-  (let [p- (m/- 1.0 p)
+  [r p rng parameters fit-spec]
+  (let [r (double r)
+        p (double p)
+        p- (m/- 1.0 p)
         mean (m// (m/* r p-) p)
         variance (m// mean p)
         lgr (special/log-gamma r)
@@ -1142,6 +1159,7 @@
                      :continuous? false
                      :name :negative-binomial
                      :parameters parameters
+                     :fit-spec fit-spec
                      :mean mean
                      :variance variance
                      :lower-bound 0
@@ -1218,6 +1236,7 @@
                      :dimensions 1
                      :continuous? false
                      :name :logarithmic
+                     :fit-spec fit-specs/logarithmic
                      :parameters [:p :rng]
                      :mean mean
                      :variance variance
@@ -1761,12 +1780,13 @@
 
 (defn beta-binomial
   "Beta-binomial distribution `(alpha, beta, n)`. The optional `parameters` (default `[:alpha :beta :n :rng]`) is what
-  `distribution-parameters` reports, for the constructors accepting other parameters (`bb`)."
-  ([^double alpha ^double beta ^long n rng] (beta-binomial alpha beta n rng [:alpha :beta :n :rng]))
-  ([alpha beta n rng parameters] (beta-binomial-core alpha beta n rng parameters)))
+  `distribution-parameters` reports, for the constructors accepting other parameters (`bb`); the optional `fit-spec` is the value of `fit-spec` (`nil`: the distribution can't be fitted)."
+  ([^double alpha ^double beta ^long n rng] (beta-binomial alpha beta n rng [:alpha :beta :n :rng] fit-specs/beta-binomial))
+  ([alpha beta n rng parameters] (beta-binomial alpha beta n rng parameters nil))
+  ([alpha beta n rng parameters fit-spec] (beta-binomial-core alpha beta n rng parameters fit-spec)))
 
 (defn- beta-binomial-core
-  [alpha beta n rng parameters]
+  [alpha beta n rng parameters fit-spec]
   (let [alpha (double alpha)
         beta (double beta)
         n (long n)
@@ -1799,6 +1819,7 @@
                      :continuous? false
                      :name :beta-binomial
                      :parameters parameters
+                     :fit-spec fit-spec
                      :lower-bound 0
                      :upper-bound n})))
 

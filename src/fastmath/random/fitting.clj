@@ -118,7 +118,7 @@
            (count probs)))))
 
 (defn- spacings
-  "Objective: minus the mean logarithm of the spacings of the cumulative distribution function at the sorted sample, with the ends `0` and `1`. Spacings equal to zero (ties) are left out."
+  "Objective: minus the mean logarithm of the spacings of the cumulative distribution function at the sorted sample, with the ends `0` and `1`. A spacing between tied observations is zero: it is replaced by the density (mass) at the observation. A zero last spacing is left out."
   [^doubles xs]
   (let [n (alength xs)]
     (fn [d _]
@@ -126,13 +126,18 @@
              previous 0.0
              sum 0.0
              cnt (long 0)]
-        (let [current (if (m/< i n) (r/cdf d (Array/aget xs i)) 1.0)
+        (let [last? (m/== i n)
+              current (if last? 1.0 (r/cdf d (Array/aget xs i)))
               diff (m/- current previous)
-              positive? (m/pos? diff)
-              sum (if positive? (m/+ sum (m/log diff)) sum)
-              cnt (if positive? (m/inc cnt) cnt)]
+              term (double (cond
+                             (m/pos? diff) (m/log diff)
+                             last? ##NaN
+                             :else (r/lpdf d (Array/aget xs i))))
+              included? (not (m/nan? term))
+              sum (if included? (m/+ sum term) sum)
+              cnt (if included? (m/inc cnt) cnt)]
           (cond
-            (m/< i n) (recur (m/inc i) current sum cnt)
+            (not last?) (recur (m/inc i) current sum cnt)
             (m/zero? cnt) ##Inf
             :else (m/- (m// sum cnt))))))))
 
@@ -254,8 +259,10 @@
               :cvm (stats/cvm-statistic xs d {:sorted? true})
               :ad (stats/ad-statistic xs d {:sorted? true})}))))
 
+
+
 (defn- build-result
-  [dist-key spec fixed method params tier converged? iterations xs]
+  [dist-key spec fixed method params tier converged? iterations xs k]
   (let [d (try (r/distribution dist-key params)
                (catch Exception e
                  (throw (ex-info "fit: the fitted parameters don't make a distribution"
@@ -267,29 +274,113 @@
      :converged? converged?
      :iterations iterations
      :fixed fixed
-     :stats (fit-statistics d xs (m/long-sub (count (:params spec)) (count fixed)))}))
+     :stats (fit-statistics d xs k)}))
+
+(defn- estimate
+  "Parameters from the closed form estimator `closed-form` (an entry of `:estimators`), or `nil`. An estimator declared for fixed parameters applies when exactly these are fixed, any other one when `fixed-only?` is false or no parameter is fixed."
+  [closed-form xs fixed exact?]
+  (when closed-form
+    (if-let [required (:fixed closed-form)]
+      (when (= required (set (keys fixed)))
+        ((:estimate closed-form) xs fixed))
+      (when (or (not exact?) (empty? fixed))
+        ((:estimate closed-form) xs)))))
+
+(defn- fit-fixed
+  "Fit with the integer parameters fixed (`fixed` holds all the fixed parameters, `shown-fixed` the ones given by the user, `k` is the number of fitted parameters). Returns the map of `:result` and the `:value` of the objective of the method at it."
+  [{:keys [dist-key spec xs method optimizer restarts closed-form? rng opts]} fixed shown-fixed k]
+  (let [estimators (when closed-form? (:estimators spec))
+        closed-form (get estimators method)
+        free (vec (remove #(contains? fixed (:name %)) (:params spec)))
+        free-names (mapv :name free)
+        objective (method-objective method xs spec (count free) opts)
+        value-of (fn [result] (double (objective (:distribution result) (:params result))))
+        estimated (estimate closed-form xs fixed (:exact? closed-form))]
+    (cond
+      (and (:exact? closed-form) estimated)
+      (let [result (build-result dist-key spec shown-fixed method (merge estimated fixed) :closed-form true 0 xs k)]
+        {:result result :value (value-of result)})
+      ;; every parameter is fixed (the searched integer was the last free one)
+      (empty? free)
+      (let [result (build-result dist-key spec shown-fixed method fixed :closed-form true 0 xs k)]
+        {:result result :value (value-of result)})
+      :else
+      (let [bounds (mapv (comp domain-bounds :domain) free)
+            scale (robust-scale xs)
+            objective-fn (objective-function dist-key fixed free-names objective)
+            seed (or estimated
+                     (when-let [initial (:initial spec)] (initial xs))
+                     (estimate (:mle estimators) xs fixed false))
+            starts (if (and seed (every? #(contains? seed %) free-names))
+                     [(mapv seed free-names)]
+                     (scanned-starts dist-key fixed free xs scale restarts rng))
+            best (->> starts
+                      (keep #(polish optimizer objective-fn bounds %))
+                      (filter #(m/valid-double? (double (:value %))))
+                      (sort-by :value)
+                      (first))]
+        (when (or (nil? best) (m/inf? (:value best)))
+          (if (#{:mme :lmme} method)
+            (undefined-moments! dist-key "moments to match")
+            (throw (ex-info "fit: no usable estimate was found" {:type :not-converged :function 'fit :distribution dist-key}))))
+        (let [result (build-result dist-key spec shown-fixed method (merge fixed (zipmap free-names (:point best)))
+                                   :numeric (contains? #{nil :converged :stalled} (:status best)) (or (:iterations best) 0) xs k)]
+          {:result result :value (:value best)})))))
+
+(defn- search-integer
+  "Integer from `lo` to `hi` where `g` (a function of a long returning a number) is the smallest, found from `start`: the direction of descent is found, the step doubles while `g` decreases and the bracket is shrunk by the ternary search. `g` has to be unimodal (a plateau is allowed)."
+  [g lo hi start]
+  (let [lo (long lo)
+        hi (long hi)
+        g (memoize g)
+        value (fn [i] (g i))
+        start (long (m/constrain (long start) lo hi))
+        argmin (fn [a b] (reduce (fn [best i] (if (m/< (double (value i)) (double (value best))) i best)) (range a (m/inc (long b)))))
+        direction (long (cond
+                    (and (m/> start lo) (m/< (double (value (m/dec start))) (double (value start)))) -1
+                    (and (m/< start hi) (m/< (double (value (m/inc start))) (double (value start)))) 1
+                    :else 0))]
+    (if (or (m/== lo hi) (m/zero? direction))
+      start
+      (let [[a b] (loop [before start
+                         previous start
+                         k 1]
+                    (let [next (long (m/constrain (m/+ start (m/* direction (m/dec (m/bit-shift-left 1 k)))) lo hi))]
+                      (if (and (m/not== next previous) (m/< (double (value next)) (double (value previous))))
+                        (recur previous next (m/inc k))
+                        [(m/min before next) (m/max before next)])))]
+        (loop [a (long a)
+               b (long b)]
+          (if (m/<= (m/- b a) 2)
+            (argmin a b)
+            (let [third (m/quot (m/- b a) 3)
+                  m1 (m/+ a third)
+                  m2 (m/- b third)]
+              (if (m/< (double (value m1)) (double (value m2))) (recur a m2) (recur m1 b)))))))))
 
 (defn fit
   "Fits a distribution to data.
 
-  The distribution is given by its key (see [[fastmath.random/distribution]]), the fitted parameters are the ones listed by [[fastmath.random/fit-spec]]. When the specification of the distribution has an exact closed form estimator for the method (and `:fixed` is empty and `:closed-form?` is not `false`) it is the result. Otherwise the objective of the method is minimized, from a closed form estimate that is not exact or the starting values of the specification or the maximum likelihood estimate of the specification, or from the best points of a scan of the parameter space (a quantile matching objective over ranges derived from the data and the roles of the parameters) when it has none.
+  The distribution is given by its key (see [[fastmath.random/distribution]]), the fitted parameters are the ones listed by [[fastmath.random/fit-spec]]. When the specification of the distribution has an exact closed form estimator for the method (and the fixed parameters are the ones it is declared for, none for most estimators, and `:closed-form?` is not `false`) it is the result. Otherwise the objective of the method is minimized, from a closed form estimate that is not exact or the starting values of the specification or the maximum likelihood estimate of the specification, or from the best points of a scan of the parameter space (a quantile matching objective over ranges derived from the data and the roles of the parameters) when it has none.
 
   Methods (the `:method` option):
 
   - `:mle`: maximum likelihood, the default.
   - `:ks`, `:cvm`, `:ad`, `:adr`, `:adl`, `:ad2r`, `:ad2l`, `:ad2`: minimum distance, the minimum of the Kolmogorov-Smirnov, Cramer-von Mises or Anderson-Darling statistic or of one of its variants (see [[fastmath.stats/ks-statistic]], [[fastmath.stats/cvm-statistic]], [[fastmath.stats/ad-statistic]]).
-  - `:mps`: maximum product of spacings, the maximum of the mean logarithm of the spacings of the cumulative distribution function at the sorted sample (zero spacings are left out).
+  - `:mps`: maximum product of spacings, the maximum of the mean logarithm of the spacings of the cumulative distribution function at the sorted sample. A spacing between tied observations is zero and is replaced by the density (mass) at the observation, so the method can be used for discrete distributions.
   - `:qme`: quantile matching, the minimum of the mean squared distance of the sample quantiles and the distribution quantiles.
   - `:mme`: moment matching, the first `k` raw moments (`k` is the number of fitted parameters) of the distribution equal to the ones of the sample.
   - `:lmme`: L-moment matching, the first `k` L-moments of the distribution equal to the ones of the sample.
 
+  Integer parameters (the `:integer` role, for example the trials of the binomial distribution) can't be found by the optimizer. When the specification gives a `:range` for the one which is not fixed, it is searched: for each integer the other parameters are fitted and the integer with the best value of the objective is chosen (the objective has to be unimodal in the integer). Otherwise an integer parameter has to be fixed.
+
   Parameters:
 
   - `dist-key` (keyword): A key of [[fastmath.random/distribution]] which has a specification.
-  - `data` (sequence of numbers): The sample; it has to pass the validation of the specification (for example `:gamma` requires positive values).
+  - `data` (sequence of numbers): The sample; it has to pass the validation of the specification (for example `:gamma` requires positive values and `:poisson` integers).
   - `opts` (map, optional):
     - `:method` (keyword, default `:mle`): The estimation method.
-    - `:fixed` (map, default `nil`): Parameters which are not fitted, as a map from the name of a parameter to its value. At least one parameter has to stay free. A parameter with the `:integer` role has to be given here.
+    - `:fixed` (map, default `nil`): Parameters which are not fitted, as a map from the name of a parameter to its value. At least one parameter has to stay free (or be searched).
     - `:optimizer` (keyword): The method of [[fastmath.optimization]] used for the numerical minimization, `:lbfgsb` or `:nelder-mead` (its initial simplex is a fifth of the starting values). The default is `:nelder-mead` for the minimum distance methods (`:ks`, `:cvm`, `:ad` and its variants), whose objectives are not smooth or have plateaus, and `:lbfgsb` otherwise.
     - `:restarts` (long, default `3`): The number of starting points taken from the scan, when there are no other starting values.
     - `:closed-form?` (boolean, default `true`): Set to `false` to skip the closed form estimators and fit numerically.
@@ -299,17 +390,17 @@
   Returns a map with the keys:
 
   - `:distribution`: The fitted distribution object.
-  - `:params`: The map of all parameters (fitted and fixed) to doubles.
+  - `:params`: The map of all parameters (fitted, searched and fixed) to doubles.
   - `:method`: The estimation method.
-  - `:tier`: `:closed-form` or `:numeric`.
+  - `:tier`: `:closed-form` or `:numeric`. A fit in which the search of an integer parameter leaves no parameter to optimize (the chi distribution) is `:closed-form`. A fit in which the search of an integer parameter leaves no parameter to optimize (the chi distribution) is `:closed-form`.
   - `:converged?`: `true` when the optimizer reported convergence or a stalled objective (it stopped changing, the usual end at the optimum), `false` when it stopped at the iteration limit. A closed form result is always converged.
   - `:iterations`: The number of iterations of the optimizer, `0` for a closed form.
-  - `:fixed`: The map of fixed parameters.
-  - `:stats`: A map with `:k` (the number of fitted parameters), `:n`, `:loglik`, `:aic`, `:aicc`, `:bic`, and for continuous distributions the goodness-of-fit statistics `:ks`, `:cvm` and `:ad`, which are descriptive, not tests. They describe the fitted distribution, whatever the method. `:aicc` is `##Inf` when `n` is not above `k + 1`.
+  - `:fixed`: The map of fixed parameters, as given.
+  - `:stats`: A map with `:k` (the number of fitted parameters, a searched integer included), `:n`, `:loglik`, `:aic`, `:aicc`, `:bic`, and for continuous distributions the goodness-of-fit statistics `:ks`, `:cvm` and `:ad`, which are descriptive, not tests. They describe the fitted distribution, whatever the method. `:aicc` is `##Inf` when `n` is not above `k + 1`.
 
   Moment matching with the moments above the second order, and L-moment matching, integrate the quantile function numerically unless the specification has its own `:moments` or `:lmoments`.
 
-  Throws `ex-info` with `:type :not-fittable` when the distribution has no specification, with `:type :invalid-input` for data which fail the validation, an unknown `:method`, wrong `:quantiles`, a wrong `:fixed` value or a missing `:integer` parameter, with `:type :moments-undefined` when `:mme` or `:lmme` finds no parameters for which the moments exist (the Cauchy distribution has none), and with `:type :not-converged` when no usable estimate is found. An evaluation of the objective which throws or is not finite counts as an infinite objective value.
+  Throws `ex-info` with `:type :not-fittable` when the distribution has no specification, with `:type :invalid-input` for data which fail the validation, an unknown `:method`, wrong `:quantiles`, a wrong `:fixed` value, an integer parameter which has to be fixed or more than one integer parameter to search, with `:type :moments-undefined` when `:mme` or `:lmme` finds no parameters for which the moments exist (the Cauchy distribution has none), and with `:type :not-converged` when no usable estimate is found. An evaluation of the objective which throws or is not finite counts as an infinite objective value.
 
   See also [[fastmath.random/fit-spec]], [[fastmath.random/log-likelihood]]."
   ([dist-key data] (fit dist-key data nil))
@@ -334,38 +425,23 @@
                (not (names nm)) (invalid-input! :fixed (str nm " is not a parameter") nm names)
                (not (number? v)) (invalid-input! :fixed (str nm " is not a number") v "number")
                (not (in-domain? (:domain prm) v)) (invalid-input! :fixed (str nm " is outside of its domain") v (:domain prm))))
-         _ (doseq [{:keys [name role]} (:params spec)]
-             (when (and (= :integer role) (not (contains? fixed name)))
-               (invalid-input! :fixed (str name " is an integer parameter and has to be fixed") name "a value in :fixed")))
-         free (vec (remove #(contains? fixed (:name %)) (:params spec)))
-         _ (when (empty? free)
-             (invalid-input! :fixed "at least one parameter has to stay free" fixed "fewer fixed parameters"))
-         xs (double-array (sort data))
-         estimators (when closed-form? (:estimators spec))
-         closed-form (get estimators method)
-         estimate (when closed-form ((:estimate closed-form) xs))]
-     (if (and (:exact? closed-form) estimate (empty? fixed))
-       (build-result dist-key spec fixed method estimate :closed-form true 0 xs)
-       (let [free-names (mapv :name free)
-             bounds (mapv (comp domain-bounds :domain) free)
-             scale (robust-scale xs)
-             rng (or rng (r/rng :jdk))
-             objective (objective-function dist-key fixed free-names
-                                           (method-objective method xs spec (count free) opts))
-             seed (or estimate
-                      (when-let [initial (:initial spec)] (initial xs))
-                      (when-let [mle (:estimate (:mle estimators))] (mle xs)))
-             starts (if seed
-                      [(mapv seed free-names)]
-                      (scanned-starts dist-key fixed free xs scale restarts rng))
-             best (->> starts
-                       (keep #(polish optimizer objective bounds %))
-                       (filter #(m/valid-double? (:value %)))
-                       (sort-by :value)
-                       (first))]
-         (when (or (nil? best) (m/inf? (:value best)))
-           (if (#{:mme :lmme} method)
-             (undefined-moments! dist-key "moments to match")
-             (throw (ex-info "fit: no usable estimate was found" {:type :not-converged :function 'fit :distribution dist-key}))))
-         (build-result dist-key spec fixed method (merge fixed (zipmap free-names (:point best)))
-                       :numeric (contains? #{nil :converged :stalled} (:status best)) (or (:iterations best) 0) xs))))))
+         xs (m/seq->double-array (sort data))
+         context {:dist-key dist-key :spec spec :xs xs :method method :optimizer optimizer
+                  :restarts restarts :closed-form? closed-form? :rng (or rng (r/rng :jdk)) :opts opts}
+         k (m/long-sub (count (:params spec)) (count fixed))
+         closed-form (when closed-form? (get-in spec [:estimators method]))
+         exact? (and (:exact? closed-form) (estimate closed-form xs fixed true))
+         searched (remove #(contains? fixed (:name %)) (filter #(= :integer (:role %)) (:params spec)))]
+     (cond
+       ;; the exact estimator also finds the integer parameters it is declared for
+       exact? (:result (fit-fixed context fixed fixed k))
+       (empty? searched) (do (when (m/zero? k)
+                               (invalid-input! :fixed "at least one parameter has to stay free" fixed "fewer fixed parameters"))
+                             (:result (fit-fixed context fixed fixed k)))
+       (m/> (count searched) 1) (invalid-input! :fixed "at most one integer parameter can be searched, fix the others" (mapv :name searched) "one integer parameter")
+       (not (:range (first searched))) (invalid-input! :fixed (str (:name (first searched)) " is an integer parameter and has to be fixed") (:name (first searched)) "a value in :fixed")
+       :else (let [{:keys [name range]} (first searched)
+                   [lo hi start] (range xs)
+                   fit-at (memoize (fn [i] (fit-fixed context (assoc fixed name i) fixed k)))
+                   best (search-integer #(:value (fit-at %)) lo hi start)]
+               (:result (fit-at best)))))))
