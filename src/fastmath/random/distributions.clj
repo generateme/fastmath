@@ -54,6 +54,30 @@
   prot/DistributionIdProto
   {:distribution? (constantly false)})
 
+(extend Object
+  prot/FittingProto
+  {:fit-spec (constantly nil)})
+
+(extend nil
+  prot/FittingProto
+  {:fit-spec (constantly nil)})
+
+(defn real-data-error
+  "Message when `data` is not a sequence of at least `min-count` finite numbers, otherwise `nil`."
+  [data ^long min-count]
+  (cond
+    (not (every? (fn [x] (and (number? x) (m/valid-double? x))) data)) "data must be finite numbers"
+    (m/< (count data) min-count) (str "data must have at least " min-count " observations")))
+
+(def ^:private normal-fit-spec
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :sd :domain :positive :role :scale}]
+   :valid? #(real-data-error % 2)})
+
+(extend-protocol prot/FittingProto
+  NormalDistribution
+  (fit-spec [_] normal-fit-spec))
+
 (extend RealDistribution
   prot/DistributionProto
   {:cdf (fn (^double [^RealDistribution d ^double v] (.cumulativeProbability d v))
@@ -429,11 +453,15 @@
   - `d`: an SSJ `ContinuousDistribution`, it is also the `source-object`
   - `rng`: random generator (`nil`: a fresh one)
   - `params`: vector of keywords reported by `distribution-parameters`
+  - `fit-spec` (optional): the fitting specification returned by `fit-spec`, `nil` (default) for a distribution which can't be fitted
 
   `pdf`, `cdf`, `icdf`, `mean`, `variance` and the bounds are the ones of SSJ, `lpdf` is the logarithm of the density. A sample is the SSJ quantile of a uniform number from `rng`. `grandom`, `brandom` and `set-seed` throw `UnsupportedOperationException`, `set-seed!` reseeds `rng`. Returns a univariate continuous distribution."
-  [nm ^ContinuousDistribution d ^RandomGenerator rng params]
+  ([nm ^ContinuousDistribution d ^RandomGenerator rng params] (ssj-continuous nm d rng params nil))
+  ([nm ^ContinuousDistribution d ^RandomGenerator rng params fit-spec]
   (let [rng (or rng (JDKRandomGenerator.))]
     (reify
+      prot/FittingProto
+      (fit-spec [_] fit-spec)
       prot/DistributionProto
       (pdf [_ v] (.density d v))
       (lpdf [_ v] (m/log (.density d v)))
@@ -464,7 +492,7 @@
       (irandom [_] (unchecked-int (m/round-even (.inverseF d (prot/drandom rng)))))
       (->seq [_] (repeatedly #(.inverseF d (prot/drandom rng))))
       (->seq [_ n] (repeatedly n #(.inverseF d (prot/drandom rng))))
-      (set-seed! [d seed] (prot/set-seed! rng seed) d))))
+      (set-seed! [d seed] (prot/set-seed! rng seed) d)))))
 
 (defn ssj-continuous-no-pdf
   "Wraps the SSJ continuous distribution `d` which has no density into a distribution object.
@@ -854,6 +882,7 @@
   - `rng`: random generator (`nil`: a fresh one)
   - `dimensions` (long, default 1), `continuous?`, `integer-support?` (discrete distributions: `false` for the real valued ones)
   - `name`, `parameters`: values of `distribution-id` and `distribution-parameters`
+  - `fit-spec`: the value of `fit-spec`, the fitting specification (default `nil`: the distribution can't be fitted)
   - `mean`, `variance`: numbers or delays (evaluated on first request)
   - `lower-bound`, `upper-bound`: bounds of the support
 
@@ -863,7 +892,7 @@
   functions are called with integer (`long`) arguments only: `pdf` and `probability` return 0.0 and `lpdf` -Inf for a non-integer
   argument, `cdf` floors its argument and is 0.0 below `:lower-bound`, NaN is passed through as NaN. Discrete distributions on
   arbitrary real numbers set `:integer-support?` to false and receive the argument unchanged."
-  [{:keys [pdf lpdf cdf icdf rng ^long dimensions continuous? integer-support? name parameters mean variance lower-bound upper-bound sampler seeder]
+  [{:keys [pdf lpdf cdf icdf rng ^long dimensions continuous? integer-support? name parameters mean variance lower-bound upper-bound sampler seeder fit-spec]
     :or {dimensions 1}}]
   (let [rng (or rng (JDKRandomGenerator.))
         pdf (or pdf (fn ^double [^double v] (m/exp (double (lpdf v)))))
@@ -880,6 +909,8 @@
                  (fn [^long seed] (seeder seed))
                  (fn [^long seed] (prot/set-seed! rng seed)))]
     (reify
+      prot/FittingProto
+      (fit-spec [_] fit-spec)
       prot/DistributionProto
       (pdf [_ v] (pdf v))
       (lpdf [_ v] (lpdf v))

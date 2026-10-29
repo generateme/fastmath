@@ -73,6 +73,10 @@
   (distribution-parameters [d] "List of distribution parameter names")
   (distribution? [d] "Returns true if the object is distribution"))
 
+(defprotocol FittingProto
+  "Information needed to fit a distribution to data."
+  (fit-spec [d] "Fitting specification of the distribution as a map, or `nil` when the distribution can't be fitted."))
+
 ;; vector
 
 (defprotocol VectorProto

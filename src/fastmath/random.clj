@@ -2860,6 +2860,11 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
 (add-distr-method frechet)
 
+(def ^:private half-normal-fit-spec
+  {:params [{:name :mu :domain :real :role :location}
+            {:name :sigma :domain :positive :role :scale}]
+   :valid? #(distr/real-data-error % 2)})
+
 (defn half-normal
   "Creates a half-normal distribution object.
 
@@ -2879,7 +2884,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (half-normal nil))
   ([{:keys [^double mu ^double sigma rng]
      :or {mu 0.0 sigma 1.0}}]
-   (distr/ssj-continuous :half-normal (HalfNormalDist. mu sigma) rng [:mu :sigma :rng])))
+   (distr/ssj-continuous :half-normal (HalfNormalDist. mu sigma) rng [:mu :sigma :rng] half-normal-fit-spec)))
 
 (add-distr-method half-normal)
 
@@ -5036,6 +5041,30 @@ It is one shared mutable object created with an unseeded generator: sampling fro
   [d]
   (let [d' (if (keyword? d) (distribution d) d)]
     (prot/distribution-parameters d')))
+
+(defn fit-spec
+  "Fitting specification of a distribution: what is needed to fit it to data.
+
+  Parameters:
+
+  - `d`: a distribution or a key of [[distribution]] (a keyword; then the distribution with the default parameters is created).
+
+  Returns a map, or `nil` when the distribution can't be fitted (test statistic distributions, multivariate distributions, distributions defined by data, [[truncated]], [[mixture]], [[constant]], and every distribution which has no specification yet). The specification does not depend on the parameter values of `d`, only on its kind. Keys of the map:
+
+  - `:params` (vector): the fitted parameters, in the order of the constructor arguments, as maps with the keys `:name` (a key of [[distribution-parameters]], never `:rng` or `:inverse-abs-accuracy`), `:domain` and `:role`. The `:domain` is one of `:real`, `:positive`, `:non-negative`, `:unit` (the open interval from `0` to `1`) or a vector `[lo hi]`. The `:role` is one of `:location`, `:scale`, `:shape`, `:probability`, `:integer` or `:other`.
+  - `:valid?` (function): takes the data and returns `nil` when the data can be fitted, otherwise a message (a string).
+  - `:feasible?` (function, optional): takes a map of parameters and returns a truthy value when the combination is allowed by the constraints between parameters.
+  - `:transform` (map, optional): an unconstrained reparametrisation of the parameters.
+  - `:estimators` (map, optional): closed form estimators by method.
+  - `:initial` (function, optional): takes the data and returns a map of starting values of the parameters.
+  - `:moments`, `:lmoments` (functions, optional): take a map of parameters and return the theoretical moments (L-moments).
+
+  Distributions with the same kind (aliases of a key, like `:gev` and `:generalized-extreme-value`) have the same specification.
+
+  See also [[distribution]], [[distribution-parameters]], [[distribution-id]]."
+  [d]
+  (let [d' (if (keyword? d) (distribution d) d)]
+    (prot/fit-spec d')))
 
 ;;
 

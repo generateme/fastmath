@@ -1,9 +1,105 @@
 (ns fastmath.random-test
   (:require [fastmath.random :as sut]
             [fastmath.random.distributions :as distr]
+            [fastmath.protocols :as prot]
             [clojure.test :as t]
             [fastmath.core :as m]
             [fastmath.vector :as v]))
+
+;; fit-spec: protocol plumbing and the shape of the specifications
+
+(def ^:private fit-spec-keys #{:params :valid? :feasible? :transform :estimators :initial :moments :lmoments})
+(def ^:private fit-spec-domains #{:real :positive :non-negative :unit})
+(def ^:private fit-spec-roles #{:location :scale :shape :probability :integer :other})
+(def ^:private fit-spec-config-keys #{:rng :inverse-abs-accuracy})
+
+(defn- fit-spec-errors
+  "Descriptions of everything in `spec` of the distribution `d` which breaks the schema of `fit-spec`."
+  [d spec]
+  (let [ctor-keys (vec (sut/distribution-parameters d))
+        names (mapv :name (:params spec))
+        positions (keep #(first (keep-indexed (fn [i k] (when (= k %) i)) ctor-keys)) names)]
+    (concat
+     (map #(str "unknown key " %) (remove fit-spec-keys (keys spec)))
+     (when-not (and (vector? (:params spec)) (seq (:params spec))) ["params must be a non-empty vector"])
+     (when-not (fn? (:valid? spec)) ["valid? must be a function"])
+     (for [k [:feasible? :initial :moments :lmoments] :when (and (contains? spec k) (not (fn? (get spec k))))]
+       (str k " must be a function"))
+     (for [k [:transform :estimators] :when (and (contains? spec k) (not (map? (get spec k))))]
+       (str k " must be a map"))
+     (for [{:keys [name domain role] :as prm} (:params spec)
+           e [(when-not (keyword? name) "name must be a keyword")
+              (when-not (some #{name} ctor-keys) (str name " is not a constructor parameter"))
+              (when (fit-spec-config-keys name) (str name " is configuration, not a parameter"))
+              (when-not (or (fit-spec-domains domain)
+                            (and (vector? domain) (= 2 (count domain)) (every? number? domain) (< (first domain) (second domain))))
+                (str name " has a wrong domain " domain))
+              (when-not (fit-spec-roles role) (str name " has a wrong role " role))
+              (when-not (= #{:name :domain :role} (set (keys prm))) (str name " has wrong keys"))]
+           :when e] e)
+     (when-not (= (count names) (count (set names))) ["duplicated parameter names"])
+     (when-not (= positions (sort positions)) ["params are not in the order of the constructor arguments"]))))
+
+(t/deftest fit-spec-test
+  (t/testing "the default is not fittable"
+    (t/is (nil? (sut/fit-spec nil)))
+    (t/is (nil? (sut/fit-spec (reify prot/DistributionIdProto
+                                (distribution? [_] true)
+                                (distribution-id [_] :third-party)
+                                (distribution-parameters [_] [])))))
+    (t/is (nil? (sut/fit-spec :constant)))
+    (t/is (nil? (sut/fit-spec (distr/->distribution {:pdf (fn ^double [^double x] x) :cdf (fn ^double [^double x] x)
+                                                     :icdf (fn ^double [^double x] x)})))))
+  (t/testing "->distribution returns the given specification"
+    (let [spec {:params [{:name :mu :domain :real :role :location}] :valid? (constantly nil)}
+          d (distr/->distribution {:pdf (fn ^double [^double x] x) :cdf (fn ^double [^double x] x)
+                                   :icdf (fn ^double [^double x] x) :fit-spec spec})]
+      (t/is (identical? spec (sut/fit-spec d)))))
+  (t/testing "a key and an object give the same specification"
+    (t/is (identical? (sut/fit-spec :normal) (sut/fit-spec (sut/normal {:mu 5.0 :sd 2.0}))))
+    (t/is (identical? (sut/fit-spec :half-normal) (sut/fit-spec (sut/half-normal {:sigma 3.0}))))
+    (t/is (thrown? IllegalArgumentException (sut/fit-spec :no-such-distribution))))
+  (t/testing "normal (Commons Math object)"
+    (let [{:keys [params valid?]} (sut/fit-spec :normal)]
+      (t/is (= [{:name :mu :domain :real :role :location}
+                {:name :sd :domain :positive :role :scale}] params))
+      (t/is (nil? (valid? [1.0 2.5 -3.0])))
+      (t/is (nil? (valid? [1 2])))
+      (t/is (string? (valid? [1.0])))
+      (t/is (string? (valid? [])))
+      (t/is (string? (valid? [1.0 ##NaN])))
+      (t/is (string? (valid? [1.0 ##Inf])))
+      (t/is (string? (valid? [1.0 nil])))))
+  (t/testing "half-normal (SSJ wrapper)"
+    (let [{:keys [params valid?]} (sut/fit-spec :half-normal)]
+      (t/is (= [:mu :sigma] (mapv :name params)))
+      (t/is (nil? (valid? [0.5 1.5])))
+      (t/is (string? (valid? [0.5])))))
+  (t/testing "every key: no specification or one which conforms to the schema"
+    (doseq [k sut/distributions-list
+            :let [d (sut/distribution k)
+                  spec (sut/fit-spec d)]
+            :when spec]
+      (t/is (empty? (fit-spec-errors d spec)) (str k))))
+  (t/testing "the schema check finds errors"
+    (let [d (sut/normal)
+          ok {:params [{:name :mu :domain :real :role :location}] :valid? (constantly nil)}]
+      (t/is (empty? (fit-spec-errors d ok)))
+      (t/is (seq (fit-spec-errors d (assoc ok :params [{:name :rng :domain :real :role :other}]))))
+      (t/is (seq (fit-spec-errors d (assoc ok :params [{:name :sd :domain :positive :role :scale}
+                                                        {:name :mu :domain :real :role :location}]))))
+      (t/is (seq (fit-spec-errors d (assoc-in ok [:params 0 :domain] [1 0]))))
+      (t/is (seq (fit-spec-errors d (assoc-in ok [:params 0 :role] :centre))))
+      (t/is (seq (fit-spec-errors d (assoc ok :params []))))
+      (t/is (seq (fit-spec-errors d (dissoc ok :valid?))))
+      (t/is (seq (fit-spec-errors d (assoc ok :unknown 1))))))
+  (t/testing "aliases and the id of an object give the same specification"
+    (doseq [k sut/distributions-list
+            :let [d (sut/distribution k)
+                  id (sut/distribution-id d)]
+            :when (and (not= k id) (some #{id} sut/distributions-list)
+                       (= (class d) (class (sut/distribution id))))]
+      (t/is (= (sut/fit-spec k) (sut/fit-spec id)) (str k " vs " id)))))
 
 ;; reference values from R's gamlss.dist package: dZAGA/pZAGA/qZAGA
 
