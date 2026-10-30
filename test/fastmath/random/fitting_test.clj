@@ -243,6 +243,80 @@
       (t/is (nil? se))
       (t/is (string? se-warning)))))
 
+(t/deftest bootstrap-test
+  (let [res (sut/bootstrap :gamma gamma-sample {:samples 40 :rng (r/rng :jdk 11)})]
+    (t/testing "result"
+      (t/is (= #{:fit :replicates :alpha :ci-type :params} (set (keys res))))
+      (t/is (= 40 (:replicates res)))
+      (t/is (= 0.05 (:alpha res)))
+      (t/is (= :percentile (:ci-type res)))
+      (t/is (= (:params (sut/fit :gamma gamma-sample)) (get-in res [:fit :params])))
+      (t/is (= #{:shape :scale} (set (keys (:params res)))))
+      (doseq [[nm {:keys [t0 ts ci bias stddev]}] (:params res)]
+        (t/is (= t0 (get-in res [:fit :params nm])))
+        (t/is (= 40 (count ts)))
+        (t/is (<= (first ci) (second ci)))
+        (t/is (m/delta-eq bias (- (stats/mean ts) t0)))
+        (t/is (m/delta-eq stddev (stats/stddev ts)))))
+    (t/testing "the refits skip the statistics"
+      (t/is (nil? (:stats (sut/fit :gamma gamma-sample {:stats? false}))))
+      (t/is (nil? (:stats (sut/fit :gamma gamma-sample {:stats? false :se? true})))))
+    (t/testing "the same seeded generator gives the same result, another one doesn't"
+      (t/is (= (:params res) (:params (sut/bootstrap :gamma gamma-sample {:samples 40 :rng (r/rng :jdk 11)}))))
+      (t/is (not= (get-in res [:params :shape :ts])
+                  (get-in (sut/bootstrap :gamma gamma-sample {:samples 40 :rng (r/rng :jdk 12)}) [:params :shape :ts])))))
+  (t/testing "the standard deviation of the estimates is the standard error"
+    (let [data (r/->seq (r/distribution :normal {:mu 1.0 :sd 2.0 :rng (r/rng :jdk 8)}) 400)
+          res (sut/bootstrap :normal data {:samples 300 :rng (r/rng :jdk 1)})
+          se (get-in (sut/fit :normal data) [:stats :se])]
+      ;; 300 resamples: the standard deviation is known to about 4%, observed 1.8% (mu) and 6.5% (sd)
+      (t/is (close? (get-in res [:params :mu :stddev]) (:mu se) 0.1))
+      (t/is (close? (get-in res [:params :sd :stddev]) (:sd se) 0.1))))
+  (t/testing "options: fixed parameters have no entry, the interval type and level are used"
+    (let [res (sut/bootstrap :normal gamma-sample {:samples 50 :fixed {:mu 3.0} :ci-type :normal :alpha 0.1 :rng (r/rng :jdk 2)})
+          wide (sut/bootstrap :normal gamma-sample {:samples 50 :alpha 0.01 :rng (r/rng :jdk 2)})
+          narrow (sut/bootstrap :normal gamma-sample {:samples 50 :alpha 0.2 :rng (r/rng :jdk 2)})]
+      (t/is (= #{:sd} (set (keys (:params res)))))
+      (t/is (= :normal (:ci-type res)))
+      (doseq [ci-type [:percentile :basic :normal :bc :mad-median]
+              :let [r (sut/bootstrap :normal gamma-sample {:samples 50 :ci-type ci-type :rng (r/rng :jdk 2)})
+                    [lo hi] (get-in r [:params :mu :ci])]]
+        (t/is (< lo (get-in r [:params :mu :t0]) hi) (str ci-type)))
+      (t/is (> (apply - (reverse (get-in wide [:params :mu :ci]))) (apply - (reverse (get-in narrow [:params :mu :ci])))))))
+  (t/testing "`:mad-median` is the median of the estimates -/+ their median absolute deviation, whatever the level"
+    (let [a (sut/bootstrap :normal gamma-sample {:samples 50 :ci-type :mad-median :alpha 0.01 :rng (r/rng :jdk 2)})
+          b (sut/bootstrap :normal gamma-sample {:samples 50 :ci-type :mad-median :alpha 0.2 :rng (r/rng :jdk 2)})
+          ts (get-in a [:params :sd :ts])
+          med (stats/median ts)
+          mad (stats/median-absolute-deviation ts)]
+      (t/is (= (:params a) (:params b)))
+      (t/is (m/delta-eq (first (get-in a [:params :sd :ci])) (- med mad)))
+      (t/is (m/delta-eq (second (get-in a [:params :sd :ci])) (+ med mad)))))
+  (t/testing "the integer parameter is bootstrapped"
+    (let [data (r/->seq (r/distribution :binomial {:trials 12 :p 0.4 :rng (r/rng :jdk 4)}) 200)
+          res (sut/bootstrap :binomial data {:samples 20 :rng (r/rng :jdk 3)})]
+      (t/is (= #{:trials :p} (set (keys (:params res)))))))
+  (t/testing "errors"
+    (t/is (= :invalid-input (:type (error-data #(sut/bootstrap :gamma gamma-sample {:samples 1})))))
+    (t/is (= :alpha (:property (error-data #(sut/bootstrap :gamma gamma-sample {:alpha 1.0})))))
+    (t/is (= :ci-type (:property (error-data #(sut/bootstrap :gamma gamma-sample {:ci-type :bca})))))
+    (t/is (= :invalid-input (:type (error-data #(sut/bootstrap :gamma [-1.0 2.0])))))
+    (t/is (= :not-fittable (:type (error-data #(sut/bootstrap :constant gamma-sample)))))))
+
+(t/deftest bootstrap-coverage-test
+  ;; nominal 95% percentile intervals of the normal parameters, 150 samples of 60 observations, 200 resamples:
+  ;; the coverage has to be between 90% and 99% (observed 96.7% for mu, 92.0% for sd)
+  (let [rng (r/rng :jdk 2026)
+        covered (for [i (range 150)
+                      :let [data (r/->seq (r/distribution :normal {:mu 1.0 :sd 2.0 :rng rng}) 60)
+                            res (sut/bootstrap :normal data {:rng (r/rng :jdk i)})
+                            [mlo mhi] (get-in res [:params :mu :ci])
+                            [slo shi] (get-in res [:params :sd :ci])]]
+                  [(<= mlo 1.0 mhi) (<= slo 2.0 shi)])
+        coverage (fn [f] (/ (count (filter f covered)) 150.0))]
+    (t/is (<= 0.90 (coverage first) 0.99))
+    (t/is (<= 0.90 (coverage second) 0.99))))
+
 (t/deftest fit-determinism-test
   (let [a (sut/fit :gamma gamma-sample {:rng (r/rng :jdk 7)})
         b (sut/fit :gamma gamma-sample {:rng (r/rng :jdk 7)})

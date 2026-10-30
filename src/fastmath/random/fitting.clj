@@ -13,6 +13,7 @@
             [fastmath.calculus :as calc]
             [fastmath.polynomials :as poly]
             [fastmath.matrix :as mat]
+            [fastmath.stats.bootstrap :as boot]
             [fastmath.vector :as v])
   (:import [fastmath.java Array]))
 
@@ -311,7 +312,7 @@
 
 
 (defn- build-result
-  [dist-key spec fixed method params tier converged? iterations xs k]
+  [dist-key spec fixed method params tier converged? iterations xs k stats?]
   (let [d (try (r/distribution dist-key params)
                (catch Exception e
                  (throw (ex-info "fit: the fitted parameters don't make a distribution"
@@ -323,7 +324,7 @@
      :converged? converged?
      :iterations iterations
      :fixed fixed
-     :stats (fit-statistics d xs k)}))
+     :stats (when stats? (fit-statistics d xs k))}))
 
 (defn- estimate
   "Parameters from the closed form estimator `closed-form` (an entry of `:estimators`), or `nil`. An estimator declared for fixed parameters applies when exactly these are fixed, any other one when `fixed-only?` is false or no parameter is fixed."
@@ -337,7 +338,7 @@
 
 (defn- fit-fixed
   "Fit with the integer parameters fixed (`fixed` holds all the fixed parameters, `shown-fixed` the ones given by the user, `k` is the number of fitted parameters). Returns the map of `:result` and the `:value` of the objective of the method at it."
-  [{:keys [dist-key spec xs method optimizer restarts closed-form? rng opts]} fixed shown-fixed k]
+  [{:keys [dist-key spec xs method optimizer restarts closed-form? rng opts stats?]} fixed shown-fixed k]
   (let [estimators (when closed-form? (:estimators spec))
         closed-form (get estimators method)
         free (vec (remove #(contains? fixed (:name %)) (:params spec)))
@@ -347,11 +348,11 @@
         estimated (estimate closed-form xs fixed (:exact? closed-form))]
     (cond
       (and (:exact? closed-form) estimated)
-      (let [result (build-result dist-key spec shown-fixed method (merge estimated fixed) :closed-form true 0 xs k)]
+      (let [result (build-result dist-key spec shown-fixed method (merge estimated fixed) :closed-form true 0 xs k stats?)]
         {:result result :value (value-of result)})
       ;; every parameter is fixed (the searched integer was the last free one)
       (empty? free)
-      (let [result (build-result dist-key spec shown-fixed method fixed :closed-form true 0 xs k)]
+      (let [result (build-result dist-key spec shown-fixed method fixed :closed-form true 0 xs k stats?)]
         {:result result :value (value-of result)})
       :else
       (let [bounds (mapv search-bounds free)
@@ -376,7 +377,7 @@
             (undefined-moments! dist-key "moments to match")
             (throw (ex-info "fit: no usable estimate was found" {:type :not-converged :function 'fit :distribution dist-key}))))
         (let [result (build-result dist-key spec shown-fixed method (merge fixed (zipmap free-names (decode (:point best))))
-                                   :numeric (contains? #{nil :converged :stalled} (:status best)) (or (:iterations best) 0) xs k)]
+                                   :numeric (contains? #{nil :converged :stalled} (:status best)) (or (:iterations best) 0) xs k stats?)]
           {:result result :value (:value best)})))))
 
 (defn- standard-errors
@@ -461,6 +462,7 @@
     - `:method` (keyword, default `:mle`): The estimation method.
     - `:fixed` (map, default `nil`): Parameters which are not fitted, as a map from the name of a parameter to its value. At least one parameter has to stay free (or be searched).
     - `:optimizer` (keyword): The method of [[fastmath.optimization]] used for the numerical minimization, `:lbfgsb` or `:nelder-mead` (its initial simplex is a fifth of the starting values). The default is `:nelder-mead` for the minimum distance methods (`:ks`, `:cvm`, `:ad` and its variants), whose objectives are not smooth or have plateaus, and `:lbfgsb` otherwise.
+    - `:stats?` (boolean, default `true`): Set to `false` to skip all the statistics (`:stats` is `nil`, `:se?` is ignored), as [[bootstrap]] does for its refits.
     - `:se?` (boolean, default `true`): Set to `false` to skip the standard errors (they take a few dozens of evaluations of the likelihood, slow for distributions with a numerically integrated density).
     - `:restarts` (long, default `3`): The number of starting points taken from the scan, when there are no other starting values.
     - `:closed-form?` (boolean, default `true`): Set to `false` to skip the closed form estimators and fit numerically.
@@ -484,8 +486,8 @@
 
   See also [[fastmath.random/fit-spec]], [[fastmath.random/log-likelihood]]."
   ([dist-key data] (fit dist-key data nil))
-  ([dist-key data {:keys [method fixed optimizer restarts closed-form? rng se?]
-                   :or {method :mle restarts 3 closed-form? true se? true}
+  ([dist-key data {:keys [method fixed optimizer restarts closed-form? rng se? stats?]
+                   :or {method :mle restarts 3 closed-form? true se? true stats? true}
                    :as opts}]
    (when-not (some #{method} methods-list)
      (invalid-input! :method "unknown method" method (set methods-list)))
@@ -507,7 +509,7 @@
                (not (in-domain? (:domain prm) v)) (invalid-input! :fixed (str nm " is outside of its domain") v (:domain prm))))
          xs (m/seq->double-array (sort data))
          context {:dist-key dist-key :spec spec :xs xs :method method :optimizer optimizer
-                  :restarts restarts :closed-form? closed-form? :rng (or rng (r/rng :jdk)) :opts opts}
+                  :restarts restarts :closed-form? closed-form? :rng (or rng (r/rng :jdk)) :opts opts :stats? stats?}
          k (m/long-sub (count (:params spec)) (count fixed))
          closed-form (when closed-form? (get-in spec [:estimators method]))
          exact? (and (:exact? closed-form) (estimate closed-form xs fixed true))
@@ -525,6 +527,79 @@
                              fit-at (memoize (fn [i] (fit-fixed context (assoc fixed name i) fixed k)))
                              best (search-integer #(:value (fit-at %)) lo hi start)]
                          (:result (fit-at best))))]
-     (if se?
+     (if (and se? stats?)
        (update result :stats merge (standard-errors dist-key spec xs result))
        result))))
+
+(def ^:private ci-functions
+  {:percentile boot/ci-percentile
+   :basic boot/ci-basic
+   :normal boot/ci-normal
+   :bc boot/ci-bc
+   :mad-median (fn [boot-data _] (boot/ci-mad-median boot-data))})
+
+(defn bootstrap
+  "Bootstrap of the parameters of a fitted distribution: the nonparametric bootstrap with confidence intervals.
+
+  The distribution is fitted to `data` with [[fit]], then to `:samples` resamples of `data` drawn with replacement (see [[fastmath.stats.bootstrap/bootstrap]]). The refits run in parallel (`pmap`), skip the statistics, and each gets its own generator seeded from `:rng`, so the result is the same for a seeded `:rng`. A refit which throws (a resample which the distribution can't be fitted to) is left out.
+
+  Parameters:
+
+  - `dist-key` (keyword): A key of [[fastmath.random/distribution]] which has a specification, see [[fit]].
+  - `data` (sequence of numbers): The sample.
+  - `opts` (map, optional): The options of [[fit]] (`:method`, `:fixed`, `:optimizer`, `:restarts`, `:closed-form?` and the options of the method) are used for every fit; and
+    - `:samples` (long, default `200`): The number of resamples, at least `2`.
+    - `:alpha` (double, default `0.05`): The significance level, inside `(0, 1)`; the intervals have the level `1 - alpha`.
+    - `:ci-type` (keyword, default `:percentile`): The interval, `:percentile`, `:basic`, `:normal`, `:bc` or `:mad-median`, the median of the estimates -/+ their median absolute deviation (see [[fastmath.stats.bootstrap/ci-mad-median]]; the interval of `fitdistr`, it has no level and ignores `:alpha`); the others are described in [[fastmath.stats.bootstrap/ci-percentile]], [[fastmath.stats.bootstrap/ci-basic]], [[fastmath.stats.bootstrap/ci-normal]] and [[fastmath.stats.bootstrap/ci-bc]].
+    - `:rng`: The random number generator of the resampling and of the seeds of the refits. The default is a new unseeded generator.
+
+  Returns a map with the keys:
+
+  - `:fit`: The result of [[fit]] for `data`.
+  - `:replicates`: The number of refits which succeeded.
+  - `:alpha` and `:ci-type`: As used.
+  - `:params`: A map from the name of every parameter which was not fixed (a searched integer included) to a map with `:t0` (the estimate from `data`), `:ts` (the estimates of the resamples), `:ci` (the vector `[lower upper]` of the interval), `:bias` (the mean of `:ts` minus `:t0`) and `:stddev` (the standard deviation of `:ts`, the bootstrap standard error).
+
+  Throws what [[fit]] throws for `data`, `ex-info` with `:type :invalid-input` for a wrong `:samples`, `:alpha` or `:ci-type`, and with `:type :not-converged` when fewer than two refits succeed.
+
+  See also [[fit]], [[fastmath.stats.bootstrap/bootstrap]]."
+  ([dist-key data] (bootstrap dist-key data nil))
+  ([dist-key data {:keys [samples alpha ci-type rng]
+                   :or {samples 200 alpha 0.05 ci-type :percentile}
+                   :as opts}]
+   (when-not (and (integer? samples) (m/>= (long samples) 2))
+     (invalid-input! :samples "at least 2 resamples are needed" samples "an integer >= 2"))
+   (when-not (and (number? alpha) (m/< 0.0 (double alpha) 1.0))
+     (invalid-input! :alpha "the level has to be inside (0, 1)" alpha "number inside (0, 1)"))
+   (when-not (contains? ci-functions ci-type)
+     (invalid-input! :ci-type "unknown interval" ci-type (set (keys ci-functions))))
+   (let [fit-opts (dissoc opts :samples :alpha :ci-type :rng)
+         result (fit dist-key data fit-opts)
+         rng (or rng (r/rng :jdk))
+         resamples (mapv doall (:samples (boot/bootstrap data {:samples samples :rng rng})))
+         seeds (doall (repeatedly samples #(r/irandom rng)))
+         refit-opts (assoc fit-opts :stats? false)
+         refits (->> (pmap (fn [resample seed]
+                             (try (fit dist-key resample (assoc refit-opts :rng (r/rng :jdk seed)))
+                                  (catch Exception _ nil)))
+                           resamples seeds)
+                     (remove nil?)
+                     (doall))]
+     (when (m/< (count refits) 2)
+       (throw (ex-info "bootstrap: fewer than two refits succeeded"
+                       {:type :not-converged :function 'bootstrap :distribution dist-key})))
+     {:fit result
+      :replicates (count refits)
+      :alpha alpha
+      :ci-type ci-type
+      :params (into {}
+                    (map (fn [nm]
+                           (let [t0 (double (get-in result [:params nm]))
+                                 ts (mapv #(double (get-in % [:params nm])) refits)
+                                 ats (m/seq->double-array ts)]
+                             [nm {:t0 t0
+                                  :ts ts
+                                  :ci (vec (take 2 ((ci-functions ci-type) {:t0 t0 :ts ts} alpha)))
+                                  :bias (m/- (stats/mean ats) t0)
+                                  :stddev (stats/stddev ats)}])))
+                    (remove #(contains? (:fixed result) %) (keys (:params result))))})))

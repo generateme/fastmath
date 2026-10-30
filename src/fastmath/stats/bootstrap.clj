@@ -376,6 +376,25 @@
    (let [a (m// alpha 2.0)]
      (conj (stats/quantiles ts [a (m/- 1.0 a)] estimation-strategy) t0))))
 
+(defn ci-mad-median
+  "Calculates the median of the bootstrap replicates with its `-/+` median absolute deviation extent.
+
+  This is a robust spread band, not a confidence interval: it has no confidence level.
+
+  Parameters:
+
+  * `boot-data` (map): A map containing bootstrap results, typically from [[bootstrap-stats]]. Requires the key `:ts` (the statistic calculated on each bootstrap sample).
+
+  Returns a vector `[lower-bound, upper-bound, median]`.
+
+  * `lower-bound` (double): The median of `:ts` minus the median absolute deviation of `:ts`.
+  * `upper-bound` (double): The median of `:ts` plus the median absolute deviation of `:ts`.
+  * `median` (double): The median of `:ts`, the center of the band (unlike the other intervals it is not `:t0`).
+
+  See also [[bootstrap-stats]] for input preparation and the confidence intervals: [[ci-normal]], [[ci-basic]], [[ci-percentile]], [[ci-bc]], [[ci-bca]], [[ci-studentized]], [[ci-t]], [[fastmath.stats/mad-extent]]."
+  [{:keys [ts]}]
+  (stats/mad-extent ts))
+
 (defn- cdf-accelerated-quantile
   ^double [^double z0 ^double z ^double a]
   (let [num (m/+ z0 z)

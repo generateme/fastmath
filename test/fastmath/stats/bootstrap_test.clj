@@ -215,6 +215,16 @@
     (t/is (m/delta-eq 46.1 lo 2.0) "R: 46.1")
     (t/is (m/delta-eq 190.6 hi 2.0) "R: 190.6")))
 
+(t/deftest ci-mad-median-test
+  (let [ts [1.0 2.0 3.0 4.0 10.0]
+        [lo hi center] (sut/ci-mad-median {:t0 99.0 :ts ts})]
+    ;; median 3, absolute deviations 2 1 0 1 7 -> MAD 1
+    (t/is (m/delta-eq 3.0 center))
+    (t/is (m/delta-eq 2.0 lo))
+    (t/is (m/delta-eq 4.0 hi)))
+  (let [[lo hi center] (sut/ci-mad-median @aircondit-boot20k)]
+    (t/is (< lo center hi))))
+
 ;; Group 4: t-based CIs
 
 (t/deftest ci-t-test
