@@ -438,7 +438,7 @@
           (failure "the log likelihood is not finite around the estimate")
           (let [information (into-array (map #(double-array (map m/- %)) hessian))
                 variances (try (map-indexed (fn [^long i ^doubles row] (Array/aget row i))
-                                 (mat/mat->array2d (mat/inverse (mat/cholesky-decomposition information))))
+                                            (mat/mat->array2d (mat/inverse (mat/cholesky-decomposition information))))
                                (catch Exception _ nil))]
             (if (and variances (every? (fn [^double v] (and (m/valid-double? v) (m/pos? v))) variances))
               {:se (zipmap names (map m/sqrt variances))}
