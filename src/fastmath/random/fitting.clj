@@ -12,6 +12,7 @@
             [fastmath.optimization :as opt]
             [fastmath.calculus :as calc]
             [fastmath.polynomials :as poly]
+            [fastmath.matrix :as mat]
             [fastmath.vector :as v])
   (:import [fastmath.java Array]))
 
@@ -378,6 +379,33 @@
                                    :numeric (contains? #{nil :converged :stalled} (:status best)) (or (:iterations best) 0) xs k)]
           {:result result :value (:value best)})))))
 
+(defn- standard-errors
+  "Standard errors of the fitted parameters of `result` as a map to merge into its `:stats`: `:se` (a map from a parameter name to its standard error, `nil` when it can't be computed) and `:se-warning` (the reason, when `:se` is `nil`).
+
+  They are the square roots of the diagonal of the inverse of the negative Hessian of the log likelihood at the estimate (central finite differences), the usual asymptotic result of the maximum likelihood method. Fixed parameters, integer parameters and the ends of the support (their log likelihood is not smooth) are held at their values and have no entry; the others are conditional on them."
+  [dist-key spec xs {:keys [params fixed method]}]
+  (let [names (into [] (comp (remove #(or (contains? fixed (:name %)) (= :integer (:role %)) (bound-role? (:role %))))
+                             (map :name))
+                    (:params spec))
+        failure (fn [message] {:se nil :se-warning message})]
+    (cond
+      (not= :mle method) (failure "standard errors are available for the maximum likelihood method only")
+      (empty? names) {:se {}}
+      :else
+      (let [loglik (fn ^double [point]
+                     (try (log-likelihood (r/distribution dist-key (merge params (zipmap names point))) xs)
+                          (catch Exception _ ##NaN)))
+            hessian ((calc/hessian loglik) (mapv params names))]
+        (if-not (every? (fn [row] (every? (fn [^double v] (m/valid-double? v)) row)) hessian)
+          (failure "the log likelihood is not finite around the estimate")
+          (let [information (into-array (map #(double-array (map m/- %)) hessian))
+                variances (try (map-indexed (fn [^long i ^doubles row] (Array/aget row i))
+                                 (mat/mat->array2d (mat/inverse (mat/cholesky-decomposition information))))
+                               (catch Exception _ nil))]
+            (if (and variances (every? (fn [^double v] (and (m/valid-double? v) (m/pos? v))) variances))
+              {:se (zipmap names (map m/sqrt variances))}
+              (failure "the Hessian of the log likelihood is singular or not positive definite at the estimate"))))))))
+
 (defn- search-integer
   "Integer from `lo` to `hi` where `g` (a function of a long returning a number) is the smallest, found from `start`: the direction of descent is found, the step doubles while `g` decreases and the bracket is shrunk by the ternary search. `g` has to be unimodal (a plateau is allowed)."
   [g lo hi start]
@@ -433,6 +461,7 @@
     - `:method` (keyword, default `:mle`): The estimation method.
     - `:fixed` (map, default `nil`): Parameters which are not fitted, as a map from the name of a parameter to its value. At least one parameter has to stay free (or be searched).
     - `:optimizer` (keyword): The method of [[fastmath.optimization]] used for the numerical minimization, `:lbfgsb` or `:nelder-mead` (its initial simplex is a fifth of the starting values). The default is `:nelder-mead` for the minimum distance methods (`:ks`, `:cvm`, `:ad` and its variants), whose objectives are not smooth or have plateaus, and `:lbfgsb` otherwise.
+    - `:se?` (boolean, default `true`): Set to `false` to skip the standard errors (they take a few dozens of evaluations of the likelihood, slow for distributions with a numerically integrated density).
     - `:restarts` (long, default `3`): The number of starting points taken from the scan, when there are no other starting values.
     - `:closed-form?` (boolean, default `true`): Set to `false` to skip the closed form estimators and fit numerically.
     - `:rng`: The random number generator of the scan. The default is a new unseeded generator; pass a seeded one for a reproducible scan. The scan only provides starting points, so the fit is the same up to the tolerance of the optimizer. Fits which start from a closed form estimate or from the starting values of the specification don't use it.
@@ -443,11 +472,11 @@
   - `:distribution`: The fitted distribution object.
   - `:params`: The map of all parameters (fitted, searched and fixed) to doubles.
   - `:method`: The estimation method.
-  - `:tier`: `:closed-form` or `:numeric`. A fit in which the search of an integer parameter leaves no parameter to optimize (the chi distribution) is `:closed-form`. A fit in which the search of an integer parameter leaves no parameter to optimize (the chi distribution) is `:closed-form`.
+  - `:tier`: `:closed-form` or `:numeric`. A fit in which the search of an integer parameter leaves no parameter to optimize (the chi distribution) is `:closed-form`.
   - `:converged?`: `true` when the optimizer reported convergence or a stalled objective (it stopped changing, the usual end at the optimum), `false` when it stopped at the iteration limit. A closed form result is always converged.
   - `:iterations`: The number of iterations of the optimizer, `0` for a closed form.
   - `:fixed`: The map of fixed parameters, as given.
-  - `:stats`: A map with `:k` (the number of fitted parameters, a searched integer included), `:n`, `:loglik`, `:aic`, `:aicc`, `:bic`, and for continuous distributions the goodness-of-fit statistics `:ks`, `:cvm` and `:ad`, which are descriptive, not tests. They describe the fitted distribution, whatever the method. `:aicc` is `##Inf` when `n` is not above `k + 1`.
+  - `:stats`: A map with `:k` (the number of fitted parameters, a searched integer included), `:n`, `:loglik`, `:aic`, `:aicc`, `:bic`, and for continuous distributions the goodness-of-fit statistics `:ks`, `:cvm` and `:ad`, which are descriptive, not tests. They describe the fitted distribution, whatever the method. `:aicc` is `##Inf` when `n` is not above `k + 1`. Unless `:se?` is `false` it holds also `:se`, the map from the name of a fitted parameter to its standard error, from the inverse of the negative Hessian of the log likelihood at the estimate, a maximum likelihood result (the other methods give `:se` equal to `nil`). Fixed parameters, a searched integer and the ends of the support (the `:lower-bound` and `:upper-bound` roles, whose log likelihood is not smooth) have no entry and the other standard errors are conditional on them. When the Hessian is not finite, singular or not positive definite (a flat ridge of the likelihood), `:se` is `nil` and `:se-warning` gives the reason; it never throws.
 
   Moment matching with the moments above the second order, and L-moment matching, integrate the quantile function numerically unless the specification has its own `:moments` or `:lmoments`.
 
@@ -455,8 +484,8 @@
 
   See also [[fastmath.random/fit-spec]], [[fastmath.random/log-likelihood]]."
   ([dist-key data] (fit dist-key data nil))
-  ([dist-key data {:keys [method fixed optimizer restarts closed-form? rng]
-                   :or {method :mle restarts 3 closed-form? true}
+  ([dist-key data {:keys [method fixed optimizer restarts closed-form? rng se?]
+                   :or {method :mle restarts 3 closed-form? true se? true}
                    :as opts}]
    (when-not (some #{method} methods-list)
      (invalid-input! :method "unknown method" method (set methods-list)))
@@ -482,17 +511,20 @@
          k (m/long-sub (count (:params spec)) (count fixed))
          closed-form (when closed-form? (get-in spec [:estimators method]))
          exact? (and (:exact? closed-form) (estimate closed-form xs fixed true))
-         searched (remove #(contains? fixed (:name %)) (filter #(= :integer (:role %)) (:params spec)))]
-     (cond
-       ;; the exact estimator also finds the integer parameters it is declared for
-       exact? (:result (fit-fixed context fixed fixed k))
-       (empty? searched) (do (when (m/zero? k)
-                               (invalid-input! :fixed "at least one parameter has to stay free" fixed "fewer fixed parameters"))
-                             (:result (fit-fixed context fixed fixed k)))
-       (m/> (count searched) 1) (invalid-input! :fixed "at most one integer parameter can be searched, fix the others" (mapv :name searched) "one integer parameter")
-       (not (:range (first searched))) (invalid-input! :fixed (str (:name (first searched)) " is an integer parameter and has to be fixed") (:name (first searched)) "a value in :fixed")
-       :else (let [{:keys [name range]} (first searched)
-                   [lo hi start] (range xs)
-                   fit-at (memoize (fn [i] (fit-fixed context (assoc fixed name i) fixed k)))
-                   best (search-integer #(:value (fit-at %)) lo hi start)]
-               (:result (fit-at best)))))))
+         searched (remove #(contains? fixed (:name %)) (filter #(= :integer (:role %)) (:params spec)))
+         result (cond
+                 ;; the exact estimator also finds the integer parameters it is declared for
+                 exact? (:result (fit-fixed context fixed fixed k))
+                 (empty? searched) (do (when (m/zero? k)
+                                         (invalid-input! :fixed "at least one parameter has to stay free" fixed "fewer fixed parameters"))
+                                       (:result (fit-fixed context fixed fixed k)))
+                 (m/> (count searched) 1) (invalid-input! :fixed "at most one integer parameter can be searched, fix the others" (mapv :name searched) "one integer parameter")
+                 (not (:range (first searched))) (invalid-input! :fixed (str (:name (first searched)) " is an integer parameter and has to be fixed") (:name (first searched)) "a value in :fixed")
+                 :else (let [{:keys [name range]} (first searched)
+                             [lo hi start] (range xs)
+                             fit-at (memoize (fn [i] (fit-fixed context (assoc fixed name i) fixed k)))
+                             best (search-integer #(:value (fit-at %)) lo hi start)]
+                         (:result (fit-at best))))]
+     (if se?
+       (update result :stats merge (standard-errors dist-key spec xs result))
+       result))))
