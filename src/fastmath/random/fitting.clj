@@ -5,7 +5,12 @@
 
   The methods are the maximum likelihood estimate (`:mle`), the minimum goodness-of-fit estimates (`:ks`, `:cvm`, `:ad` and its variants), the maximum product of spacings (`:mps`), quantile matching (`:qme`), moment matching (`:mme`) and L-moment matching (`:lmme`). An estimate is a closed form one when the specification has an exact estimator for the method, otherwise it is found numerically: the box constrained quasi-Newton method L-BFGS-B (the simplex method for the minimum distance methods) started from the starting values of the specification or, when there are none, from the best points of a scan of the parameter space with a quantile matching objective.
 
-  The result of [[fit]] is a map with the fitted distribution, its parameters and statistics of the fit (information criteria and, for continuous distributions, goodness-of-fit statistics)."
+  Functions:
+
+  - [[fit]] fits a distribution and returns the fitted distribution, its parameters and statistics: information criteria, standard errors of the maximum likelihood estimate and, for continuous distributions, goodness-of-fit statistics (the chi-square statistic for discrete ones). The statistics are descriptive, there are no p-values.
+  - [[bootstrap]] refits resamples of the data and returns the bootstrap distribution and intervals of every parameter.
+  - [[qq]] and [[pp]] return the data of quantile-quantile and probability-probability plots.
+  - [[compare]] ranks fits of one sample by an information criterion, with Akaike weights."
   (:refer-clojure :exclude [compare])
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
