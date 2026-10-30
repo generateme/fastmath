@@ -1,10 +1,10 @@
-# Reference values for the chi-square statistic of fastmath.random.fitting/fit for discrete distributions.
+# Reference values for the chi-square statistic of fastmath.fitdistr/fit for discrete distributions.
 # Tools: R fitdistrplus::fitdist and fitdistrplus::gofstat (automatic cells, and the cells given by chisqbreaks).
 # Output per case: the data, the fitted parameters (fastmath names), the automatic breaks of gofstat with its
 # chisq and chisqdf, and the explicit breaks with its chisq and chisqdf.
 # Datasets are stored in the output so the Clojure tests do not depend on the R random generator.
 # Run: Rscript utils/fastmath/dev/generate_fit_chisq_reference.R
-# Output: test/resources/random/fit_chisq_reference.edn
+# Output: test/resources/fitdistr/fit_chisq_reference.edn
 suppressMessages(library(fitdistrplus))
 
 fmt <- function(v) sprintf("%.17g", v)
@@ -30,5 +30,5 @@ out <- c(
   case(":poisson", rpois(2000, 12), "pois", NULL,
        function(e) sprintf("{:p %.17g}", e["lambda"]), c(8, 11, 14, 17)))
 
-dir.create("test/resources/random", showWarnings = FALSE, recursive = TRUE)
-writeLines(c("[", paste(out, collapse = "\n"), "]"), "test/resources/random/fit_chisq_reference.edn")
+dir.create("test/resources/fitdistr", showWarnings = FALSE, recursive = TRUE)
+writeLines(c("[", paste(out, collapse = "\n"), "]"), "test/resources/fitdistr/fit_chisq_reference.edn")

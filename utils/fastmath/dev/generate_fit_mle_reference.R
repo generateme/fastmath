@@ -1,9 +1,9 @@
-# Reference values for fastmath.random.fitting/fit with the :mle method.
+# Reference values for fastmath.fitdistr/fit with the :mle method.
 # Tools: R fitdistrplus::fitdist(method = "mle"), fitdistrplus::gofstat (KS, CvM, AD statistics).
 # Parameters are mapped to the fastmath names; AICc is computed here from the log likelihood.
 # Datasets are stored in the output so the Clojure tests do not depend on the R random generator.
 # Run: Rscript utils/fastmath/dev/generate_fit_mle_reference.R
-# Output: test/resources/random/fit_mle_reference.edn
+# Output: test/resources/fitdistr/fit_mle_reference.edn
 suppressMessages(library(fitdistrplus))
 
 fmt <- function(v) sprintf("%.17g", v)
@@ -38,5 +38,5 @@ out <- c(
   case(":cauchy", rcauchy(300, -1, 2), "cauchy", list(location = -1, scale = 2),
        function(e) sprintf("{:median %.17g :scale %.17g}", e["location"], e["scale"])))
 
-dir.create("test/resources/random", showWarnings = FALSE, recursive = TRUE)
-writeLines(c("[", paste(out, collapse = "\n"), "]"), "test/resources/random/fit_mle_reference.edn")
+dir.create("test/resources/fitdistr", showWarnings = FALSE, recursive = TRUE)
+writeLines(c("[", paste(out, collapse = "\n"), "]"), "test/resources/fitdistr/fit_mle_reference.edn")

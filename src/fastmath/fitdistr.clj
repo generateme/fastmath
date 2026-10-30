@@ -1,4 +1,4 @@
-(ns fastmath.random.fitting
+(ns fastmath.fitdistr
   "Fitting of probability distributions to data.
 
   A distribution is fitted by its key (see [[fastmath.random/distribution]]) to a sample. What the engine needs to know about the distribution comes from [[fastmath.random/fit-spec]]: the fitted parameters with their domains and roles, the data validation and, optionally, closed form estimators and starting values. Distributions without a specification can't be fitted.

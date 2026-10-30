@@ -112,7 +112,7 @@
             [fastmath.vector :as v]
             [fastmath.protocols :as prot]
             [fastmath.random.distributions :as distr]
-            [fastmath.random.fit-specs :as fit-specs]
+            [fastmath.fitdistr.fit-specs :as fit-specs]
             [fastmath.special :as special]
             [fastmath.stats.bins :as bins])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister

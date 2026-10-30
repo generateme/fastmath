@@ -1,4 +1,4 @@
-# Reference values for fastmath.random.fitting/fit of the families of the metadata batch D which R supports.
+# Reference values for fastmath.fitdistr/fit of the families of the metadata batch D which R supports.
 # Tools: R fitdistrplus::fitdist (method "mle") with the probability functions of stats (noncentral chisq, f, t, beta),
 # evd (gev, gpd), gnorm (generalized normal), gamlss.dist (GG, ZIP, ZIP2, ZAP, ZIBI, ZABI, ZINBI, ZANBI, ZIBB, ZABB, ZAGA,
 # ZAIG), GeneralizedHyperbolic (generalized hyperbolic and normal inverse Gaussian, optim of the log likelihood).
@@ -6,7 +6,7 @@
 # integer binomial denominators `bd`: `:fixed` is part of the output.
 # Datasets are stored in the output so the Clojure tests do not depend on the R random generator.
 # Run: Rscript utils/fastmath/dev/generate_fit_batch_d_reference.R
-# Output: test/resources/random/fit_batch_d_reference.edn
+# Output: test/resources/fitdistr/fit_batch_d_reference.edn
 # gamlss.dist is loaded last: the packages share some names
 suppressMessages({library(fitdistrplus); library(evd); library(gnorm); library(GeneralizedHyperbolic); library(gamlss.dist)})
 
@@ -95,6 +95,6 @@ o <- optim(c(0, 0, log(2), 0.3, 0.5), nll, control = list(maxit = 2000, reltol =
 add(case(":generalized-hyperbolic", x, "{}", sprintf("{:mu %.17g :delta %.17g :alpha %.17g :beta %.17g :lambda %.17g}",
                                                     o$par[1], exp(o$par[2]), exp(o$par[3]), o$par[4], o$par[5]), -o$value))
 
-dir.create("test/resources/random", showWarnings = FALSE, recursive = TRUE)
-writeLines(c("[", paste(unlist(out), collapse = "\n"), "]"), "test/resources/random/fit_batch_d_reference.edn")
+dir.create("test/resources/fitdistr", showWarnings = FALSE, recursive = TRUE)
+writeLines(c("[", paste(unlist(out), collapse = "\n"), "]"), "test/resources/fitdistr/fit_batch_d_reference.edn")
 cat("cases:", length(out), "\n")

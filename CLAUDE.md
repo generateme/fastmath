@@ -13,7 +13,7 @@ Mathematics, statistics, machine learning, numerical methods/computing.
 | `fastmath.vector` | v | 2,3,4d and general vectors, vector ops, rotations, distances, elementwise ops |
 | `fastmath.matrix` | mat | 2,3,4d and general matrices, matrix ops, rotations, metrics, decompositions, elemenentwise ops |
 | `fastmath.random` | r | RNGs, random and low-discrepancy sequences, noise, probabilistic distributions |
-| `fastmath.random.fitting` | fitting | distribution fitting: mle, minimum distance (ks, cvm, ad), mps, quantile, moment and L-moment matching, closed form or numeric, information criteria, standard errors, goodness-of-fit, bootstrap, qq/pp, model comparison; driven by `fastmath.random/fit-spec` |
+| `fastmath.fitdistr` | fitdistr | distribution fitting: mle, minimum distance (ks, cvm, ad), mps, quantile, moment and L-moment matching, closed form or numeric, information criteria, standard errors, goodness-of-fit, bootstrap, qq/pp, model comparison; driven by `fastmath.random/fit-spec` |
 | `fastmath.stats` | stats | descriptive statistics, quantiles, extents, data transformations, correlation, similarity, contingency tables, classification metrics (`fastmath.stats.binary`), effect size, statistical tests, acf/pacf, histograms |
 | `fastmath.stats.bootstrap` | boot | bootstrap data with confidence intervals |
 | `fastmath.complex` | cplx | complex number ops |

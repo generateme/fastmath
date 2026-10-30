@@ -1,4 +1,4 @@
-# Reference values for fastmath.random.fitting/fit of the heavy-tailed, location-scale and bounded families of batch C.
+# Reference values for fastmath.fitdistr/fit of the heavy-tailed, location-scale and bounded families of batch C.
 # Tools: R fitdistrplus::fitdist (method "mle") with the probability functions of stats (logis), extraDistr (laplace,
 # frechet, triang, hcauchy, betapr), actuar (pareto1, llogis), VGAM (gumbel, bisa, foldnorm, levy), gamlss.dist (exGAUS),
 # SuppDists (Johnson), circular::mle.vonmises; the one-parameter or independent versions (symmetrical beta, half-logistic,
@@ -7,7 +7,7 @@
 # distributions, the minimum of the Pareto distribution) is fixed: `:fixed` is part of the output.
 # Datasets are stored in the output so the Clojure tests do not depend on the R random generator.
 # Run: Rscript utils/fastmath/dev/generate_fit_batch_c_reference.R
-# Output: test/resources/random/fit_batch_c_reference.edn
+# Output: test/resources/fitdistr/fit_batch_c_reference.edn
 # The packages share names: the later ones win, actuar and gamlss.dist are loaded last
 suppressMessages({library(fitdistrplus); library(extraDistr); library(VGAM); library(SuppDists); library(circular)
                   library(actuar); library(gamlss.dist)})
@@ -105,6 +105,6 @@ hs <- function(p) { s <- exp(p[2]); z <- pi * (x - p[1]) / (2 * s); sum(-log(2 *
 o <- optim(c(0, 0), function(p) -hs(p), method = "BFGS", control = list(reltol = 1e-14))
 add(case(":hyperbolic-secant", x, "{}", sprintf("{:mu %.17g :sigma %.17g}", o$par[1], exp(o$par[2])), -o$value))
 
-dir.create("test/resources/random", showWarnings = FALSE, recursive = TRUE)
-writeLines(c("[", paste(unlist(out), collapse = "\n"), "]"), "test/resources/random/fit_batch_c_reference.edn")
+dir.create("test/resources/fitdistr", showWarnings = FALSE, recursive = TRUE)
+writeLines(c("[", paste(unlist(out), collapse = "\n"), "]"), "test/resources/fitdistr/fit_batch_c_reference.edn")
 cat("cases:", length(out), "\n")

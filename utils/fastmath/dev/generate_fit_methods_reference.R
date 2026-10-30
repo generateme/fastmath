@@ -1,11 +1,11 @@
-# Reference values for fastmath.random.fitting/fit with the methods other than :mle.
+# Reference values for fastmath.fitdistr/fit with the methods other than :mle.
 # Tools: R fitdistrplus (mgedist: CvM KS AD ADR ADL AD2R AD2L AD2; msedist; qmedist; mmedist), lmomco::lmoms (sample L-moments).
 # :lmme has no ready R function for the two-parameter parametrisation used here, so its reference is an independent
 # solution of the L-moment equations: the theoretical L-moments are integrate(q(u) * P*_{r-1}(u), 0, 1) (shifted Legendre
 # polynomials) and the system is solved with nleqslv.
 # Datasets are stored in the output so the Clojure tests do not depend on the R random generator.
 # Run: Rscript utils/fastmath/dev/generate_fit_methods_reference.R
-# Output: test/resources/random/fit_methods_reference.edn
+# Output: test/resources/fitdistr/fit_methods_reference.edn
 suppressMessages({library(fitdistrplus); library(lmomco); library(nleqslv)})
 
 fmt <- function(v) sprintf("%.17g", v)
@@ -52,5 +52,5 @@ out <- c(
        function(e) sprintf("{:alpha %.17g :beta %.17g}", e["shape"], e["scale"]),
        mme.args = list(order = 1:2, memp = function(x, order) mean(x^order), start = list(shape = 1.5, scale = 2))))
 
-dir.create("test/resources/random", showWarnings = FALSE, recursive = TRUE)
-writeLines(c("[", paste(out, collapse = "\n"), "]"), "test/resources/random/fit_methods_reference.edn")
+dir.create("test/resources/fitdistr", showWarnings = FALSE, recursive = TRUE)
+writeLines(c("[", paste(out, collapse = "\n"), "]"), "test/resources/fitdistr/fit_methods_reference.edn")

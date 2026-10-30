@@ -13,7 +13,7 @@
             [fastmath.solver :as solver]
             
             [fastmath.protocols :as prot]
-            [fastmath.random.fit-specs :as fit-specs]
+            [fastmath.fitdistr.fit-specs :as fit-specs]
 
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.interpolation.cubic :as cubic-interp]
@@ -144,7 +144,7 @@
   "True when `x` is an integer within the `int` range (the argument of the Commons Math integer distributions)."
   [^double x]
   (and (m/== x (m/floor x))
-       (m/<= (m/- 2147483648.0) x 2147483647.0)))
+       (m/<= Integer/MIN_VALUE x Integer/MAX_VALUE)))
 
 (extend IntegerDistribution
   prot/DistributionProto
@@ -2857,7 +2857,7 @@
       :continuous? true
       :name :t-noncentral
       :parameters [:df :ncp :rng]
-                     :fit-spec fit-specs/t-noncentral
+      :fit-spec fit-specs/t-noncentral
       :lower-bound ##-Inf
       :upper-bound ##Inf})))
 
@@ -2921,7 +2921,7 @@
                  ;; so root-finding can bracket directly on it, unlike icdf-solver's
                  ;; geometric bracket search (built for unbounded domains).
                  :else (m/constrain (double (solver/find-root (fn ^double [^double q] (m/- (double (cdf q)) p))
-                                                        0.0 1.0 {:absolute-accuracy 1.0e-10}))
+                                                              0.0 1.0 {:absolute-accuracy 1.0e-10}))
                                     0.0 1.0)))
         ;; mean/variance are exact weighted sums of the mixture's own central-Beta
         ;; component moments (mean_k=alphak/(alphak+beta), var_k=alphak*beta/((alphak+beta)^2*(alphak+beta+1))),
@@ -2946,7 +2946,7 @@
       :continuous? true
       :name :beta-noncentral
       :parameters [:alpha :beta :ncp :rng]
-                     :fit-spec fit-specs/beta-noncentral
+      :fit-spec fit-specs/beta-noncentral
       :lower-bound 0
       :upper-bound 1})))
 

@@ -1,4 +1,4 @@
-(ns fastmath.random.fit-specs
+(ns fastmath.fitdistr.fit-specs
   "Fitting specifications of the distributions, the values of `fastmath.random/fit-spec`.
 
   A specification is a map: `:params` (the fitted parameters with their domains and roles), `:valid?` (the validation of the data) and, optionally, `:estimators` (closed form estimators by method), `:initial` (starting values), `:moments` and `:lmoments`. See `fastmath.random/fit-spec` for the meaning of the keys.

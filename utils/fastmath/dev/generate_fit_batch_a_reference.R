@@ -1,4 +1,4 @@
-# Reference values for fastmath.random.fitting/fit of the families of the metadata batch A that R supports.
+# Reference values for fastmath.fitdistr/fit of the families of the metadata batch A that R supports.
 # Tools: R fitdistrplus::fitdist (method "mle") with the density, cdf and quantile functions of stats (chisq, f, t),
 # statmod (invgauss), actuar (invgamma), extraDistr (rayleigh, hnorm), VGAM (naka); fitdistrplus::mmedist for the beta
 # method of moments. The uniform distribution has no numerical fit: its estimate is the sample range.
@@ -6,7 +6,7 @@
 # fixed (rayleigh and half-normal at 0, erlang with the integer shape): `:fixed` is part of the output.
 # Datasets are stored in the output so the Clojure tests do not depend on the R random generator.
 # Run: Rscript utils/fastmath/dev/generate_fit_batch_a_reference.R
-# Output: test/resources/random/fit_batch_a_reference.edn
+# Output: test/resources/fitdistr/fit_batch_a_reference.edn
 # actuar is loaded last: extraDistr has an inverse gamma with other parameter names
 suppressMessages({library(fitdistrplus); library(extraDistr); library(VGAM); library(statmod); library(actuar)})
 
@@ -66,5 +66,5 @@ out[[10]] <- case(":nakagami", x, "{}", sprintf("{:mu %.17g :omega %.17g}", f$e[
 x <- rbeta(200, 2, 5); e <- mmedist(x, "beta")$estimate
 out[[11]] <- case(":beta", x, "{}", sprintf("{:alpha %.17g :beta %.17g}", e["shape1"], e["shape2"]), NA, ":mme")
 
-dir.create("test/resources/random", showWarnings = FALSE, recursive = TRUE)
-writeLines(c("[", paste(unlist(out), collapse = "\n"), "]"), "test/resources/random/fit_batch_a_reference.edn")
+dir.create("test/resources/fitdistr", showWarnings = FALSE, recursive = TRUE)
+writeLines(c("[", paste(unlist(out), collapse = "\n"), "]"), "test/resources/fitdistr/fit_batch_a_reference.edn")

@@ -1,4 +1,4 @@
-# Reference values for fastmath.random.fitting/fit of the discrete families of the metadata batch B.
+# Reference values for fastmath.fitdistr/fit of the discrete families of the metadata batch B.
 # Tools: R fitdistrplus::fitdist (method "mle") with the probability functions of stats (pois, geom, binom, nbinom),
 # extraDistr (lgser, bbinom), VGAM (zipf) and gamlss.dist (NBI, NBII, BB). The discrete uniform distribution has no
 # numerical fit: its estimate is the sample range.
@@ -6,7 +6,7 @@
 # are fixed: `:fixed` is part of the output; fastmath fits `:trials` and `:r` without fixing them (see the tests).
 # Datasets are stored in the output so the Clojure tests do not depend on the R random generator.
 # Run: Rscript utils/fastmath/dev/generate_fit_batch_b_reference.R
-# Output: test/resources/random/fit_batch_b_reference.edn
+# Output: test/resources/fitdistr/fit_batch_b_reference.edn
 # gamlss.dist is loaded last: the packages share some names
 suppressMessages({library(fitdistrplus); library(extraDistr); library(VGAM); library(gamlss.dist)})
 
@@ -66,5 +66,5 @@ out[[11]] <- case(":bb", x, "{:bd 12}", sprintf("{:mu %.17g :sigma %.17g}", f$e[
 x <- sample(3:12, 200, TRUE)
 out[[12]] <- case(":uniform-int", x, "{}", sprintf("{:lower %d :upper %d}", min(x), max(x)), -length(x) * log(max(x) - min(x) + 1))
 
-dir.create("test/resources/random", showWarnings = FALSE, recursive = TRUE)
-writeLines(c("[", paste(unlist(out), collapse = "\n"), "]"), "test/resources/random/fit_batch_b_reference.edn")
+dir.create("test/resources/fitdistr", showWarnings = FALSE, recursive = TRUE)
+writeLines(c("[", paste(unlist(out), collapse = "\n"), "]"), "test/resources/fitdistr/fit_batch_b_reference.edn")

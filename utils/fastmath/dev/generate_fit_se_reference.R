@@ -1,9 +1,9 @@
-# Reference values for the standard errors of fastmath.random.fitting/fit (maximum likelihood).
+# Reference values for the standard errors of fastmath.fitdistr/fit (maximum likelihood).
 # Tools: R fitdistrplus::fitdist, standard errors from sqrt(diag(vcov)) (inverse of the numerical Hessian of optim).
 # The densities are written in the fastmath parameterization, so the estimates and the errors are the ones of fastmath.
 # Datasets are stored in the output so the Clojure tests do not depend on the R random generator.
 # Run: Rscript utils/fastmath/dev/generate_fit_se_reference.R
-# Output: test/resources/random/fit_se_reference.edn
+# Output: test/resources/fitdistr/fit_se_reference.edn
 suppressMessages(library(fitdistrplus))
 
 fmt <- function(v) sprintf("%.17g", v)
@@ -34,5 +34,5 @@ out <- c(
   case(":poisson", rpois(300, 4.2), "pois", NULL, c("p")),
   case(":cauchy", rcauchy(300, -1, 2), "cauchy", list(location = -1, scale = 2), c("median", "scale")))
 
-dir.create("test/resources/random", showWarnings = FALSE, recursive = TRUE)
-writeLines(c("[", paste(out, collapse = "\n"), "]"), "test/resources/random/fit_se_reference.edn")
+dir.create("test/resources/fitdistr", showWarnings = FALSE, recursive = TRUE)
+writeLines(c("[", paste(out, collapse = "\n"), "]"), "test/resources/fitdistr/fit_se_reference.edn")
