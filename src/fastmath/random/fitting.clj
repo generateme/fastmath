@@ -6,6 +6,7 @@
   The methods are the maximum likelihood estimate (`:mle`), the minimum goodness-of-fit estimates (`:ks`, `:cvm`, `:ad` and its variants), the maximum product of spacings (`:mps`), quantile matching (`:qme`), moment matching (`:mme`) and L-moment matching (`:lmme`). An estimate is a closed form one when the specification has an exact estimator for the method, otherwise it is found numerically: the box constrained quasi-Newton method L-BFGS-B (the simplex method for the minimum distance methods) started from the starting values of the specification or, when there are none, from the best points of a scan of the parameter space with a quantile matching objective.
 
   The result of [[fit]] is a map with the fitted distribution, its parameters and statistics of the fit (information criteria and, for continuous distributions, goodness-of-fit statistics)."
+  (:refer-clojure :exclude [compare])
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.stats :as stats]
@@ -298,21 +299,51 @@
      :aicc (if (m/pos? dof) (m/+ aic (m// (m/* 2.0 k (m/inc k)) dof)) ##Inf)
      :bic (m/- (m/* k (m/log n)) (m/* 2.0 ll))}))
 
+(defn- automatic-breaks
+  "Bounds of the cells of the chi-square statistic for the sorted sample `xs`, by the rule of `fitdistrplus::gofstat`: a bound is the observation at the position `round(n / (4 n)^(2/5))` of the observations which are left, the observations up to it (ties included) are taken off, until at most 1.5 times that number is left. Returns `nil` when the sample is too small."
+  [^doubles xs]
+  (let [n (alength xs)
+        cell (m/round (m// n (m/pow (m/* 4.0 n) 0.4)))
+        rest-limit (m/round (m/ceil (m/* 1.5 cell)))]
+    (when (m/> n rest-limit)
+      (loop [rest-xs (seq xs)
+             breaks []]
+        (if (m/> (count rest-xs) rest-limit)
+          (let [limit (double (nth rest-xs (dec cell)))]
+            (recur (drop-while (fn [^double v] (m/<= v limit)) rest-xs) (conj breaks limit)))
+          breaks)))))
+
+(defn- chi-square-statistics
+  "`:chisq` and `:chisq-df` of the fitted discrete distribution `d` for the sorted sample `xs` and the cells bounded by `breaks` (or the automatic ones), as in `fitdistrplus::gofstat`: the cells are `(-Inf, b1]`, `(b1, b2]`, ..., and `(b_last, Inf)` unless the distribution and the sample end there. `k` is the number of fitted parameters. Empty when there are no cells."
+  [d ^doubles xs ^long k breaks]
+  (when-let [breaks (seq (or breaks (automatic-breaks xs)))]
+    (let [n (alength xs)
+          observed-cumulative (mapv (fn [^double b] (long (count (take-while (fn [^double v] (m/<= v b)) xs)))) breaks)
+          theoretical-cumulative (mapv (fn [^double b] (r/cdf d b)) breaks)
+          closed? (and (m/== 1.0 (double (peek theoretical-cumulative))) (m/== n (long (peek observed-cumulative))))
+          differences (fn [cumulative end] (map m/- (if closed? cumulative (conj cumulative end)) (cons 0 cumulative)))
+          observed (differences observed-cumulative n)
+          expected (map #(m/* n ^double %) (differences theoretical-cumulative 1.0))
+          cells (count observed)]
+      {:chisq (v/sum (map (fn [^double o ^double e] (m// (m/sq (m/- o e)) e)) observed expected))
+       :chisq-df (m/- cells 1 k)})))
+
 (defn- fit-statistics
-  [d ^doubles xs ^long k]
+  [d ^doubles xs ^long k breaks]
   (let [n (alength xs)
         ll (log-likelihood d xs)]
     (merge {:k k :n n :loglik ll}
            (information-criteria ll k n)
-           (when (r/continuous? d)
+           (if (r/continuous? d)
              {:ks (stats/ks-statistic xs d {:sorted? true})
               :cvm (stats/cvm-statistic xs d {:sorted? true})
-              :ad (stats/ad-statistic xs d {:sorted? true})}))))
+              :ad (stats/ad-statistic xs d {:sorted? true})}
+             (chi-square-statistics d xs k breaks)))))
 
 
 
 (defn- build-result
-  [dist-key spec fixed method params tier converged? iterations xs k stats?]
+  [dist-key spec fixed method params tier converged? iterations statistics]
   (let [d (try (r/distribution dist-key params)
                (catch Exception e
                  (throw (ex-info "fit: the fitted parameters don't make a distribution"
@@ -324,7 +355,7 @@
      :converged? converged?
      :iterations iterations
      :fixed fixed
-     :stats (when stats? (fit-statistics d xs k))}))
+     :stats (when statistics (statistics d))}))
 
 (defn- estimate
   "Parameters from the closed form estimator `closed-form` (an entry of `:estimators`), or `nil`. An estimator declared for fixed parameters applies when exactly these are fixed, any other one when `fixed-only?` is false or no parameter is fixed."
@@ -339,7 +370,8 @@
 (defn- fit-fixed
   "Fit with the integer parameters fixed (`fixed` holds all the fixed parameters, `shown-fixed` the ones given by the user, `k` is the number of fitted parameters). Returns the map of `:result` and the `:value` of the objective of the method at it."
   [{:keys [dist-key spec xs method optimizer restarts closed-form? rng opts stats?]} fixed shown-fixed k]
-  (let [estimators (when closed-form? (:estimators spec))
+  (let [statistics (when stats? #(fit-statistics % xs k (:breaks opts)))
+        estimators (when closed-form? (:estimators spec))
         closed-form (get estimators method)
         free (vec (remove #(contains? fixed (:name %)) (:params spec)))
         free-names (mapv :name free)
@@ -348,11 +380,11 @@
         estimated (estimate closed-form xs fixed (:exact? closed-form))]
     (cond
       (and (:exact? closed-form) estimated)
-      (let [result (build-result dist-key spec shown-fixed method (merge estimated fixed) :closed-form true 0 xs k stats?)]
+      (let [result (build-result dist-key spec shown-fixed method (merge estimated fixed) :closed-form true 0 statistics)]
         {:result result :value (value-of result)})
       ;; every parameter is fixed (the searched integer was the last free one)
       (empty? free)
-      (let [result (build-result dist-key spec shown-fixed method fixed :closed-form true 0 xs k stats?)]
+      (let [result (build-result dist-key spec shown-fixed method fixed :closed-form true 0 statistics)]
         {:result result :value (value-of result)})
       :else
       (let [bounds (mapv search-bounds free)
@@ -377,7 +409,7 @@
             (undefined-moments! dist-key "moments to match")
             (throw (ex-info "fit: no usable estimate was found" {:type :not-converged :function 'fit :distribution dist-key}))))
         (let [result (build-result dist-key spec shown-fixed method (merge fixed (zipmap free-names (decode (:point best))))
-                                   :numeric (contains? #{nil :converged :stalled} (:status best)) (or (:iterations best) 0) xs k stats?)]
+                                   :numeric (contains? #{nil :converged :stalled} (:status best)) (or (:iterations best) 0) statistics)]
           {:result result :value (:value best)})))))
 
 (defn- standard-errors
@@ -463,6 +495,7 @@
     - `:fixed` (map, default `nil`): Parameters which are not fitted, as a map from the name of a parameter to its value. At least one parameter has to stay free (or be searched).
     - `:optimizer` (keyword): The method of [[fastmath.optimization]] used for the numerical minimization, `:lbfgsb` or `:nelder-mead` (its initial simplex is a fifth of the starting values). The default is `:nelder-mead` for the minimum distance methods (`:ks`, `:cvm`, `:ad` and its variants), whose objectives are not smooth or have plateaus, and `:lbfgsb` otherwise.
     - `:stats?` (boolean, default `true`): Set to `false` to skip all the statistics (`:stats` is `nil`, `:se?` is ignored), as [[bootstrap]] does for its refits.
+    - `:breaks` (sequence of numbers, default `nil`): For discrete distributions, the increasing bounds of the cells of the chi-square statistic (see `:chisq` below); the cells are `(-Inf, b1]`, `(b1, b2]`, ..., `(b_last, Inf)`. By default the bounds are chosen by the rule of `fitdistrplus::gofstat`: the observation at the position `round(n / (4 n)^(2/5))` among the observations which are left, until at most 1.5 times that number is left; no bounds (and no chi-square) for a small sample.
     - `:se?` (boolean, default `true`): Set to `false` to skip the standard errors (they take a few dozens of evaluations of the likelihood, slow for distributions with a numerically integrated density).
     - `:restarts` (long, default `3`): The number of starting points taken from the scan, when there are no other starting values.
     - `:closed-form?` (boolean, default `true`): Set to `false` to skip the closed form estimators and fit numerically.
@@ -478,7 +511,7 @@
   - `:converged?`: `true` when the optimizer reported convergence or a stalled objective (it stopped changing, the usual end at the optimum), `false` when it stopped at the iteration limit. A closed form result is always converged.
   - `:iterations`: The number of iterations of the optimizer, `0` for a closed form.
   - `:fixed`: The map of fixed parameters, as given.
-  - `:stats`: A map with `:k` (the number of fitted parameters, a searched integer included), `:n`, `:loglik`, `:aic`, `:aicc`, `:bic`, and for continuous distributions the goodness-of-fit statistics `:ks`, `:cvm` and `:ad`, which are descriptive, not tests. They describe the fitted distribution, whatever the method. `:aicc` is `##Inf` when `n` is not above `k + 1`. Unless `:se?` is `false` it holds also `:se`, the map from the name of a fitted parameter to its standard error, from the inverse of the negative Hessian of the log likelihood at the estimate, a maximum likelihood result (the other methods give `:se` equal to `nil`). Fixed parameters, a searched integer and the ends of the support (the `:lower-bound` and `:upper-bound` roles, whose log likelihood is not smooth) have no entry and the other standard errors are conditional on them. When the Hessian is not finite, singular or not positive definite (a flat ridge of the likelihood), `:se` is `nil` and `:se-warning` gives the reason; it never throws.
+  - `:stats`: A map with `:k` (the number of fitted parameters, a searched integer included), `:n`, `:loglik`, `:aic`, `:aicc`, `:bic`, and for continuous distributions the goodness-of-fit statistics `:ks`, `:cvm` and `:ad`, which are descriptive, not tests. They describe the fitted distribution, whatever the method. for discrete distributions `:chisq` (the Pearson chi-square statistic over the cells of `:breaks`, absent when the sample is too small for the automatic cells) and `:chisq-df` (cells - 1 - `k`, may be not positive, then the statistic is of no use), also descriptive, no p-value. `:aicc` is `##Inf` when `n` is not above `k + 1`. Unless `:se?` is `false` it holds also `:se`, the map from the name of a fitted parameter to its standard error, from the inverse of the negative Hessian of the log likelihood at the estimate, a maximum likelihood result (the other methods give `:se` equal to `nil`). Fixed parameters, a searched integer and the ends of the support (the `:lower-bound` and `:upper-bound` roles, whose log likelihood is not smooth) have no entry and the other standard errors are conditional on them. When the Hessian is not finite, singular or not positive definite (a flat ridge of the likelihood), `:se` is `nil` and `:se-warning` gives the reason; it never throws.
 
   Moment matching with the moments above the second order, and L-moment matching, integrate the quantile function numerically unless the specification has its own `:moments` or `:lmoments`.
 
@@ -486,13 +519,15 @@
 
   See also [[fastmath.random/fit-spec]], [[fastmath.random/log-likelihood]]."
   ([dist-key data] (fit dist-key data nil))
-  ([dist-key data {:keys [method fixed optimizer restarts closed-form? rng se? stats?]
+  ([dist-key data {:keys [method fixed optimizer restarts closed-form? rng se? stats? breaks]
                    :or {method :mle restarts 3 closed-form? true se? true stats? true}
                    :as opts}]
    (when-not (some #{method} methods-list)
      (invalid-input! :method "unknown method" method (set methods-list)))
    (when-not (contains? #{nil :lbfgsb :nelder-mead} optimizer)
      (invalid-input! :optimizer "unsupported optimizer" optimizer #{:lbfgsb :nelder-mead}))
+   (when-not (or (nil? breaks) (and (sequential? breaks) (every? number? breaks) (apply < breaks)))
+     (invalid-input! :breaks "the bounds of the cells have to be increasing numbers" breaks "increasing numbers"))
    (let [spec (or (r/fit-spec dist-key)
                   (throw (ex-info (str "fit: the distribution " dist-key " can't be fitted")
                                   {:type :not-fittable :function 'fit :distribution dist-key})))
@@ -603,3 +638,99 @@
                                   :bias (m/- (stats/mean ats) t0)
                                   :stddev (stats/stddev ats)}])))
                     (remove #(contains? (:fixed result) %) (keys (:params result))))})))
+
+(defn- plotting-positions
+  "Plotting positions of `n` ordered observations, `(i - a) / (n + 1 - 2 a)` with `a = 3/8` for `n <= 10` and `1/2` otherwise (`ppoints` of R)."
+  [^long n]
+  (let [a (if (m/<= n 10) 0.375 0.5)]
+    (mapv (fn [^long i] (m// (m/- (m/inc i) a) (m/- (m/inc n) (m/* 2.0 a)))) (range n))))
+
+(defn- fitted-distribution
+  "The distribution of a result of [[fit]], or the distribution itself."
+  [result-or-distribution]
+  (if (r/distribution? result-or-distribution)
+    result-or-distribution
+    (or (:distribution result-or-distribution)
+        (invalid-input! :distribution "a distribution or a result of fit is expected" result-or-distribution "distribution or fit result"))))
+
+(defn qq
+  "Data of the quantile-quantile plot of a sample against a distribution.
+
+  The sample is sorted and its `i`-th value is paired with the quantile of the distribution at the `i`-th plotting position `(i - a) / (n + 1 - 2 a)` (`i` from 1, `a = 3/8` for `n <= 10`, `1/2` otherwise, the convention of `ppoints` and `qqnorm` of R).
+
+  Parameters:
+
+  - `result-or-distribution`: A result of [[fit]] or a distribution object.
+  - `data` (sequence of numbers): The sample.
+
+  Returns a vector of pairs `[theoretical-quantile sample-value]`, ordered by the sample. A sample from the distribution lies along the diagonal.
+
+  See also [[pp]], [[fit]]."
+  [result-or-distribution data]
+  (let [d (fitted-distribution result-or-distribution)
+        xs (sort data)]
+    (mapv (fn [^double p ^double x] [(double (r/icdf d p)) x]) (plotting-positions (count xs)) xs)))
+
+(defn pp
+  "Data of the probability-probability plot of a sample against a distribution.
+
+  The sample is sorted and the cumulative probability of the distribution at its `i`-th value is paired with the `i`-th plotting position `(i - a) / (n + 1 - 2 a)` (see [[qq]]).
+
+  Parameters:
+
+  - `result-or-distribution`: A result of [[fit]] or a distribution object.
+  - `data` (sequence of numbers): The sample.
+
+  Returns a vector of pairs `[theoretical-probability empirical-probability]`, ordered by the sample. A sample from the distribution lies along the diagonal.
+
+  See also [[qq]], [[fit]]."
+  [result-or-distribution data]
+  (let [d (fitted-distribution result-or-distribution)
+        xs (sort data)]
+    (mapv (fn [^double p ^double x] [(r/cdf d x) p]) (plotting-positions (count xs)) xs)))
+
+(def ^:private criteria #{:aic :aicc :bic})
+
+(defn compare
+  "Compares results of [[fit]] fitted to the same sample in a table.
+
+  The rows are ordered from the best to the worst by the information criterion (the smallest value is the best).
+
+  Parameters:
+
+  - `results` (sequence of results of [[fit]]): At least one; all fitted to the same data, all continuous or all discrete (see `(fastmath.random/continuous? d)`; a density and a mass log likelihood can't be compared), with the statistics (not fitted with `:stats? false`).
+  - `opts` (map, optional):
+    - `:criterion` (keyword, default `:aic`): `:aic`, `:aicc` or `:bic`, the criterion of the order and of the `:rank`.
+
+  Returns a vector of rows, maps with the keys: `:distribution` (the key of the distribution), `:method`, `:k`, `:n`, `:loglik`, `:aic`, `:aicc`, `:bic`, `:delta-aic` and `:delta-bic` (the difference from the smallest value), `:akaike-weight` (relative likelihood of the model, `exp(-delta-aic / 2)` normalized to sum `1`) and `:rank` (from `1`). Continuous results add `:ks`, `:cvm` and `:ad` and discrete results add `:chisq` and `:chisq-df`, a value which a result doesn't have is `nil`. There are no p-values.
+
+  Throws `ex-info` with `:type :invalid-input` and `:property :kind` for results of both kinds, `:property :n` for results of different sample sizes, `:property :results` for no results or a result without the statistics and `:property :criterion` for an unknown criterion.
+
+  See also [[fit]], [[qq]], [[pp]]."
+  ([results] (compare results nil))
+  ([results {:keys [criterion] :or {criterion :aic}}]
+   (when-not (contains? criteria criterion)
+     (invalid-input! :criterion "unknown criterion" criterion criteria))
+   (when (or (empty? results) (not-every? :stats results))
+     (invalid-input! :results "results of fit with the statistics are expected" (count results) "non empty results with :stats"))
+   (when (not= 1 (count (distinct (map #(r/continuous? (:distribution %)) results))))
+     (invalid-input! :kind "results of continuous and discrete distributions can't be compared" (mapv #(r/distribution-id (:distribution %)) results) "all continuous or all discrete"))
+   (when (not= 1 (count (distinct (map #(get-in % [:stats :n]) results))))
+     (invalid-input! :n "results have to be fitted to the same sample" (mapv #(get-in % [:stats :n]) results) "the same sample size"))
+   (let [continuous? (r/continuous? (:distribution (first results)))
+         min-aic (double (apply min (map #(get-in % [:stats :aic]) results)))
+         min-bic (double (apply min (map #(get-in % [:stats :bic]) results)))
+         weights (map #(m/exp (m/* -0.5 (m/- ^double (get-in % [:stats :aic]) min-aic))) results)
+         total (v/sum weights)
+         rows (map (fn [{:keys [distribution method stats]} ^double w]
+                     (merge {:distribution (r/distribution-id distribution)
+                             :method method}
+                            (select-keys stats [:k :n :loglik :aic :aicc :bic])
+                            {:delta-aic (m/- ^double (:aic stats) min-aic)
+                             :delta-bic (m/- ^double (:bic stats) min-bic)
+                             :akaike-weight (m// w total)}
+                            (zipmap (if continuous? [:ks :cvm :ad] [:chisq :chisq-df])
+                                    (map stats (if continuous? [:ks :cvm :ad] [:chisq :chisq-df])))))
+                   results weights)]
+     (vec (map-indexed (fn [^long i row] (assoc row :rank (m/inc i)))
+                       (sort-by criterion rows))))))
