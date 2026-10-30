@@ -328,7 +328,7 @@
           closed? (and (m/== 1.0 (double (peek theoretical-cumulative))) (m/== n (long (peek observed-cumulative))))
           differences (fn [cumulative end] (map m/- (if closed? cumulative (conj cumulative end)) (cons 0 cumulative)))
           observed (differences observed-cumulative n)
-          expected (map #(m/* n ^double %) (differences theoretical-cumulative 1.0))
+          expected (map (fn [^double v] (m/* n v)) (differences theoretical-cumulative 1.0))
           cells (count observed)]
       {:chisq (v/sum (map (fn [^double o ^double e] (m// (m/sq (m/- o e)) e)) observed expected))
        :chisq-df (m/- cells 1 k)})))
