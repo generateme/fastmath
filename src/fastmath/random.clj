@@ -112,8 +112,6 @@
             [fastmath.vector :as v]
             [fastmath.protocols :as prot]
             [fastmath.random.distributions :as distr]
-            [fastmath.fitdistr.fit-specs :as fit-specs]
-            [fastmath.special :as special]
             [fastmath.stats.bins :as bins])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
@@ -2631,7 +2629,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
    (check-parameter! 'beta-symmetrical :alpha alpha (and (finite-number? alpha) (m/pos? alpha)) "a finite number > 0")
    (let [d (int-parameter 'beta-symmetrical :d d 14)]
      (check-parameter! 'beta-symmetrical :d d (m/<= 0 d 35) "an integer from 0 to 35")
-     (distr/ssj-continuous :beta-symmetrical (BetaSymmetricalDist. alpha d) rng [:alpha :d :rng] fit-specs/beta-symmetrical))))
+     (distr/ssj-continuous :beta-symmetrical (BetaSymmetricalDist. alpha d) rng [:alpha :d :rng] :beta-symmetrical))))
 
 (add-distr-method beta-symmetrical)
 
@@ -2654,7 +2652,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   See also [[distribution]], [[chi-squared]], [[normal]]."
   ([] (chi nil))
   ([{:keys [nu rng]}]
-   (distr/ssj-continuous :chi (ChiDist. (int-parameter 'chi :nu nu 1)) rng [:nu :rng] fit-specs/chi)))
+   (distr/ssj-continuous :chi (ChiDist. (int-parameter 'chi :nu nu 1)) rng [:nu :rng] :chi)))
 
 (add-distr-method chi)
 
@@ -2679,7 +2677,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (chi-squared-noncentral nil))
   ([{:keys [^double nu ^double lambda rng]
      :or {nu 1.0 lambda 1.0}}]
-   (distr/ssj-continuous :chi-squared-noncentral (ChiSquareNoncentralDist. nu lambda) rng [:nu :lambda :rng] fit-specs/chi-squared-noncentral)))
+   (distr/ssj-continuous :chi-squared-noncentral (ChiSquareNoncentralDist. nu lambda) rng [:nu :lambda :rng] :chi-squared-noncentral)))
 
 (add-distr-method chi-squared-noncentral)
 
@@ -2786,7 +2784,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (erlang nil))
   ([{:keys [k ^double lambda rng]
      :or {lambda 1.0}}]
-   (distr/ssj-continuous :erlang (ErlangDist. (int-parameter 'erlang :k k 2) lambda) rng [:k :lambda :rng] fit-specs/erlang)))
+   (distr/ssj-continuous :erlang (ErlangDist. (int-parameter 'erlang :k k 2) lambda) rng [:k :lambda :rng] :erlang)))
 
 (add-distr-method erlang)
 
@@ -2810,7 +2808,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (fatigue-life nil))
   ([{:keys [^double alpha ^double beta ^double gamma rng]
      :or {alpha 0.0 beta 1.0 gamma 1.0}}]
-   (distr/ssj-continuous :fatigue-life (FatigueLifeDist. alpha beta gamma) rng [:alpha :beta :gamma :rng] fit-specs/fatigue-life)))
+   (distr/ssj-continuous :fatigue-life (FatigueLifeDist. alpha beta gamma) rng [:alpha :beta :gamma :rng] :fatigue-life)))
 
 (add-distr-method fatigue-life)
 
@@ -2833,7 +2831,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (folded-normal nil))
   ([{:keys [^double mu ^double sigma rng]
      :or {mu 0.0 sigma 1.0}}]
-   (distr/ssj-continuous :folded-normal (FoldedNormalDist. mu sigma) rng [:mu :sigma :rng] fit-specs/folded-normal)))
+   (distr/ssj-continuous :folded-normal (FoldedNormalDist. mu sigma) rng [:mu :sigma :rng] :folded-normal)))
 
 (add-distr-method folded-normal)
 
@@ -2857,7 +2855,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (frechet nil))
   ([{:keys [^double alpha ^double beta ^double delta rng]
      :or {alpha 1.0 beta 1.0 delta 0.0}}]
-   (distr/ssj-continuous :frechet (FrechetDist. alpha beta delta) rng [:alpha :beta :delta :rng] fit-specs/frechet)))
+   (distr/ssj-continuous :frechet (FrechetDist. alpha beta delta) rng [:alpha :beta :delta :rng] :frechet)))
 
 (add-distr-method frechet)
 
@@ -2880,7 +2878,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (half-normal nil))
   ([{:keys [^double mu ^double sigma rng]
      :or {mu 0.0 sigma 1.0}}]
-   (distr/ssj-continuous :half-normal (HalfNormalDist. mu sigma) rng [:mu :sigma :rng] fit-specs/half-normal)))
+   (distr/ssj-continuous :half-normal (HalfNormalDist. mu sigma) rng [:mu :sigma :rng] :half-normal)))
 
 (add-distr-method half-normal)
 
@@ -2903,7 +2901,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (hyperbolic-secant nil))
   ([{:keys [^double mu ^double sigma rng]
      :or {mu 0.0 sigma 1.0}}]
-   (distr/ssj-continuous :hyperbolic-secant (HyperbolicSecantDist. mu sigma) rng [:mu :sigma :rng] fit-specs/hyperbolic-secant)))
+   (distr/ssj-continuous :hyperbolic-secant (HyperbolicSecantDist. mu sigma) rng [:mu :sigma :rng] :hyperbolic-secant)))
 
 (add-distr-method hyperbolic-secant)
 
@@ -2936,7 +2934,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
      (check-parameter! 'hypoexponential-equal :k k (m/>= k 1) "an integer >= 1")
      (check-parameter! 'hypoexponential-equal :n n (m/>= n k) "an integer >= k")
      (check-parameter! 'hypoexponential-equal :h h (and (finite-number? h) (m/pos? h)) "a finite number > 0")
-     (distr/ssj-continuous :hypoexponential-equal (HypoExponentialDistEqual. n k h) rng [:n :k :h :rng] fit-specs/hypoexponential-equal))))
+     (distr/ssj-continuous :hypoexponential-equal (HypoExponentialDistEqual. n k h) rng [:n :k :h :rng] :hypoexponential-equal))))
 
 (add-distr-method hypoexponential-equal)
 
@@ -2989,7 +2987,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (inverse-gamma nil))
   ([{:keys [^double alpha ^double beta rng]
      :or {alpha 1.0 beta 1.0}}]
-   (distr/ssj-continuous :inverse-gamma (InverseGammaDist. alpha beta) rng [:alpha :beta :rng] fit-specs/inverse-gamma)))
+   (distr/ssj-continuous :inverse-gamma (InverseGammaDist. alpha beta) rng [:alpha :beta :rng] :inverse-gamma)))
 
 (add-distr-method inverse-gamma)
 
@@ -3039,7 +3037,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (johnson-sb nil))
   ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
      :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
-   (distr/ssj-continuous :johnson-sb (JohnsonSBDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] fit-specs/johnson-sb)))
+   (distr/ssj-continuous :johnson-sb (JohnsonSBDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] :johnson-sb)))
 
 (add-distr-method johnson-sb)
 
@@ -3064,7 +3062,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (johnson-sl nil))
   ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
      :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
-   (distr/ssj-continuous :johnson-sl (JohnsonSLDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] fit-specs/johnson-sl)))
+   (distr/ssj-continuous :johnson-sl (JohnsonSLDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] :johnson-sl)))
 
 (add-distr-method johnson-sl)
 
@@ -3089,7 +3087,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (johnson-su nil))
   ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
      :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
-   (distr/ssj-continuous :johnson-su (JohnsonSUDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] fit-specs/johnson-su)))
+   (distr/ssj-continuous :johnson-su (JohnsonSUDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng] :johnson-su)))
 
 (add-distr-method johnson-su)
 
@@ -3203,7 +3201,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (log-logistic nil))
   ([{:keys [^double alpha ^double beta rng]
      :or {alpha 1.0 beta 1.0}}]
-   (distr/ssj-continuous :log-logistic (LoglogisticDist. alpha beta) rng [:alpha :beta :rng] fit-specs/log-logistic)))
+   (distr/ssj-continuous :log-logistic (LoglogisticDist. alpha beta) rng [:alpha :beta :rng] :log-logistic)))
 
 (add-distr-method log-logistic)
 
@@ -3255,7 +3253,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([{:keys [^double alpha1 ^double alpha2 ^double beta rng]
      :or {alpha1 1.0 alpha2 1.0 beta 1.0}}]
    (distr/ssj-continuous :pearson-6 (Pearson6Dist. alpha1 alpha2 beta) rng
-                         [:alpha1 :alpha2 :beta :rng] fit-specs/pearson-6)))
+                         [:alpha1 :alpha2 :beta :rng] :pearson-6)))
 
 (add-distr-method pearson-6)
 
@@ -3285,7 +3283,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
    (check-parameter! 'power :b b (and (finite-number? b) (m/> b a)) "a finite number > a")
    (check-parameter! 'power :c c (and (finite-number? c) (m/pos? c)) "a finite number > 0")
    (distr/ssj-continuous :power (PowerDist. a b c) rng
-                         [:a :b :c :rng] fit-specs/power)))
+                         [:a :b :c :rng] :power)))
 
 (add-distr-method power)
 
@@ -3309,7 +3307,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([{:keys [^double a ^double beta rng]
      :or {a 0.0 beta 1.0}}]
    (distr/ssj-continuous :rayleigh (RayleighDist. a beta) rng
-                         [:a :beta :rng] fit-specs/rayleigh)))
+                         [:a :beta :rng] :rayleigh)))
 
 (add-distr-method rayleigh)
 
@@ -3478,23 +3476,6 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
 (add-distr-method kde)
 
-(defn- negative-binomial-point-mass
-  "The negative binomial distribution with `p = 1`: the point mass at `0` (the log-pmf of `fastmath.random.distributions/negative-binomial` is `NaN` there, `0 * log(0)`)."
-  [rng]
-  (distr/->distribution {:lpdf (fn ^double [^long k] (if (m/zero? k) 0.0 ##-Inf))
-                         :cdf (fn ^double [^double k] (if (m/neg? k) 0.0 1.0))
-                         :icdf (fn [^double _] 0)
-                         :sampler :long
-                         :rng rng
-                         :dimensions 1
-                         :continuous? false
-                         :name :negative-binomial
-                         :parameters [:r :p :rng]
-                         :mean 0.0
-                         :variance 0.0
-                         :lower-bound 0
-                         :upper-bound 0}))
-
 (defn negative-binomial
   "Creates a negative binomial distribution object.
 
@@ -3518,83 +3499,13 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
      :or {r 20.0 p 0.5}}]
    (if (m/== p 1.0)
      (do (check-parameter! 'negative-binomial :r r (and (finite-number? r) (m/pos? r)) "a finite number > 0")
-         (negative-binomial-point-mass rng))
+         (distr/negative-binomial-point-mass rng))
      (distr/negative-binomial r p rng))))
 
 (add-distr-method negative-binomial)
 
 ;; Poisson is used by `nbi` (`sigma * mu`) and `nbii` (`sigma`) below this relative excess of the variance
 (def ^{:private true :const true :tag 'double} negative-binomial-poisson-limit 1.0e-8)
-
-;; the size `r` from which the negative binomial pmf is evaluated by the Poisson log-pmf and a correction
-(def ^{:private true :const true :tag 'double} negative-binomial-large-size 1.0e5)
-
-(defn- stirling-correction
-  "Error of the Stirling formula of log-gamma, `log(gamma(z)) - ((z - 1/2) log(z) - z + log(2 pi) / 2)`, for `z >= 10`."
-  ^double [^double z]
-  (let [z2 (m/* z z)]
-    (m// (m/- (m// 1.0 12.0)
-              (m// (m/- (m// 1.0 360.0)
-                        (m// (m/- (m// 1.0 1260.0) (m// (m// 1.0 1680.0) z2)) z2))
-                   z2))
-         z)))
-
-(defn- negative-binomial-large-size-distribution
-  "Negative binomial distribution with the mean `mu` and the size `r >= 1e5` (`p = r / (r + mu)`).
-
-  The pmf is `log P(k) = k log(mu) - mu - log(k!) + d` with the correction to the Poisson pmf
-  `d = ((r - 1/2) log1p(k/r) - k) + (mu - r log1p(mu/r)) + k log1p((k - mu) / (r + mu)) + s(r + k) - s(r)`, where `s` is the error of the Stirling formula.
-  Each term is small, the log-gamma difference `log(gamma(r + k)) - log(gamma(r))` (of the order of `r log r`, which is
-  not accurate enough for a large `r`) is not evaluated. `cdf` and the quantile are those of `fastmath.random.distributions/negative-binomial`."
-  [mu r variance rng parameters fit-spec]
-  (let [mu (double mu)
-        r (double r)
-        variance (double variance)
-        p (m// r (m/+ r mu))
-        r+mu (m/+ r mu)
-        log-mu (m/log mu)
-        s-r (stirling-correction r)
-        mu-term (m/- mu (m/* r (m/log1p (m// mu r))))
-        sd (m/sqrt variance)
-        cdf (fn ^double [^double k]
-              (if (m/neg? k)
-                0.0
-                (special/regularized-beta p r (m/inc (m/rint k)))))]
-    (distr/->distribution {:lpdf (fn ^double [^long k]
-                                   (if (m/neg? k)
-                                     ##-Inf
-                                     (let [kd (double k)]
-                                       (m/+ (m/- (m/* kd log-mu) mu (m/log-factorial k))
-                                            mu-term
-                                            (m/- (m/* (m/- r 0.5) (m/log1p (m// kd r))) kd)
-                                            (m/* kd (m/log1p (m// (m/- kd mu) r+mu)))
-                                            (m/- (stirling-correction (m/+ r kd)) s-r)))))
-                           :cdf cdf
-                           :icdf (fn [^double q]
-                                   (cond
-                                     (m/not-pos? q) 0
-                                     (m/>= q 1.0) ##Inf
-                                     :else (distr/discrete-binary-search cdf q [(long mu) (long sd)])))
-                           :sampler :long
-                           :rng rng
-                           :dimensions 1
-                           :continuous? false
-                           :name :negative-binomial
-                           :parameters parameters
-                           :fit-spec fit-spec
-                           :mean mu
-                           :variance variance
-                           :lower-bound 0
-                           :upper-bound Integer/MAX_VALUE})))
-
-(defn- negative-binomial-mean
-  "Negative binomial distribution with the mean `mu`, the size `r` and the given `variance`; reports `parameters` and `fit-spec`."
-  [mu r variance rng parameters fit-spec]
-  (let [mu (double mu)
-        r (double r)]
-    (if (m/< r negative-binomial-large-size)
-      (distr/negative-binomial r (m// r (m/+ r mu)) rng parameters fit-spec)
-      (negative-binomial-large-size-distribution mu r variance rng parameters fit-spec))))
 
 (defn nbi
   "Creates a negative binomial (type I) distribution object, using gamlss-style parameter names.
@@ -3625,7 +3536,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
          sigma (double sigma)]
      (if (m/< (m/* sigma mu) negative-binomial-poisson-limit)
        (poisson {:p mu :rng rng})
-       (negative-binomial-mean mu (m// 1.0 sigma) (m/+ mu (m/* sigma mu mu)) rng [:mu :sigma :rng] fit-specs/nbi)))))
+       (distr/negative-binomial-mean mu (m// 1.0 sigma) (m/+ mu (m/* sigma mu mu)) rng [:mu :sigma :rng] :nbi)))))
 
 (add-distr-method nbi)
 
@@ -3658,7 +3569,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
          sigma (double sigma)]
      (if (m/< sigma negative-binomial-poisson-limit)
        (poisson {:p mu :rng rng})
-       (negative-binomial-mean mu (m// mu sigma) (m/* mu (m/inc sigma)) rng [:mu :sigma :rng] fit-specs/nbii)))))
+       (distr/negative-binomial-mean mu (m// mu sigma) (m/* mu (m/inc sigma)) rng [:mu :sigma :rng] :nbii)))))
 
 (add-distr-method nbii)
 
@@ -3975,7 +3886,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([{:keys [^double mu ^double sigma ^double nu rng]
      :or {mu 0.0 sigma 1.0 nu 1.0}}]
    (distr/ex-gaussian {:mu mu :sigma sigma :tau nu :rng rng :normal normal :exponential exponential
-                       :parameters [:mu :sigma :nu :rng] :fit-spec fit-specs/exgaus})))
+                       :parameters [:mu :sigma :nu :rng] :fit-spec :exgaus})))
 
 (add-distr-method exgaus)
 
@@ -4023,7 +3934,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   ([] (bb nil))
   ([{:keys [^double mu ^double sigma bd rng]
      :or {mu 0.5 sigma 1.0}}]
-   (distr/beta-binomial (m// mu sigma) (m// (m/- 1.0 mu) sigma) (long-parameter 'bb :bd bd 10) rng [:mu :sigma :bd :rng] fit-specs/bb)))
+   (distr/beta-binomial (m// mu sigma) (m// (m/- 1.0 mu) sigma) (long-parameter 'bb :bd bd 10) rng [:mu :sigma :bd :rng] :bb)))
 
 (add-distr-method bb)
 
@@ -4226,7 +4137,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
    (let [nmu (m// mu (m/- 1.0 sigma))]
      (distr/zero-inflated-poisson {:mu nmu :sigma sigma :rng rng :poisson poisson
                                    :parameters [:mu :sigma :rng]
-                                   :fit-spec fit-specs/zero-inflated-poisson2}))))
+                                   :fit-spec :zero-inflated-poisson2}))))
 
 (add-distr-method zero-inflated-poisson2)
 (add-distr-method zero-inflated-poisson2 :zip2)

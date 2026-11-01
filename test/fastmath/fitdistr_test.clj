@@ -646,6 +646,66 @@
       (doseq [[nm v] params]
         (t/is (close? (get-in res [:params nm]) v 1.0e-8))))))
 
+(t/deftest fit-infer-test
+  (t/testing "the normal distribution: the sample mean and the maximum likelihood standard deviation, no optimizer"
+    (let [data (r/->seq (r/normal {:mu 2.0 :sd 3.0 :rng (r/rng :jdk 11)}) 300)
+          mean (stats/mean data)
+          sd (m/sqrt (/ (reduce + (map #(m/sq (- % mean)) data)) (count data)))
+          res (sut/fit :normal data {:method :infer})
+          mle (sut/fit :normal data)]
+      (t/is (m/delta-eq mean (get-in res [:params :mu])))
+      (t/is (m/delta-eq sd (get-in res [:params :sd])))
+      (t/is (= :infer (:method res)))
+      (t/is (= {:tier :closed-form :converged? true :iterations 0 :fixed {}}
+               (select-keys res [:tier :converged? :iterations :fixed])))
+      (t/is (= :normal (r/distribution-id (:distribution res))))
+      ;; the statistics and the standard errors are the ones of the maximum likelihood fit
+      (t/is (stats-keys-correct? res))
+      (t/is (= (:stats mle) (:stats res)))
+      (t/is (nil? (:stats (sut/fit :normal data {:method :infer :stats? false}))))
+      (t/is (= (:se (:stats mle)) (:se (:stats (sut/fit :normal (reverse data) {:method :infer})))))
+      (t/is (= (dissoc (sut/fit :normal data {:method :infer :se? false}) :distribution)
+               (assoc (dissoc (sut/fit :normal data {:se? false}) :distribution) :method :infer)))))
+  (t/testing "the result is what the maximum likelihood fit returns for every distribution which has a closed form"
+    (let [closed (for [k (sort (filter r/fit-spec r/distributions-list))
+                       :let [data (vec (r/->seq (r/distribution k {:rng (r/rng :jdk 7)}) 200))
+                             res (try (sut/fit k data {:method :infer :stats? false})
+                                      (catch clojure.lang.ExceptionInfo e
+                                        (t/is (= :no-closed-form (:type (ex-data e))) (str k))
+                                        nil))]
+                       :when res]
+                   (let [fitted (sut/fit k data {:stats? false})]
+                     (t/is (= :closed-form (:tier fitted)) (str k))
+                     (doseq [[nm v] (:params fitted)]
+                       (t/is (close? (get-in res [:params nm]) v 1.0e-12) (str k " " nm)))
+                     k))]
+      (t/is (= #{:exponential :geometric :half-normal :inverse-gaussian :laplace :log-normal :normal :pareto
+                 :poisson :reciprocal :uniform-int :uniform-real :zaig :zero-adjusted-inverse-gaussian}
+               (set closed)))))
+  (t/testing "fixed parameters"
+    ;; an estimator declared for the fixed number of trials
+    (let [data (r/->seq (r/binomial {:trials 10 :p 0.3 :rng (r/rng :jdk 5)}) 200)
+          res (sut/fit :binomial data {:method :infer :fixed {:trials 10}})]
+      (t/is (m/delta-eq (/ (stats/mean data) 10.0) (get-in res [:params :p])))
+      (t/is (= 10.0 (get-in res [:params :trials])))
+      (t/is (= {:trials 10} (:fixed res)))
+      (t/is (= :closed-form (:tier res)))
+      (t/is (= :no-closed-form (:type (error-data #(sut/fit :binomial data {:method :infer})))))
+      (t/is (= :no-closed-form (:type (error-data #(sut/fit :binomial data {:method :infer :fixed {:p 0.3}})))))))
+  (t/testing "errors"
+    (let [data [0.3 -1.5 2.2 0.9 1.7]]
+      ;; an estimator which is only a starting point, or none at all
+      (t/is (= {:type :no-closed-form :function 'fit :distribution :cauchy :fixed {}}
+               (error-data #(sut/fit :cauchy data {:method :infer}))))
+      ;; no estimate for a constant sample
+      (t/is (= :no-closed-form (:type (error-data #(sut/fit :uniform-real [1.0 1.0 1.0] {:method :infer})))))
+      ;; no estimator for these fixed parameters
+      (t/is (= :no-closed-form (:type (error-data #(sut/fit :normal data {:method :infer :fixed {:mu 0.0}})))))
+      (t/is (= :closed-form? (:property (error-data #(sut/fit :normal data {:method :infer :closed-form? false})))))
+      (t/is (= :data (:property (error-data #(sut/fit :gamma [-1.0 2.0] {:method :infer})))))
+      (t/is (= :fixed (:property (error-data #(sut/fit :normal data {:method :infer :fixed {:sd -1.0}})))))
+      (t/is (= :not-fittable (:type (error-data #(sut/fit :mixture data {:method :infer}))))))))
+
 (t/deftest fit-batch-a-requirements-test
   (t/testing "the integer shape of the Erlang distribution has to be fixed"
     (t/is (= :fixed (:property (error-data #(sut/fit :erlang [1.0 2.0 3.0]))))))

@@ -6,6 +6,7 @@
   The functions are the building blocks for `fastmath.random`, which wraps them with the user-facing constructors (defaults, docstrings, the `distribution` multimethod) and the protocol proxies (`cdf`, `pdf`, `icdf` ... with the checks of the arguments). Positional arguments of the constructors here are not optional, `rng` can be `nil` (a fresh generator is created). Invalid arguments throw `ex-info` with `:type :invalid-input`."
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
+            [fastmath.matrix :as mat]
             [fastmath.special :as special]
             [fastmath.special.gamma :as gamma]
             [fastmath.polynomials :as poly]
@@ -199,125 +200,78 @@
 
 ;; multivariate normal: validation, point check and log-space density
 
-(def ^:private ^:const multi-normal-symmetry-tolerance 1.0e-10)
-(def ^:private ^:const multi-normal-positivity-tolerance 1.0e-13)
+(def ^:private ^:const ^double multi-normal-symmetry-tolerance 1.0e-10)
+(def ^:private ^:const ^double multi-normal-positivity-tolerance 1.0e-13)
 
-(defn- cholesky-factor
-  "Lower triangular Cholesky factor `L` (`double[][]`, `L L^T = cov`) of the square matrix `cov` (`double[][]`).
-  Returns `nil` when the matrix is not positive definite (a pivot is not above `1e-13` of its diagonal entry)."
+(defn- multi-normal-cholesky-factor
+  "Lower triangular Cholesky factor `L` (`double[][]`, `L L^T = cov`) of the validated covariance `cov` (`double[][]`).
+  Returns `nil` when the matrix is not positive definite (a pivot is not above `1e-13` of the smallest diagonal entry). Symmetry is checked by the caller."
   [^"[[D" cov]
   (let [n (alength cov)
-        ^"[[D" l (into-array ^Class (Class/forName "[D") (repeatedly n #(double-array n)))]
-    (loop [j 0]
-      (if (m/== j n)
-        l
-        (let [^doubles lj (aget l j)
-              ^doubles cj (aget cov j)
-              cjj (aget cj j)
-              s (double (loop [k 0
-                               s cjj]
-                          (if (m/== k j)
-                            s
-                            (recur (m/inc k) (m/- s (m/sq (aget lj k)))))))]
-          (when (and (m/pos? cjj) (m/> s (m/* multi-normal-positivity-tolerance cjj)))
-            (let [ljj (m/sqrt s)]
-              (aset lj j ljj)
-              (dotimes [i (m/- n j 1)]
-                (let [i (m/+ j 1 i)
-                      ^doubles li (aget l i)
-                      t (double (loop [k 0
-                                       t (aget ^doubles (aget cov i) j)]
-                                  (if (m/== k j)
-                                    t
-                                    (recur (m/inc k) (m/- t (m/* (aget li k) (aget lj k)))))))]
-                  (aset li j (m// t ljj))))
-              (recur (m/inc j)))))))))
+        min-diag (double (loop [i (long 0)
+                                mn ##Inf]
+                           (if (m/== i n)
+                             mn
+                             (recur (m/inc i) (m/min mn (Array/aget2d cov i i))))))]
+    (try
+      (-> (mat/cholesky-decomposition cov ##Inf (m/* multi-normal-positivity-tolerance (m/max 0.0 min-diag)))
+          (mat/decomposition-component :L)
+          (mat/mat->array2d))
+      (catch RuntimeException _ nil))))
 
 (defn- multi-normal-covariance!
-  "Validates `covariances` (a non-empty square matrix of finite numbers, symmetric within `1e-10` relative to the largest entry, positive definite) and returns it as `double[][]`; throws `ex-info` otherwise."
+  "Validates `covariances` (a non-empty square matrix of finite numbers, symmetric within `1e-10` relative to the largest entry, positive definite) and returns the vector of the matrix as `double[][]` and its Cholesky factor (`double[][]`); throws `ex-info` otherwise."
   [covariances]
   (let [rows (when (and (some? covariances) (not (number? covariances)) (seqable? covariances))
                (try (mapv m/seq->double-array covariances) (catch Exception _ nil)))
         n (count rows)]
     (when (or (m/zero? n) (not-every? (fn [^doubles r] (m/== (alength r) n)) rows))
       (invalid-input! 'multi-normal :covariances "has to be a non-empty square matrix" covariances "n x n matrix"))
-    (let [^"[[D" cov (into-array ^Class (Class/forName "[D") rows)]
-      (when-not (every? (fn [^doubles r] (every? #(Double/isFinite (double %)) r)) rows)
+    (let [^"[[D" cov (m/seq->double-double-array rows)]
+      (when-not (every? (fn [^doubles r] (every? m/valid-double? r)) rows)
         (invalid-input! 'multi-normal :covariances "entries have to be finite" covariances "finite numbers"))
-      (let [mx (double (reduce (fn [^double a ^doubles r] (m/max a (double (reduce (fn [^double b ^double x] (m/max b (m/abs x))) 0.0 r)))) 0.0 rows))]
+      (let [mx (double (reduce (fn [^double a ^doubles r] (reduce (fn [^double b ^double x] (m/max b (m/abs x))) a r)) 0.0 rows))]
         (dotimes [i n]
           (dotimes [j i]
-            (when (m/> (m/abs (m/- (aget ^doubles (aget cov i) j) (aget ^doubles (aget cov j) i)))
+            (when (m/> (m/abs (m/- (Array/aget2d cov i j) (Array/aget2d cov j i)))
                        (m/* multi-normal-symmetry-tolerance mx))
               (invalid-input! 'multi-normal :covariances "has to be symmetric" covariances "symmetric matrix")))))
-      (when-not (cholesky-factor cov)
-        (invalid-input! 'multi-normal :covariances "has to be positive definite" covariances "positive definite matrix"))
-      cov)))
-
-(def ^:private ^java.util.Map multi-normal-cholesky-cache (java.util.Collections/synchronizedMap (java.util.WeakHashMap.)))
-
-(defn- multi-normal-cholesky
-  "Cholesky factor of the covariance of `d`, computed on the first request and kept (weakly) for the next ones."
-  [^MultivariateNormalDistribution d]
-  (or (.get multi-normal-cholesky-cache d)
-      (when-let [l (cholesky-factor (.getData (.getCovariances d)))]
-        (.put multi-normal-cholesky-cache d l)
-        l)))
+      (if-let [l (multi-normal-cholesky-factor cov)]
+        [cov l]
+        (invalid-input! 'multi-normal :covariances "has to be positive definite" covariances "positive definite matrix")))))
 
 (defn- multi-normal-point
   "Converts the point `v` to `double[]`; throws `ex-info` for `nil`, non-sequences or a wrong length."
-  ^doubles [^MultivariateNormalDistribution d v]
+  ^doubles [^long dim v]
   (let [a (when (and (some? v) (not (number? v)) (seqable? v))
-            (try (m/seq->double-array v) (catch Exception _ nil)))
-        dim (.getDimension d)]
+            (try (m/seq->double-array v) (catch Exception _ nil)))]
     (when (or (nil? a) (m/not== (alength ^doubles a) dim))
       (invalid-input! 'multi-normal :x "point has to be a sequence with one value per dimension" v dim))
     a))
 
 (defn- multi-normal-lpdf
-  "Log density of `d` at `x`: `log` of the Commons density when it is positive, the log-space formula (Cholesky based) when the density underflows to zero."
-  ^double [^MultivariateNormalDistribution d ^doubles x]
+  "Log density of `d` at `x`: `log` of the Commons density when it is positive, the log-space formula (based on the Cholesky factor `l` of the covariances) when the density underflows to zero."
+  ^double [^MultivariateNormalDistribution d ^"[[D" l ^doubles x]
   (let [density (.density d x)]
     (if (m/zero? density)
-      (if-let [^"[[D" l (multi-normal-cholesky d)]
-        (let [n (alength x)
-              mu (.getMeans d)
-              z (double-array n)]
-          (dotimes [i n]
-            (let [^doubles li (aget l i)
-                  t (double (loop [k 0
-                                   t (m/- (aget x i) (aget mu i))]
-                              (if (m/== k i)
-                                t
-                                (recur (m/inc k) (m/- t (m/* (aget li k) (aget z k)))))))]
-              (aset z i (m// t (aget li i)))))
-          (let [maha (double (loop [i 0 s 0.0] (if (m/== i n) s (recur (m/inc i) (m/+ s (m/sq (aget z i)))))))
-                logdet (double (loop [i 0 s 0.0] (if (m/== i n) s (recur (m/inc i) (m/+ s (m/* 2.0 (m/log (aget ^doubles (aget l i) i))))))))]
-            (m/* -0.5 (m/+ (m/* n m/LOG_TWO_PI) logdet maha))))
-        ##-Inf)
+      (let [n (alength x)
+            mu (.getMeans d)
+            z (double-array n)]
+        (dotimes [i n]
+          (let [^doubles li (aget l i)
+                t (double (loop [k (long 0)
+                                 t (m/- (Array/aget x i) (Array/aget mu i))]
+                            (if (m/== k i)
+                              t
+                              (recur (m/inc k) (m/- t (m/* (Array/aget li k) (Array/aget z k)))))))]
+            (Array/aset z i (m// t (Array/aget li i)))))
+        (let [maha (double (loop [i (long 0) s 0.0] (if (m/== i n) s (recur (m/inc i) (m/+ s (m/sq (Array/aget z i)))))))
+              logdet (double (loop [i (long 0) s 0.0] (if (m/== i n) s (recur (m/inc i) (m/+ s (m/* 2.0 (m/log (Array/aget2d l i i))))))))]
+          (m/* -0.5 (m/+ (m/* n m/LOG_TWO_PI) logdet maha))))
       (m/log density))))
 
-(extend MultivariateNormalDistribution
-  prot/DistributionProto
-  {:pdf (fn ^double [^MultivariateNormalDistribution d v] (.density d (multi-normal-point d v)))
-   :lpdf (fn ^double [^MultivariateNormalDistribution d v] (multi-normal-lpdf d (multi-normal-point d v)))
-   :sample (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
-   :dimensions (fn ^long [^MultivariateNormalDistribution d] (.getDimension d))
-   :source-object identity
-   :continuous? (constantly true)}
-  prot/MultivariateDistributionProto
-  {:means (fn [^MultivariateNormalDistribution d] (vec (.getMeans d)))
-   :covariance (fn [^MultivariateNormalDistribution d]
-                 (let [^org.apache.commons.math3.linear.Array2DRowRealMatrix cv (.getCovariances d)]
-                   (m/double-double-array->seq (.getDataRef cv))))}
-  prot/RNGProto
-  {:->seq (fn
-            ([^MultivariateNormalDistribution d] (repeatedly #(vec (.sample d))))
-            ([^MultivariateNormalDistribution d n] (repeatedly n #(vec (.sample d)))))
-   :set-seed! (fn [^MultivariateNormalDistribution d ^long seed] (.reseedRandomGenerator d seed) d)})
-
 (defn multi-normal
-  "Creates `MultivariateNormalDistribution` (Commons) after validation.
+  "Creates a multivariate normal distribution (it wraps Commons `MultivariateNormalDistribution`, which is its `source-object`, and the Cholesky factor of the covariances) after validation.
 
   * `means` - sequence of finite numbers, `nil`: zeros of the dimension of `covariances` (when both are `nil`: 2 dimensions),
   * `covariances` - square, symmetric (within `1e-10` relative to the largest entry), positive definite matrix of finite numbers,
@@ -326,30 +280,51 @@
 
   Throws `ex-info` (`:type :invalid-input`) for invalid arguments and for the size mismatch of `means` and `covariances`."
   [means covariances rng]
-  (let [means (when (some? means)
+  (let [rng (or rng (JDKRandomGenerator.))
+        means (when (some? means)
                 (let [a (when (and (not (number? means)) (seqable? means))
                           (try (m/seq->double-array means) (catch Exception _ nil)))]
-                  (when (or (nil? a) (m/zero? (alength ^doubles a)) (not (every? #(Double/isFinite (double %)) a)))
+                  (when (or (nil? a) (m/zero? (alength ^doubles a)) (not (every? m/valid-double? a)))
                     (invalid-input! 'multi-normal :means "has to be a non-empty sequence of finite numbers" means "sequence of numbers"))
                   a))
-        ^"[[D" cov (cond
-                     (some? covariances) (multi-normal-covariance! covariances)
-                     (some? means) (let [n (alength ^doubles means)
-                                         c (repeatedly n #(double-array n))]
-                                     (dotimes [i n] (aset ^doubles (nth c i) i 1.0))
-                                     (into-array ^Class (Class/forName "[D") c))
-                     :else (multi-normal-covariance! [[1.0 0.0] [0.0 1.0]]))
+        [^"[[D" cov ^"[[D" l] (cond
+                                (some? covariances) (multi-normal-covariance! covariances)
+                                (some? means) (let [n (alength ^doubles means)
+                                                    ^"[[D" c (m/seq->double-double-array (repeatedly n #(double-array n)))]
+                                                (dotimes [i n] (Array/aset ^doubles (aget c i) i 1.0))
+                                                [c c])
+                                :else (multi-normal-covariance! [[1.0 0.0] [0.0 1.0]]))
         n (alength cov)
         ^doubles means (or means (double-array n))]
     (when (m/not== (alength means) n)
       (invalid-input! 'multi-normal :means "size does not match the dimension of covariances" (vec means) n))
-    (try
-      (MultivariateNormalDistribution. (or rng (JDKRandomGenerator.)) means cov)
-      (catch RuntimeException e
-        (throw (ex-info "multi-normal, covariances: the matrix is numerically singular or not positive definite"
-                        {:type :invalid-input :function 'multi-normal :property :covariances
-                         :value (mapv vec cov) :expected "positive definite matrix"}
-                        e))))))
+    (let [^MultivariateNormalDistribution d
+          (try
+            (MultivariateNormalDistribution. ^RandomGenerator rng means cov)
+            (catch RuntimeException e
+              (throw (ex-info "multi-normal, covariances: the matrix is numerically singular or not positive definite"
+                              {:type :invalid-input :function 'multi-normal :property :covariances
+                               :value (mapv vec cov) :expected "positive definite matrix"}
+                              e))))]
+      (reify
+        prot/DistributionProto
+        (pdf [_ v] (.density d (multi-normal-point n v)))
+        (lpdf [_ v] (multi-normal-lpdf d l (multi-normal-point n v)))
+        (sample [_] (vec (.sample d)))
+        (dimensions [_] n)
+        (source-object [_] d)
+        (continuous? [_] true)
+        prot/DistributionIdProto
+        (distribution? [_] true)
+        (distribution-id [_] :multi-normal)
+        (distribution-parameters [_] [:means :covariances :rng])
+        prot/MultivariateDistributionProto
+        (means [_] (vec means))
+        (covariance [_] (m/double-double-array->seq cov))
+        prot/RNGProto
+        (->seq [_] (repeatedly #(vec (.sample d))))
+        (->seq [_ k] (repeatedly k #(vec (.sample d))))
+        (set-seed! [this seed] (.reseedRandomGenerator d (long seed)) this)))))
 
 (extend-protocol prot/DistributionIdProto
   BetaDistribution
@@ -470,14 +445,26 @@
   ZipfDistribution
   (distribution? [_] true)
   (distribution-id [_] :zipf)
-  (distribution-parameters [_] [:number-of-elements :exponent :rng])
-
-  MultivariateNormalDistribution
-  (distribution? [_] true)
-  (distribution-id [_] :multi-normal)
-  (distribution-parameters [_] [:means :covariances :rng]))
+  (distribution-parameters [_] [:number-of-elements :exponent :rng]))
 
 ;;
+
+(def ^:private fit-specs-by-name
+  (into {}
+        (keep (fn [[sym v]]
+                (let [spec @v]
+                  (when (and (map? spec) (contains? spec :params) (contains? spec :valid?))
+                    [(keyword sym) spec]))))
+        (ns-publics 'fastmath.fitdistr.fit-specs)))
+
+(defn- resolve-fit-spec
+  "The fitting specification: `spec` itself, or when it is a keyword the specification of that name defined in `fastmath.fitdistr.fit-specs` (`nil` stays `nil`)."
+  [spec]
+  (if (keyword? spec)
+    (or (get fit-specs-by-name spec)
+        (throw (ex-info (str "unknown fitting specification " spec)
+                        {:type :invalid-input :function 'fit-spec :property :fit-spec :value spec})))
+    spec))
 
 (defn ssj-continuous
   "Wraps the SSJ continuous distribution `d` into a distribution object.
@@ -488,12 +475,13 @@
   - `d`: an SSJ `ContinuousDistribution`, it is also the `source-object`
   - `rng`: random generator (`nil`: a fresh one)
   - `params`: vector of keywords reported by `distribution-parameters`
-  - `fit-spec` (optional): the fitting specification returned by `fit-spec`, `nil` (default) for a distribution which can't be fitted
+  - `fit-spec` (optional): the fitting specification returned by `fit-spec` or the keyword naming one in `fastmath.fitdistr.fit-specs`, `nil` (default) for a distribution which can't be fitted
 
   `pdf`, `cdf`, `icdf`, `mean`, `variance` and the bounds are the ones of SSJ, `lpdf` is the logarithm of the density. A sample is the SSJ quantile of a uniform number from `rng`. `grandom`, `brandom` and `set-seed` throw `UnsupportedOperationException`, `set-seed!` reseeds `rng`. Returns a univariate continuous distribution."
   ([nm ^ContinuousDistribution d ^RandomGenerator rng params] (ssj-continuous nm d rng params nil))
   ([nm ^ContinuousDistribution d ^RandomGenerator rng params fit-spec]
-  (let [rng (or rng (JDKRandomGenerator.))]
+  (let [rng (or rng (JDKRandomGenerator.))
+        fit-spec (resolve-fit-spec fit-spec)]
     (reify
       prot/FittingProto
       (fit-spec [_] fit-spec)
@@ -919,7 +907,7 @@
   - `rng`: random generator (`nil`: a fresh one)
   - `dimensions` (long, default 1), `continuous?`, `integer-support?` (discrete distributions: `false` for the real valued ones)
   - `name`, `parameters`: values of `distribution-id` and `distribution-parameters`
-  - `fit-spec`: the value of `fit-spec`, the fitting specification (default `nil`: the distribution can't be fitted)
+  - `fit-spec`: the value of `fit-spec`, the fitting specification or the keyword naming one in `fastmath.fitdistr.fit-specs` (default `nil`: the distribution can't be fitted)
   - `mean`, `variance`: numbers or delays (evaluated on first request)
   - `lower-bound`, `upper-bound`: bounds of the support
 
@@ -932,6 +920,7 @@
   [{:keys [pdf lpdf cdf icdf rng ^long dimensions continuous? integer-support? name parameters mean variance lower-bound upper-bound sampler seeder fit-spec]
     :or {dimensions 1}}]
   (let [rng (or rng (JDKRandomGenerator.))
+        fit-spec (resolve-fit-spec fit-spec)
         pdf (or pdf (fn ^double [^double v] (m/exp (double (lpdf v)))))
         lpdf (or lpdf (fn ^double [^double v] (m/log (double (pdf v)))))
         [pdf lpdf cdf] (if (if (nil? integer-support?) continuous? (not integer-support?))
@@ -1122,23 +1111,6 @@
       (and (m/> k lower) (m/>= (double (cdf (m/dec k))) p)) (recur (m/dec k) (m/inc steps))
       :else k)))
 
-(declare negative-binomial-core)
-
-(defn negative-binomial
-  "Negative binomial distribution `(r, p)`: the number of failures before `r` successes with the success probability `p`
-  (`r > 0`, `0 < p <= 1`). The optional `parameters` (default `[:r :p :rng]`) is what `distribution-parameters` reports,
-  for the constructors accepting other parameters (`nbi`, `nbii`), and `fit-spec` the value of `fit-spec` (`nil`: the distribution can't be fitted)."
-  ([^double r ^double p rng] (negative-binomial r p rng [:r :p :rng] fit-specs/negative-binomial))
-  ([^double r ^double p rng parameters] (negative-binomial r p rng parameters nil))
-  ([r p rng parameters fit-spec]
-   (let [r (double r)
-         p (double p)]
-   (when-not (and (m/pos? r) (m/< r ##Inf))
-     (invalid-input! 'negative-binomial :r "has to be positive and finite" r "r > 0"))
-   (when-not (and (m/pos? p) (m/<= p 1.0))
-     (invalid-input! 'negative-binomial :p "has to be from the range (0, 1]" p "0 < p <= 1"))
-   (negative-binomial-core r p rng parameters fit-spec))))
-
 (defn- negative-binomial-core
   [r p rng parameters fit-spec]
   (let [r (double r)
@@ -1177,6 +1149,110 @@
                      :lower-bound 0
                      :upper-bound Integer/MAX_VALUE})))
 
+(defn negative-binomial
+  "Negative binomial distribution `(r, p)`: the number of failures before `r` successes with the success probability `p`
+  (`r > 0`, `0 < p <= 1`). The optional `parameters` (default `[:r :p :rng]`) is what `distribution-parameters` reports,
+  for the constructors accepting other parameters (`nbi`, `nbii`), and `fit-spec` the value of `fit-spec` (`nil`: the distribution can't be fitted)."
+  ([^double r ^double p rng] (negative-binomial r p rng [:r :p :rng] fit-specs/negative-binomial))
+  ([^double r ^double p rng parameters] (negative-binomial r p rng parameters nil))
+  ([r p rng parameters fit-spec]
+   (let [r (double r)
+         p (double p)]
+     (when-not (and (m/pos? r) (m/< r ##Inf))
+       (invalid-input! 'negative-binomial :r "has to be positive and finite" r "r > 0"))
+     (when-not (and (m/pos? p) (m/<= p 1.0))
+       (invalid-input! 'negative-binomial :p "has to be from the range (0, 1]" p "0 < p <= 1"))
+     (negative-binomial-core r p rng parameters fit-spec))))
+
+(defn negative-binomial-point-mass
+  "The negative binomial distribution with `p = 1`: the point mass at `0` (the log-pmf of [[negative-binomial]] is `NaN` there, `0 * log(0)`)."
+  [rng]
+  (->distribution {:lpdf (fn ^double [^long k] (if (m/zero? k) 0.0 ##-Inf))
+                         :cdf (fn ^double [^double k] (if (m/neg? k) 0.0 1.0))
+                         :icdf (fn [^double _] 0)
+                         :sampler :long
+                         :rng rng
+                         :dimensions 1
+                         :continuous? false
+                         :name :negative-binomial
+                         :parameters [:r :p :rng]
+                         :mean 0.0
+                         :variance 0.0
+                         :lower-bound 0
+                         :upper-bound 0}))
+
+;; the size `r` from which the negative binomial pmf is evaluated by the Poisson log-pmf and a correction
+(def ^{:private true :const true :tag 'double} negative-binomial-large-size 1.0e5)
+
+(defn- stirling-correction
+  "Error of the Stirling formula of log-gamma, `log(gamma(z)) - ((z - 1/2) log(z) - z + log(2 pi) / 2)`, for `z >= 10`."
+  ^double [^double z]
+  (let [z2 (m/* z z)]
+    (m// (m/- (m// 1.0 12.0)
+              (m// (m/- (m// 1.0 360.0)
+                        (m// (m/- (m// 1.0 1260.0) (m// (m// 1.0 1680.0) z2)) z2))
+                   z2))
+         z)))
+
+(defn- negative-binomial-large-size-distribution
+  "Negative binomial distribution with the mean `mu` and the size `r >= 1e5` (`p = r / (r + mu)`).
+
+  The pmf is `log P(k) = k log(mu) - mu - log(k!) + d` with the correction to the Poisson pmf
+  `d = ((r - 1/2) log1p(k/r) - k) + (mu - r log1p(mu/r)) + k log1p((k - mu) / (r + mu)) + s(r + k) - s(r)`, where `s` is the error of the Stirling formula.
+  Each term is small, the log-gamma difference `log(gamma(r + k)) - log(gamma(r))` (of the order of `r log r`, which is
+  not accurate enough for a large `r`) is not evaluated. `cdf` and the quantile are those of [[negative-binomial]]."
+  [mu r variance rng parameters fit-spec]
+  (let [mu (double mu)
+        r (double r)
+        variance (double variance)
+        p (m// r (m/+ r mu))
+        r+mu (m/+ r mu)
+        log-mu (m/log mu)
+        s-r (stirling-correction r)
+        mu-term (m/- mu (m/* r (m/log1p (m// mu r))))
+        sd (m/sqrt variance)
+        cdf (fn ^double [^double k]
+              (if (m/neg? k)
+                0.0
+                (special/regularized-beta p r (m/inc (m/rint k)))))]
+    (->distribution {:lpdf (fn ^double [^long k]
+                                   (if (m/neg? k)
+                                     ##-Inf
+                                     (let [kd (double k)]
+                                       (m/+ (m/- (m/* kd log-mu) mu (m/log-factorial k))
+                                            mu-term
+                                            (m/- (m/* (m/- r 0.5) (m/log1p (m// kd r))) kd)
+                                            (m/* kd (m/log1p (m// (m/- kd mu) r+mu)))
+                                            (m/- (stirling-correction (m/+ r kd)) s-r)))))
+                           :cdf cdf
+                           :icdf (fn [^double q]
+                                   (cond
+                                     (m/not-pos? q) 0
+                                     (m/>= q 1.0) ##Inf
+                                     :else (discrete-binary-search cdf q [(long mu) (long sd)])))
+                           :sampler :long
+                           :rng rng
+                           :dimensions 1
+                           :continuous? false
+                           :name :negative-binomial
+                           :parameters parameters
+                           :fit-spec fit-spec
+                           :mean mu
+                           :variance variance
+                           :lower-bound 0
+                           :upper-bound Integer/MAX_VALUE})))
+
+(defn negative-binomial-mean
+  "Negative binomial distribution with the mean `mu`, the size `r` and the given `variance`; reports `parameters` and `fit-spec`."
+  [mu r variance rng parameters fit-spec]
+  (let [mu (double mu)
+        r (double r)]
+    (if (m/< r negative-binomial-large-size)
+      (negative-binomial r (m// r (m/+ r mu)) rng parameters fit-spec)
+      (negative-binomial-large-size-distribution mu r variance rng parameters fit-spec))))
+
+;;
+
 (def ^{:const true :private true :tag 'double} logarithmic-plateau 1.0e-17)
 
 (defn logarithmic
@@ -1187,7 +1263,7 @@
   and gives a fast inversion sampler (the cost is proportional to the quantile, i.e. around the mean `-p/((1-p)log(1-p))` per sample).
   The cost of `cdf` is proportional to `min(k, 40/(1-p))`."
   [^double p rng]
-  (when-not (and (m/< 0.0 p) (m/< p 1.0))
+  (when-not (and (m/< 0.0 p 1.0))
     (invalid-input! 'logarithmic :p "has to be from the range (0, 1)" p "0 < p < 1"))
   (let [p- (m/- 1.0 p)
         logp- (m/log p-)
@@ -1198,12 +1274,12 @@
         variance (m/- (m// (m/+ (m/* p p) (m/* p logp-))
                            (m/sq (m/* p- logp-))))
         ;; cumulative probability after the term `j` (`pw` = p^j, `s` = sum of the terms up to j)
-        cum-at (fn [^double s ^double pw ^long j]
+        cum-at (fn ^double [^double s ^double pw ^long j]
                  (if (m/< (m/* nr (m// (m/* pw p) (m/* (m/inc j) p-))) logarithmic-plateau)
                    1.0
                    (m/min 1.0 (m/* s nr))))
         ;; p^j: multiplication, refreshed every 32 steps to bound the rounding error
-        next-pw (fn [^double pw ^long j]
+        next-pw (fn ^double [^double pw ^long j]
                   (if (m/zero? (m/bit-and j 31)) (m/fpow p j) (m/* pw p)))
         cdf (fn ^double [^long k]
               (if (m/< k 1)
@@ -1218,7 +1294,7 @@
                             pw1 (double (next-pw pw j1))]
                         (recur j1 pw1 (m/+ s (m// pw1 j1)))))))))
         ;; fpow handles exponents within the int range only
-        pdf (fn [^long k]
+        pdf (fn ^double [^long k]
               (if (m/< k 1)
                 0.0
                 (m/* -1.0 r (m// (if (m/<= k Integer/MAX_VALUE) (m/fpow p k) (m/exp (m/* k logp))) k))))]

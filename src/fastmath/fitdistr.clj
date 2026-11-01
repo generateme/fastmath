@@ -33,20 +33,21 @@
 
 (def ^:private seed-probabilities (vec (range 0.025 0.9751 0.05)))
 
-(def ^:private methods-list [:mle :ks :cvm :ad :adr :adl :ad2r :ad2l :ad2 :mps :qme :mme :lmme])
+(def ^:private methods-list [:mle :infer :ks :cvm :ad :adr :adl :ad2r :ad2l :ad2 :mps :qme :mme :lmme])
 
 ;; objectives which are not smooth (:ks) or have plateaus and a huge gradient far from the optimum (the Anderson-Darling variants)
 (def ^:private distance-methods #{:ks :cvm :ad :adr :adl :ad2r :ad2l :ad2})
 
 (defn- invalid-input!
-  "Throws `ex-info` for an invalid `property` of `fit`."
-  [property message value expected]
-  (throw (ex-info (str "fit, " (name property) ": " message)
-                  {:type :invalid-input
-                   :function 'fit
-                   :property property
-                   :value value
-                   :expected expected})))
+  "Throws `ex-info` for an invalid `property` of `fit` (or of the function `fname`)."
+  ([property message value expected] (invalid-input! 'fit property message value expected))
+  ([fname property message value expected]
+   (throw (ex-info (str fname ", " (name property) ": " message)
+                   {:type :invalid-input
+                    :function fname
+                    :property property
+                    :value value
+                    :expected expected}))))
 
 (defn- domain-bounds
   "Bounds `[lo hi]` of the domain of a parameter: the open ends are moved a little inside."
@@ -57,11 +58,6 @@
     :non-negative [0.0 ##Inf]
     :unit [lower-limit (m/- 1.0 lower-limit)]
     domain))
-
-(defn- in-domain?
-  [domain ^double v]
-  (let [[^double lo ^double hi] (domain-bounds domain)]
-    (and (m/<= lo v) (m/<= v hi))))
 
 (defn- robust-scale
   "Scale of the sorted data `xs`: IQR / 1.349, then the standard deviation, then `1.0` for constant data."
@@ -345,8 +341,6 @@
               :ad (stats/ad-statistic xs d {:sorted? true})}
              (chi-square-statistics d xs k breaks)))))
 
-
-
 (defn- build-result
   [dist-key spec fixed method params tier converged? iterations statistics]
   (let [d (try (r/distribution dist-key params)
@@ -444,28 +438,51 @@
               {:se (zipmap names (map m/sqrt variances))}
               (failure "the Hessian of the log likelihood is singular or not positive definite at the estimate"))))))))
 
+(defn- in-domain?
+  "Is the number `v` in the `domain` of a parameter: `:real`, `:positive`, `:non-negative`, `:unit` (open) or a vector `[lo hi]`."
+  [domain ^double v]
+  (case domain
+    :real (m/valid-double? v)
+    :positive (m/pos? v)
+    :non-negative (m/>= v 0.0)
+    :unit (m/< 0.0 v 1.0)
+    (m/between? domain v)))
+
+(defn- check-data-and-fixed!
+  "Throws `ex-info` of the function `fname` when `data` don't pass the validation of `spec` or `fixed` is not a map of parameters to values of their domains."
+  [fname spec data fixed]
+  (when-let [message ((:valid? spec) data)]
+    (invalid-input! fname :data message data "data accepted by the specification"))
+  (let [names (set (map :name (:params spec)))]
+    (doseq [[nm v] fixed
+            :let [prm (first (filter #(= nm (:name %)) (:params spec)))]]
+      (cond
+        (not (names nm)) (invalid-input! fname :fixed (str nm " is not a parameter") nm names)
+        (not (number? v)) (invalid-input! fname :fixed (str nm " is not a number") v "number")
+        (not (in-domain? (:domain prm) v)) (invalid-input! fname :fixed (str nm " is outside of its domain") v (:domain prm))))))
+
 (defn- search-integer
   "Integer from `lo` to `hi` where `g` (a function of a long returning a number) is the smallest, found from `start`: the direction of descent is found, the step doubles while `g` decreases and the bracket is shrunk by the ternary search. `g` has to be unimodal (a plateau is allowed)."
   [g lo hi start]
   (let [lo (long lo)
         hi (long hi)
         g (memoize g)
-        value (fn [i] (g i))
         start (long (m/constrain (long start) lo hi))
-        argmin (fn [a b] (reduce (fn [best i] (if (m/< (double (value i)) (double (value best))) i best)) (range a (m/inc (long b)))))
+        argmin (fn [^long a ^long b] (reduce (fn [^long best ^long i] (if (m/< (double (g i)) (double (g best))) i best))
+                                            (range a (m/long-inc b))))
         direction (long (cond
-                    (and (m/> start lo) (m/< (double (value (m/dec start))) (double (value start)))) -1
-                    (and (m/< start hi) (m/< (double (value (m/inc start))) (double (value start)))) 1
-                    :else 0))]
+                          (and (m/> start lo) (m/< (double (g (m/dec start))) (double (g start)))) -1
+                          (and (m/< start hi) (m/< (double (g (m/inc start))) (double (g start)))) 1
+                          :else 0))]
     (if (or (m/== lo hi) (m/zero? direction))
       start
       (let [[a b] (loop [before start
                          previous start
                          k 1]
-                    (let [next (long (m/constrain (m/+ start (m/* direction (m/dec (m/bit-shift-left 1 k)))) lo hi))]
-                      (if (and (m/not== next previous) (m/< (double (value next)) (double (value previous))))
-                        (recur previous next (m/inc k))
-                        [(m/min before next) (m/max before next)])))]
+                    (let [nxt (long (m/constrain (m/+ start (m/* direction (m/dec (m/bit-shift-left 1 k)))) lo hi))]
+                      (if (and (m/not== nxt previous) (m/< (double (g nxt)) (double (g previous))))
+                        (recur previous nxt (m/inc k))
+                        [(m/min before nxt) (m/max before nxt)])))]
         (loop [a (long a)
                b (long b)]
           (if (m/<= (m/- b a) 2)
@@ -473,7 +490,7 @@
             (let [third (m/quot (m/- b a) 3)
                   m1 (m/+ a third)
                   m2 (m/- b third)]
-              (if (m/< (double (value m1)) (double (value m2))) (recur a m2) (recur m1 b)))))))))
+              (if (m/< (double (g m1)) (double (g m2))) (recur a m2) (recur m1 b)))))))))
 
 (defn fit
   "Fits a distribution to data.
@@ -483,6 +500,7 @@
   Methods (the `:method` option):
 
   - `:mle`: maximum likelihood, the default.
+  - `:infer`: the closed form maximum likelihood estimate and nothing else: the sample mean and standard deviation for the `:mu` and `:sd` of the normal distribution. It never runs the optimizer or the scan: when the specification has no exact closed form maximum likelihood estimator for the fixed parameters (one which is only a starting point for a numerical fit is not an estimate), or the estimator has no estimate for the data (for example constant data), it throws. The result is the one of `:mle` with `:tier :closed-form`, `:method :infer` and, as for `:mle`, the statistics and the standard errors. It can't be used with `:closed-form?` set to `false`.
   - `:ks`, `:cvm`, `:ad`, `:adr`, `:adl`, `:ad2r`, `:ad2l`, `:ad2`: minimum distance, the minimum of the Kolmogorov-Smirnov, Cramer-von Mises or Anderson-Darling statistic or of one of its variants (see [[fastmath.stats/ks-statistic]], [[fastmath.stats/cvm-statistic]], [[fastmath.stats/ad-statistic]]).
   - `:mps`: maximum product of spacings, the maximum of the mean logarithm of the spacings of the cumulative distribution function at the sorted sample. A spacing between tied observations is zero and is replaced by the density (mass) at the observation, so the method can be used for discrete distributions.
   - `:qme`: quantile matching, the minimum of the mean squared distance of the sample quantiles and the distribution quantiles.
@@ -520,7 +538,7 @@
 
   Moment matching with the moments above the second order, and L-moment matching, integrate the quantile function numerically unless the specification has its own `:moments` or `:lmoments`.
 
-  Throws `ex-info` with `:type :not-fittable` when the distribution has no specification, with `:type :invalid-input` for data which fail the validation, an unknown `:method`, wrong `:quantiles`, a wrong `:fixed` value, an integer parameter which has to be fixed or more than one integer parameter to search, with `:type :moments-undefined` when `:mme` or `:lmme` finds no parameters for which the moments exist (the Cauchy distribution has none), and with `:type :not-converged` when no usable estimate is found. An evaluation of the objective which throws or is not finite counts as an infinite objective value.
+  Throws `ex-info` with `:type :not-fittable` when the distribution has no specification, with `:type :invalid-input` for data which fail the validation, an unknown `:method`, the method `:infer` with `:closed-form?` set to `false`, wrong `:quantiles`, a wrong `:fixed` value, an integer parameter which has to be fixed or more than one integer parameter to search, with `:type :moments-undefined` when `:mme` or `:lmme` finds no parameters for which the moments exist (the Cauchy distribution has none), with `:type :no-closed-form` when the method `:infer` finds no exact closed form estimate, and with `:type :not-converged` when no usable estimate is found. An evaluation of the objective which throws or is not finite counts as an infinite objective value.
 
   See also [[fastmath.random/fit-spec]], [[fastmath.random/log-likelihood]]."
   ([dist-key data] (fit dist-key data nil))
@@ -533,21 +551,23 @@
      (invalid-input! :optimizer "unsupported optimizer" optimizer #{:lbfgsb :nelder-mead}))
    (when-not (or (nil? breaks) (and (sequential? breaks) (every? number? breaks) (apply < breaks)))
      (invalid-input! :breaks "the bounds of the cells have to be increasing numbers" breaks "increasing numbers"))
-   (let [spec (or (r/fit-spec dist-key)
+   (let [infer? (= method :infer)
+         method (if infer? :mle method)
+         spec (or (r/fit-spec dist-key)
                   (throw (ex-info (str "fit: the distribution " dist-key " can't be fitted")
                                   {:type :not-fittable :function 'fit :distribution dist-key})))
          optimizer (or optimizer (if (contains? distance-methods method) :nelder-mead :lbfgsb))
-         names (set (map :name (:params spec)))
          fixed (or fixed {})
-         _ (when-let [message ((:valid? spec) data)]
-             (invalid-input! :data message data "data accepted by the specification"))
-         _ (doseq [[nm v] fixed
-                   :let [prm (first (filter #(= nm (:name %)) (:params spec)))]]
-             (cond
-               (not (names nm)) (invalid-input! :fixed (str nm " is not a parameter") nm names)
-               (not (number? v)) (invalid-input! :fixed (str nm " is not a number") v "number")
-               (not (in-domain? (:domain prm) v)) (invalid-input! :fixed (str nm " is outside of its domain") v (:domain prm))))
+         _ (check-data-and-fixed! 'fit spec data fixed)
          xs (m/seq->double-array (sort data))
+         _ (when infer?
+             (when-not closed-form?
+               (invalid-input! :closed-form? "the method :infer is a closed form estimate" closed-form? true))
+             (let [closed-form (get-in spec [:estimators :mle])
+                   estimated (when (:exact? closed-form) (estimate closed-form xs fixed true))]
+               (when-not (and estimated (every? #(contains? (merge estimated fixed) (:name %)) (:params spec)))
+                 (throw (ex-info (str "fit: no closed form estimate of " dist-key " for the method :infer")
+                                 {:type :no-closed-form :function 'fit :distribution dist-key :fixed fixed})))))
          context {:dist-key dist-key :spec spec :xs xs :method method :optimizer optimizer
                   :restarts restarts :closed-form? closed-form? :rng (or rng (r/rng :jdk)) :opts opts :stats? stats?}
          k (m/long-sub (count (:params spec)) (count fixed))
@@ -555,21 +575,21 @@
          exact? (and (:exact? closed-form) (estimate closed-form xs fixed true))
          searched (remove #(contains? fixed (:name %)) (filter #(= :integer (:role %)) (:params spec)))
          result (cond
-                 ;; the exact estimator also finds the integer parameters it is declared for
-                 exact? (:result (fit-fixed context fixed fixed k))
-                 (empty? searched) (do (when (m/zero? k)
-                                         (invalid-input! :fixed "at least one parameter has to stay free" fixed "fewer fixed parameters"))
-                                       (:result (fit-fixed context fixed fixed k)))
-                 (m/> (count searched) 1) (invalid-input! :fixed "at most one integer parameter can be searched, fix the others" (mapv :name searched) "one integer parameter")
-                 (not (:range (first searched))) (invalid-input! :fixed (str (:name (first searched)) " is an integer parameter and has to be fixed") (:name (first searched)) "a value in :fixed")
-                 :else (let [{:keys [name range]} (first searched)
-                             [lo hi start] (range xs)
-                             fit-at (memoize (fn [i] (fit-fixed context (assoc fixed name i) fixed k)))
-                             best (search-integer #(:value (fit-at %)) lo hi start)]
-                         (:result (fit-at best))))]
-     (if (and se? stats?)
-       (update result :stats merge (standard-errors dist-key spec xs result))
-       result))))
+                  ;; the exact estimator also finds the integer parameters it is declared for
+                  exact? (:result (fit-fixed context fixed fixed k))
+                  (empty? searched) (do (when (m/zero? k)
+                                          (invalid-input! :fixed "at least one parameter has to stay free" fixed "fewer fixed parameters"))
+                                        (:result (fit-fixed context fixed fixed k)))
+                  (m/> (count searched) 1) (invalid-input! :fixed "at most one integer parameter can be searched, fix the others" (mapv :name searched) "one integer parameter")
+                  (not (:range (first searched))) (invalid-input! :fixed (str (:name (first searched)) " is an integer parameter and has to be fixed") (:name (first searched)) "a value in :fixed")
+                  :else (let [{:keys [name range]} (first searched)
+                              [lo hi start] (range xs)
+                              fit-at (memoize (fn [i] (fit-fixed context (assoc fixed name i) fixed k)))
+                              best (search-integer #(:value (fit-at %)) lo hi start)]
+                          (:result (fit-at best))))]
+     (cond-> result
+       (and se? stats?) (update :stats merge (standard-errors dist-key spec xs result))
+       infer? (assoc :method :infer)))))
 
 (def ^:private ci-functions
   {:percentile boot/ci-percentile
@@ -674,7 +694,7 @@
   [result-or-distribution data]
   (let [d (fitted-distribution result-or-distribution)
         xs (sort data)]
-    (mapv (fn [^double p ^double x] [(double (r/icdf d p)) x]) (plotting-positions (count xs)) xs)))
+    (mapv (fn [^double p ^double x] [(r/icdf d p) x]) (plotting-positions (count xs)) xs)))
 
 (defn pp
   "Data of the probability-probability plot of a sample against a distribution.
