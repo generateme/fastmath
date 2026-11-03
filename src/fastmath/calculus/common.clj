@@ -11,6 +11,12 @@
 
 ;; options
 
+(defn invalid-option!
+  "Throws `ex-info` for an invalid option or argument, with `{:option :value :expected}` in the ex-data; `expected` is a text describing the valid values."
+  [option value expected]
+  (throw (ex-info (str "Invalid option " option ": " (pr-str value) ", expected " expected)
+                  {:option option :value value :expected expected})))
+
 (defn drop-nil-options
   "Returns the `options` map without the keys having a `nil` value, so a `nil` option is a missing option and takes its default. `nil` options give `{}`."
   [options]

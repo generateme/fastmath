@@ -18,10 +18,7 @@
 
 ;; validation
 
-(defn- invalid-option!
-  [option value expected]
-  (throw (ex-info (str "Invalid option " option ": " (pr-str value) ", expected " expected)
-                  {:option option :value value :expected expected})))
+(def ^:private invalid-option! cc/invalid-option!)
 
 (def ^:private methods-set #{:central :forward :backward})
 
