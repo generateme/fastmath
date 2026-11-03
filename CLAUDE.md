@@ -20,6 +20,7 @@ Mathematics, statistics, machine learning, numerical methods/computing.
 | `fastmath.quaternion` | quat | quaternion ops |
 | `fastmath.special` | spec | special functions: bessel, elliptic, jacobi, gamma, beta, erf, airy, zeta, integrals (Si, Ci, li/Li, Ei, Ein, En), hypergeometric, lambert, minkowski, harmonic, owen's t |
 | `fastmath.calculus` | calc | integration: vegas/vegas+, h-cubature, quadrature, romberg/trapezoid/simson/midpoint; finite differences derivatives |
+| `fastmath.calculus.autodiff` | ad | forward-mode automatic differentiation (PoC): tagged dual numbers (nesting without perturbation confusion), arithmetic, sin/cos/exp/log/pow, numeric comparisons (`==`, `<`, ...), `derivative` (any order), `gradient`, `jacobian`, `hessian` (chunked passes); the facade is the API, internals (`^:no-doc`): `.dual` (type, tags, partials arrays), `.ops` (instance?-dispatched arithmetic, derivative rules), `.derivatives` (seeding, extraction, passes) |
 | `fastmath.distance` | dist | distance, metric functions |
 | `fastmath.easings` | ease | easing functions |
 | `fastmath.efloat` | efloat | floating point ops with error tracking |
