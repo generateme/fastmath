@@ -1,5 +1,5 @@
 (ns ^:no-doc fastmath.calculus.autodiff.derivatives
-  "Internal: seeding of the inputs, extraction of the partials and the chunked passes of [[fastmath.calculus.autodiff/derivative]], [[fastmath.calculus.autodiff/gradient]], [[fastmath.calculus.autodiff/jacobian]] and [[fastmath.calculus.autodiff/hessian]]."
+  "Internal: seeding of the inputs, extraction of the partials and the passes of [[fastmath.calculus.autodiff/derivative]], [[fastmath.calculus.autodiff/gradient]], [[fastmath.calculus.autodiff/jacobian]], [[fastmath.calculus.autodiff/hessian]], [[fastmath.calculus.autodiff/jvp]] and [[fastmath.calculus.autodiff/hvp]]."
   (:require [fastmath.core :as m]
             [fastmath.calculus.common :as cc]
             [fastmath.calculus.autodiff.dual :as d])
@@ -158,3 +158,43 @@
   ([f] (hessian f nil))
   ([f options]
    (jacobian (gradient f options) options)))
+
+;; ## Derivative products
+
+(defn- seed-direction
+  "The point `x` with every input replaced by a dual of tag `t` with the single partial `v_i` (the direction); both
+  vectors have the same length."
+  [x v ^long t]
+  (let [n (count x)]
+    (loop [i 0
+           xs (transient x)]
+      (if (m/< i n)
+        (let [p (object-array 1)]
+          (aset p 0 (v i))
+          (recur (m/long-inc i) (assoc! xs i (d/new-dual t (x i) p))))
+        (persistent! xs)))))
+
+(defn- directional-derivative
+  "The partial of the layer `t` of the result `r` of one pass: a number for a number or a dual, a vector for a sequential."
+  [^long t r]
+  (if (sequential? r)
+    (mapv (fn [y] (aget ^objects (result-partials t 1 y) 0)) (result-values r))
+    (aget ^objects (result-partials t 1 r) 0)))
+
+(defn jvp
+  "The Jacobian-vector product function of `f`, one pass, see [[fastmath.calculus.autodiff/jvp]]."
+  [f]
+  (fn local-jvp [x v]
+    (let [x (point x)
+          v (point v)]
+      (when-not (m/== (count x) (count v))
+        (throw (ex-info "The point and the direction have different lengths."
+                        {:count-x (count x) :count-v (count v)})))
+      (let [t (d/fresh-tag)]
+        (directional-derivative t (f (seed-direction x v t)))))))
+
+(defn hvp
+  "The Hessian-vector product function of `f` as the Jacobian-vector product of the gradient, see [[fastmath.calculus.autodiff/hvp]]."
+  ([f] (hvp f nil))
+  ([f options]
+   (jvp (gradient f options))))

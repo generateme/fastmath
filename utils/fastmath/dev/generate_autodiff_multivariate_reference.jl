@@ -1,13 +1,15 @@
 # Reference values for the gradient, jacobian and hessian of fastmath.calculus.autodiff.
 #
-# Tool: Julia ForwardDiff.jl 1.3.3 (ForwardDiff.gradient, jacobian, hessian with default chunking),
+# Tool: Julia ForwardDiff.jl 1.3.3 (ForwardDiff.gradient, jacobian, hessian with default chunking;
+#       the Jacobian-vector product as derivative(t -> f(x + t v), 0) and the Hessian-vector product as
+#       derivative(t -> gradient(f, x + t v), 0), ForwardDiff has no jvp/hvp functions),
 #       Float64 precision, run in the ~/.julia/environments/v1.12 project:
 #
 #   julia --project=$HOME/.julia/environments/v1.12 utils/fastmath/dev/generate_autodiff_multivariate_reference.jl
 #
 # Output: test/resources/calculus/autodiff_multivariate_reference.edn
-# {:scalar {<id> [{:x [..] :value v :gradient [..] :hessian [[..] ..]} ..]}
-#  :vector {<id> [{:x [..] :value [..] :jacobian [[..] ..]} ..]}}
+# {:scalar {<id> [{:x [..] :value v :gradient [..] :hessian [[..] ..] :v [..] :jvp p :hvp [..]} ..]}
+#  :vector {<id> [{:x [..] :value [..] :jacobian [[..] ..] :v [..] :jvp [..]} ..]}}
 # The functions are written identically in test/fastmath/calculus/autodiff_test.clj (powers as Float64 exponents).
 
 using ForwardDiff
@@ -27,6 +29,10 @@ vec32(x) = [x[1] * x[2] * sin(x[3]), exp(x[1]) / (1.0 + x[2]^2.0 + x[3]^2.0)]
 vec23(x) = [x[1] / x[2], log(x[1] + x[2]^2.0), x[1]^x[2]]
 
 point(n) = [0.3 * i - 0.8 for i in 1:n]
+direction(n) = [0.7 - 0.25 * i for i in 1:n]
+
+jvp(f, x, v) = ForwardDiff.derivative(t -> f(x .+ t .* v), 0.0)
+hvp(f, x, v) = ForwardDiff.derivative(t -> ForwardDiff.gradient(f, x .+ t .* v), 0.0)
 
 const scalars = [("rosen", rosen, [point(n) for n in (1, 2, 5, 10)]),
                  ("dense", dense, [point(n) for n in (1, 2, 5, 10)])]
@@ -44,7 +50,10 @@ open(joinpath(@__DIR__, "..", "..", "..", "test", "resources", "calculus", "auto
         for x in xs
             print(io, "\n   {:x ", fmt(x), " :value ", repr(f(x)),
                   " :gradient ", fmt(ForwardDiff.gradient(f, x)),
-                  " :hessian ", fmt(ForwardDiff.hessian(f, x)), "}")
+                  " :hessian ", fmt(ForwardDiff.hessian(f, x)),
+                  " :v ", fmt(direction(length(x))),
+                  " :jvp ", repr(jvp(f, x, direction(length(x)))),
+                  " :hvp ", fmt(hvp(f, x, direction(length(x)))), "}")
         end
         println(io, "]")
     end
@@ -55,7 +64,9 @@ open(joinpath(@__DIR__, "..", "..", "..", "test", "resources", "calculus", "auto
         print(io, "  :", name, " [")
         for x in xs
             print(io, "\n   {:x ", fmt(x), " :value ", fmt(f(x)),
-                  " :jacobian ", fmt(ForwardDiff.jacobian(f, x)), "}")
+                  " :jacobian ", fmt(ForwardDiff.jacobian(f, x)),
+                  " :v ", fmt(direction(length(x))),
+                  " :jvp ", fmt(jvp(f, x, direction(length(x)))), "}")
         end
         println(io, "]")
     end

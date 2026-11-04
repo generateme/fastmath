@@ -3,8 +3,11 @@
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [fastmath.core :as m]
+            [fastmath.special :as special]
             [fastmath.calculus.autodiff :as ad]
             [fastmath.calculus.autodiff.dual :as dual]
+            [fastmath.calculus.autodiff.ops :as ops]
+            [fastmath.calculus.autodiff.rules :as rules]
             [fastmath.calculus.autodiff.derivatives :as derivatives])
   (:import [fastmath.calculus.autodiff.dual Dual]))
 
@@ -43,11 +46,18 @@
 
 (t/deftest api-test
   (t/testing "the public API of the facade"
-    (t/is (= #{"*" "+" "-" "/" "<" "<=" "==" ">" ">=" "cos" "derivative" "dual" "exp" "gradient" "hessian"
-               "jacobian" "log" "pow" "primal" "scalar" "sin"}
+    (t/is (= #{"*" "+" "-" "/" "<" "<=" "==" ">" ">=" "abs" "acos" "acosh" "asin" "asinh" "atan" "atan2" "atanh"
+               "beta" "cbrt" "ceil" "cos" "cosh" "derivative" "digamma" "dual" "exp" "expm1" "floor" "gamma"
+               "gradient" "hessian" "hvp" "hypot" "incomplete-beta" "inv-gamma-1pm1" "jacobian" "jvp" "log" "log-beta"
+               "log-gamma" "log-gamma-1p" "log10" "log1p" "log2" "lower-incomplete-gamma" "max" "min" "polygamma" "pow"
+               "primal" "regularized-beta" "regularized-gamma-p" "regularized-gamma-q" "rule" "scalar" "signum" "sin"
+               "sinh" "sq" "sqrt" "tan" "tanh" "trigamma" "upper-incomplete-gamma"}
              (set (map str (keys (ns-publics 'fastmath.calculus.autodiff))))))
+    (t/is (= '([f]) (:arglists (meta #'ad/jvp))) "jvp has no options")
     (t/is (every? #(:no-doc (meta (find-ns %)))
-                  ['fastmath.calculus.autodiff.dual 'fastmath.calculus.autodiff.ops 'fastmath.calculus.autodiff.derivatives])
+                  ['fastmath.calculus.autodiff.dual 'fastmath.calculus.autodiff.ops 'fastmath.calculus.autodiff.rules
+                   'fastmath.calculus.autodiff.elementary 'fastmath.calculus.autodiff.special
+                   'fastmath.calculus.autodiff.derivatives])
           "internal namespaces are excluded from the documentation"))
   (t/testing "invalid input throws (caller error, the exception type is not specified)"
     (t/is (thrown? Exception (ad/+ nil 1)))
@@ -618,3 +628,332 @@
           f (fn [v] (when-not @first-seen (reset! first-seen (v 0))) (ad/+ (v 1) @first-seen))]
       ;; second pass: v1 + (stale dual of v0, a constant of the newer layer)
       (t/is (= [1.0 1.0] ((ad/gradient f {:chunk-size 1}) [1.0 2.0]))))))
+
+;; derivative products
+
+(defn- dot ^double [a b] (reduce m/+ 0.0 (map (fn [x y] (m/* (double x) (double y))) a b)))
+
+(defn- product-close?
+  "Is the product close to the one computed from the matrix or the gradient (a different summation order)?"
+  [expected actual]
+  (if (sequential? expected)
+    (and (= (count expected) (count actual)) (every? true? (map product-close? expected actual)))
+    ;; measured: max difference relative to max(1, |expected|) below 1e-15
+    (m/delta-eq (double expected) (double actual) 1.0e-14 1.0e-14)))
+
+(t/deftest jvp-test
+  (t/testing "ForwardDiff reference: derivative(t -> f(x + t v), 0)"
+    (doseq [[id f] scalar-functions
+            {:keys [x v jvp gradient]} (get-in @multivariate-reference [:scalar id])
+            :let [p ((ad/jvp f) x v)]]
+      (t/is (close-to-reference? jvp p) (str id " n=" (count x)))
+      (t/is (product-close? (dot gradient v) p) (str id " gradient . v")))
+    (doseq [[id f] vector-functions
+            {:keys [x v jvp jacobian]} (get-in @multivariate-reference [:vector id])
+            :let [p ((ad/jvp f) x v)]]
+      (t/is (vector? p))
+      (t/is (close-to-reference? jvp p) (str id))
+      (t/is (product-close? (mapv (fn [row] (dot row v)) jacobian) p) (str id " J . v"))))
+  (t/testing "one pass: f is called once with duals of one fresh tag carrying the direction"
+    (let [calls (atom [])
+          f (fn [v] (swap! calls conj v) (reduce ad/* v))]
+      (t/is (= 18.0 ((ad/jvp f) [1 2 3] [1 2 3])) "gradient (6 3 2) . (1 2 3)")
+      (t/is (= 1 (count @calls)))
+      (t/is (= [[1.0] [2.0] [3.0]] (map partials (first @calls))))
+      (t/is (= 1 (count (distinct (map tag (first @calls))))))))
+  (t/testing "points and directions: longs, double[], lists, one input, zero and infinite directions"
+    (let [f (fn [[x y]] (ad/* x (ad/pow y 2.0)))]
+      (t/is (= 20.0 ((ad/jvp f) [4 2] [1 1])))
+      (t/is (= 20.0 ((ad/jvp f) (double-array [4 2]) (double-array [1 1]))))
+      (t/is (= 20.0 ((ad/jvp f) '(4.0 2.0) '(1 1))))
+      (t/is (= 0.0 ((ad/jvp f) [4 2] [0 0])) "zero direction")
+      (t/is (= 3.0 ((ad/jvp (fn [[x]] (ad/* 3 x))) [5] [1])) "one input")
+      (t/is (= ##Inf ((ad/jvp (fn [[x]] x)) [5] [##Inf])) "infinite direction")
+      (t/is (nan? ((ad/jvp (fn [[x]] x)) [5] [##NaN])) "NaN direction")))
+  (t/testing "empty point: f is called once, the product is zero"
+    (let [calls (atom 0)]
+      (t/is (= 0.0 ((ad/jvp (fn [_] (swap! calls inc) 1.0)) [] [])))
+      (t/is (= [0.0 0.0] ((ad/jvp (fn [_] (swap! calls inc) [1.0 2.0])) nil nil)))
+      (t/is (= 2 @calls))))
+  (t/testing "constant results and outputs"
+    (t/is (= 0.0 ((ad/jvp (constantly 5)) [1 2] [3 4])))
+    (t/is (= [0.0 3.0] ((ad/jvp (fn [[x _]] [1 x])) [1 2] [3 4])))
+    (t/is (= [] ((ad/jvp (constantly [])) [1 2] [3 4])) "no outputs")
+    (t/is (= [2.0 2.0] ((ad/jvp (fn [[x y]] (map ad/+ [x y] [y x]))) [1 2] [1 1])) "lazy result"))
+  (t/testing "more than 32 inputs"
+    (let [f (:dense scalar-functions)
+          x (vec (map (fn [i] (- (* 0.05 i) 0.8)) (range 40)))
+          v (vec (map (fn [i] (- 0.5 (* 0.03 i))) (range 40)))]
+      (t/is (product-close? (dot ((ad/gradient f) x) v) ((ad/jvp f) x v)))))
+  (t/testing "nesting"
+    (t/is (= 3.0 ((D (fn [s] ((ad/jvp (fn [[x y]] (ad/* x y s))) [1.0 2.0] [1.0 1.0]))) 2.0))
+          "jvp (y s, x s) . (1, 1) = 3s, d/ds = 3")
+    (t/is (= 1.0 ((D (fn [x] (ad/* x ((ad/jvp (fn [[y]] (ad/+ x y))) [1.0] [1.0])))) 1.0))
+          "Siskind-Pearlmutter: d/dx (x * D_v (x + y)) = 1")
+    (t/is (= 12.0 ((ad/jvp (fn [[x y]] (ad/* x ((D (fn [t] (ad/* t t y))) 1.0)))) [1.0 3.0] [2.0 0.0]))
+          "derivative inside: f = x * 2y, d/dx . 2 = 4y = 12")
+    (t/is (= 2.0 ((D (fn [s] ((ad/jvp (fn [[x]] (ad/* x x))) [1.0] [s]))) 5.0))
+          "a dual direction: d/ds (2x s) = 2x = 2"))
+  (t/testing "errors"
+    (t/is (= {:count-x 2 :count-v 1} (thrown-data #((ad/jvp identity) [1 2] [1]))))
+    (t/is (= {:count-x 1 :count-v 2} (thrown-data #((ad/jvp identity) [1] [1 2]))))
+    (t/is (= {:count-x 1 :count-v 0} (thrown-data #((ad/jvp identity) [1] nil))))
+    (t/is (thrown? ClassCastException ((ad/jvp identity) [1] [:a])) "a direction element is not a number")
+    (doseq [[r msg] [[identity "function"] [(double-array [1.0]) "double[]"] [:a "keyword"] [nil "nil"]]]
+      (t/is (thrown? clojure.lang.ExceptionInfo ((ad/jvp (constantly r)) [1 2] [1 1])) msg))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"element which is neither"
+                            ((ad/jvp (constantly [1.0 :a])) [1 2] [1 1])))
+    (let [leak (atom nil)
+          j (ad/jvp (fn [v] (reset! leak (v 0)) (v 0)))]
+      (t/is (some? (thrown-data #((D (fn [x] (j [x] [1.0]) (ad/+ x @leak))) 1.0))) "an escaped dual throws"))))
+
+(t/deftest hvp-test
+  (t/testing "ForwardDiff reference: derivative(t -> gradient(f, x + t v), 0)"
+    (doseq [[id f] scalar-functions
+            {:keys [x v hvp hessian]} (get-in @multivariate-reference [:scalar id])
+            :let [p ((ad/hvp f) x v)]]
+      (t/is (vector? p))
+      (t/is (close-to-reference? hvp p) (str id " n=" (count x)))
+      (t/is (product-close? (mapv (fn [row] (dot row v)) hessian) p) (str id " H . v"))
+      (doseq [k [1 3 (count x)]]
+        (t/is (= p ((ad/hvp f {:chunk-size k}) x v)) (str id " chunk " k)))))
+  (t/testing "closed form, constant function, empty point"
+    (t/is (= [9.0 3.0] ((ad/hvp (fn [[x y]] (ad/* (ad/pow x 3.0) y))) [1 1] [1 1])) "[[6 3] [3 0]] . [1 1]")
+    (t/is (= [0.0 0.0] ((ad/hvp (constantly 5)) [1 2] [3 4])))
+    (t/is (= [] ((ad/hvp (fn [_] (throw (Exception. "f must not be called")))) [] []))))
+  (t/testing "nesting: d/ds of H(x s) . v"
+    (t/is (= 6.0 ((D (fn [s] (first ((ad/hvp (fn [[x]] (ad/pow x 3.0))) [s] [1.0])))) 2.0)) "d/ds 6s = 6"))
+  (t/testing "options and errors"
+    (t/is (invalid? #(ad/hvp identity {:chunk-size 0}) :chunk-size 0) "validated when created")
+    (t/is (= ((ad/hvp (:rosen scalar-functions)) [1 2] [1 1]) ((ad/hvp (:rosen scalar-functions) nil) [1 2] [1 1])))
+    (t/is (= {:count-x 2 :count-v 1} (thrown-data #((ad/hvp (:rosen scalar-functions)) [1 2] [1]))))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"neither a number nor a dual"
+                            ((ad/hvp (fn [v] v)) [1 2] [1 1])))))
+
+;; derivative rules: elementary and special functions
+
+(def ^:private rules-reference
+  (delay (edn/read-string (slurp (io/resource "calculus/autodiff_rules_reference.edn")))))
+
+(def ^:private incomplete-reference
+  (delay (edn/read-string (slurp (io/resource "calculus/autodiff_incomplete_reference.edn")))))
+
+(defn- rule-close?
+  "Relative to max(1, |expected|); equal infinities are equal."
+  [expected actual ^double tolerance]
+  (let [e (double expected)
+        a (double actual)]
+    (or (and (Double/isInfinite e) (== e a))
+        (m/delta-eq e a tolerance tolerance))))
+
+(def ^:private unary-functions
+  {:sqrt ad/sqrt :cbrt ad/cbrt :sq ad/sq :tan ad/tan :asin ad/asin :acos ad/acos :atan ad/atan :sinh ad/sinh
+   :cosh ad/cosh :tanh ad/tanh :asinh ad/asinh :acosh ad/acosh :atanh ad/atanh :expm1 ad/expm1 :log1p ad/log1p
+   :log2 ad/log2 :log10 ad/log10 :abs ad/abs :gamma ad/gamma :log-gamma ad/log-gamma :log-gamma-1p ad/log-gamma-1p
+   :inv-gamma-1pm1 ad/inv-gamma-1pm1 :digamma ad/digamma :trigamma ad/trigamma})
+
+(t/deftest rules-reference-test
+  ;; measured: max error relative to max(1, |expected|) 1.8e-15 (unary, first and second derivatives), 8.3e-16
+  ;; (polygamma), 5.6e-16 (binary and ternary gradients and hessians)
+  (t/testing "ForwardDiff reference, first and second derivatives"
+    (doseq [[id rows] (:unary @rules-reference)
+            :let [f (unary-functions id)]
+            [x d1 d2] rows]
+      (t/is (rule-close? d1 ((D f) x) 1.0e-14) (str id " d1 at " x))
+      (t/is (rule-close? d2 ((D f 2) x) 1.0e-14) (str id " d2 at " x)))
+    (t/is (= (set (keys unary-functions)) (set (keys (:unary @rules-reference)))) "every function is in the reference")
+    (doseq [[mm x d1 d2] (:polygamma @rules-reference)
+            :let [f (fn [y] (ad/polygamma mm y))]]
+      (t/is (rule-close? d1 ((D f) x) 1.0e-14) (str "polygamma " mm " d1 at " x))
+      (t/is (rule-close? d2 ((D f 2) x) 1.0e-14) (str "polygamma " mm " d2 at " x))))
+  (t/testing "ForwardDiff reference, gradients and hessians of functions of two and three arguments"
+    (doseq [[k fs] [[:binary {:atan2 ad/atan2 :hypot ad/hypot :max ad/max :min ad/min :beta ad/beta :log-beta ad/log-beta}]
+                    [:ternary {:hypot ad/hypot}]]
+            [id rows] (k @rules-reference)
+            :let [g (fn [v] (apply (fs id) v))]
+            {:keys [x gradient hessian]} rows]
+      (t/is (every? true? (map #(rule-close? %1 %2 1.0e-14) gradient ((ad/gradient g) x))) (str k id " gradient at " x))
+      (t/is (every? true? (map #(rule-close? %1 %2 1.0e-14) (flatten hessian) (flatten ((ad/hessian g) x))))
+            (str k id " hessian at " x))))
+  (t/testing "the values are the values of fastmath.core and fastmath.special, for numbers and for duals"
+    (doseq [[f g x] [[ad/sqrt m/sqrt 2] [ad/cbrt m/cbrt -3] [ad/sq m/sq 1.1] [ad/tan m/tan 0.3] [ad/asin m/asin 0.3]
+                     [ad/acos m/acos 0.3] [ad/atan m/atan 2] [ad/sinh m/sinh 0.7] [ad/cosh m/cosh 0.7]
+                     [ad/tanh m/tanh 0.7] [ad/asinh m/asinh 0.7] [ad/acosh m/acosh 1.7] [ad/atanh m/atanh 0.7]
+                     [ad/expm1 m/expm1 1e-5] [ad/log1p m/log1p 1e-5] [ad/log2 m/log2 3] [ad/log10 m/log10 3]
+                     [ad/abs m/abs -2] [ad/signum m/signum -2] [ad/floor m/floor 2.5] [ad/ceil m/ceil 2.5]
+                     [ad/gamma special/gamma 2.5] [ad/log-gamma special/log-gamma 2.5]
+                     [ad/log-gamma-1p special/log-gamma-1p 0.1] [ad/inv-gamma-1pm1 special/inv-gamma-1pm1 0.1]
+                     [ad/digamma special/digamma 2.5] [ad/trigamma special/trigamma 2.5]]]
+      (t/is (= (g (double x)) (f x)) (str f " number"))
+      (t/is (= (g (double x)) (ad/primal (f (ad/dual 1 x [1.0])))) (str f " dual")))
+    (t/is (= (m/atan2 1.0 2.0) (ad/atan2 1 2) (ad/primal (ad/atan2 (ad/dual 1 1 [1]) 2))) "atan2: y first")
+    (t/is (= (m/hypot 3.0 4.0) (ad/hypot 3 4)))
+    (t/is (= (m/hypot 1.0 2.0 2.0) (ad/hypot 1 2 2)))
+    (t/is (= (special/polygamma 2.0 1.5) (ad/polygamma 2 1.5)))
+    (t/is (= (special/beta 1.5 2.0) (ad/beta 1.5 2)))
+    (t/is (= (special/regularized-beta 0.3 2.0 3.0) (ad/regularized-beta 0.3 2 3)))
+    (t/is (= (special/regularized-gamma-p 2.0 1.5) (ad/regularized-gamma-p 2 1.5))))
+  (t/testing "atan2 is atan of y/x in the first quadrant"
+    (t/is (m/delta-eq ((D (fn [y] (ad/atan (ad// y 2.0)))) 1.0) ((D (fn [y] (ad/atan2 y 2.0))) 1.0)))))
+
+(t/deftest kinks-test
+  (t/testing "abs: the sign bit decides, as in ForwardDiff"
+    (t/is (= [1.0 -1.0 1.0 -1.0] (mapv (D ad/abs) [0.0 -0.0 2.0 -2.0])))
+    (t/is (= 0.0 (ad/primal (ad/abs (ad/dual 1 -0.0 [1.0])))) "the value of -0.0 is 0.0")
+    (t/is (= [0.0 0.0] (mapv (D ad/abs 2) [0.0 -2.0])) "second derivative"))
+  (t/testing "floor, ceil, signum: zero derivatives, also at the integers and at zero"
+    (doseq [f [ad/floor ad/ceil ad/signum]
+            x [0.0 -0.0 2.0 2.5 -2.5 ##Inf ##NaN]]
+      (t/is (= 0.0 ((D f) x)) (str f " at " x)))
+    (t/is (= 0.0 (ad/signum ##NaN)) "the value of fastmath.core/signum for NaN")
+    (t/is (= 2.0 (ad/primal (ad/floor (ad/dual 1 2.5 [1.0])))))
+    (t/is (= [0.0 0.0] ((ad/gradient (fn [[x y]] (ad/* (ad/floor x) y))) [0.5 3.0])) "a zero value times y"))
+  (t/testing "max and min: values compared, not the partials (ForwardDiff)"
+    (t/is (= [0.0 1.0] [((D #(ad/max % 1.0)) 1.0) ((D #(ad/min % 1.0)) 1.0)]) "tie with a constant")
+    (t/is (= [1.0 0.0] [((D #(ad/max 1.0 %)) 1.0) ((D #(ad/min 1.0 %)) 1.0)]) "tie with a constant first")
+    (t/is (= [2.0 1.0] [((D #(ad/max % (ad/* 2.0 %))) 0.0) ((D #(ad/min % (ad/* 2.0 %))) 0.0)]) "tie of two duals")
+    (t/is (= 1.0 ((D (fn [x] (if (ad/> x 1.0) x 1.0))) 1.0)) "unlike the comparison, which decides the tie by the partials")
+    (t/is (= [1.0 0.0] [((D #(ad/max % 1.0)) 2.0) ((D #(ad/max % 1.0)) 0.0)]) "no tie")
+    (t/is (= [0.0 1.0] [((D #(ad/min % 1.0)) 2.0) ((D #(ad/min % 1.0)) 0.0)]) "no tie")
+    (t/is (= 0.0 ((D #(ad/max % ##NaN)) 1.0)) "NaN: the derivative of the second argument")
+    (t/is (nan? (ad/primal (ad/max (ad/dual 1 1.0 [1.0]) ##NaN))) "NaN: the value is NaN")
+    (t/is (= 1.0 ((D #(ad/min % ##NaN)) 1.0)) "NaN: the derivative of the first argument")
+    (t/is (= -0.0 (ad/primal (ad/min (ad/dual 1 0.0 [1.0]) -0.0))) "the value of fastmath.core/min at a signed zero tie"))
+  (t/testing "max and min: arities"
+    (t/is (= 2.0 (ad/max 2)) "one argument coerced")
+    (t/is (= [0.0 0.0 1.0] ((ad/gradient (fn [v] (apply ad/max v))) [1.0 2.0 3.0])) "three arguments")
+    (t/is (= [1.0 0.0 0.0 0.0] ((ad/gradient (fn [v] (apply ad/min v))) [1.0 2.0 3.0 4.0])) "four arguments")
+    (t/is (= 3.0 (ad/max 1 2 3)))
+    (t/is (= 1.0 (ad/min 3 2 1))))
+  (t/testing "the origin of hypot and atan2: NaN, as in ForwardDiff"
+    (t/is (nan? ((D #(ad/hypot % 0.0)) 0.0)))
+    (t/is (= [true true] (mapv nan? ((ad/gradient (fn [[x y]] (ad/hypot x y))) [0.0 0.0]))))
+    (t/is (nan? ((D #(ad/atan2 % 0.0)) 0.0)))
+    (t/is (= -1.0 ((D #(ad/atan2 1.0 %)) 0.0))))
+  (t/testing "infinite derivatives at the ends of the domains"
+    (t/is (= [##Inf ##Inf ##Inf ##Inf ##Inf ##Inf]
+             [((D ad/sqrt) 0.0) ((D ad/cbrt) 0.0) ((D ad/asin) 1.0) ((D ad/acosh) 1.0) ((D ad/atanh) 1.0) ((D ad/log1p) -1.0)]))
+    (t/is (= ##-Inf ((D ad/acos) 1.0)))))
+
+(t/deftest nan-guard-test
+  (t/testing "outside the domain the value and all derivatives are NaN"
+    (doseq [[f x] [[ad/acosh -2.0] [ad/acosh 0.5] [ad/atanh 2.0] [ad/atanh -2.0] [ad/log1p -2.0] [ad/log2 -1.0]
+                   [ad/log10 -1.0] [ad/sqrt -1.0] [ad/asin 2.0] [ad/acos -2.0] [ad/gamma 0.0] [ad/gamma -1.0]
+                   [ad/digamma -1.0] [ad/log-gamma ##-Inf] [#(ad/polygamma 1.5 %) 1.0]]
+            n [1 2]]
+      (t/is (nan? ((D f n) x)) (str f " order " n " at " x)))
+    (t/is (nan? ((D #(ad/regularized-beta % 2.0 3.0)) 1.5)) "regularized-beta outside [0, 1]")
+    (t/is (nan? ((D #(ad/lower-incomplete-gamma 0.0 %)) 1.0)) "lower-incomplete-gamma of a = 0 is NaN"))
+  (t/testing "inside the domain, also at the edges, the derivatives are not NaN"
+    (t/is (not-any? nan? [((D ad/acosh) 1.0) ((D ad/atanh) 0.999) ((D ad/log1p) -1.0) ((D ad/log2) 0.0)])))
+  (t/testing "a NaN argument: NaN, the guard does not apply"
+    (t/is (nan? ((D ad/sqrt) ##NaN)))
+    (t/is (nan? ((D ad/tanh) ##NaN))))
+  (t/testing "nested: the outer derivative of the inner NaN derivative is NaN"
+    (t/is (nan? ((D (fn [y] ((D (fn [x] (ad/acosh (ad/* x y)))) 1.0))) -2.0)))))
+
+(t/deftest special-rules-test
+  (t/testing "mpmath reference: derivatives in x of the incomplete functions"
+    ;; measured: max error relative to max(1, |expected|) 6.0e-16 (incomplete gamma), 3.0e-15 (regularized gamma),
+    ;; 5.2e-16 (incomplete beta), 3.7e-14 (regularized beta at a = 300, b = 200: the log-space density)
+    (doseq [[id f] {:lower-incomplete-gamma ad/lower-incomplete-gamma :upper-incomplete-gamma ad/upper-incomplete-gamma
+                    :regularized-gamma-p ad/regularized-gamma-p :regularized-gamma-q ad/regularized-gamma-q}
+            [s x d1 d2] (id @incomplete-reference)
+            :let [g (fn [y] (f s y))]]
+      (t/is (rule-close? d1 ((D g) x) 1.0e-14) (str id " d1 s=" s " x=" x))
+      (t/is (rule-close? d2 ((D g 2) x) 1.0e-14) (str id " d2 s=" s " x=" x)))
+    (doseq [[id f] {:incomplete-beta ad/incomplete-beta :regularized-beta ad/regularized-beta}
+            [a b x d1 d2] (id @incomplete-reference)
+            :let [g (fn [y] (f y a b))]]
+      (t/is (rule-close? d1 ((D g) x) 1.0e-13) (str id " d1 a=" a " b=" b " x=" x))
+      (t/is (rule-close? d2 ((D g 2) x) 1.0e-13) (str id " d2 a=" a " b=" b " x=" x))))
+  (t/testing "the ends of the domains: the power form (the log-space form would be 0 * -Inf = NaN)"
+    (t/is (= [1.0 ##Inf 0.0] (mapv (fn [a] ((D #(ad/regularized-gamma-p a %)) 0.0)) [1.0 0.5 2.0])))
+    (t/is (= [1.0 ##Inf 0.0] (mapv (fn [a] ((D #(ad/lower-incomplete-gamma a %)) 0.0)) [1.0 0.5 2.0])))
+    (t/is (= [-1.0 ##-Inf -0.0] (mapv (fn [a] ((D #(ad/upper-incomplete-gamma a %)) 0.0)) [1.0 0.5 2.0])))
+    (t/is (= [1.0 1.0] [((D #(ad/regularized-beta % 1.0 1.0)) 0.0) ((D #(ad/regularized-beta % 1.0 1.0)) 1.0)]))
+    (t/is (every? #(m/delta-eq 2.0 % 1.0e-15) [((D #(ad/regularized-beta % 1.0 2.0)) 0.0) ((D #(ad/regularized-beta % 2.0 1.0)) 1.0)]))
+    (t/is (= 0.0 ((D #(ad/regularized-gamma-p 200.0 %)) 0.0)) "large a at zero"))
+  (t/testing "large shape parameters: no overflow of x^(a-1) and gamma(a)"
+    (t/is (m/delta-eq 0.028197727685917866 ((D #(ad/regularized-gamma-p 200.0 %)) 200.0) 1.0e-14 1.0e-14) "mpmath")
+    (t/is (Double/isFinite ((D #(ad/regularized-beta % 300.0 200.0)) 0.6))))
+  (t/testing "negative shape parameters: the sign of gamma(a) and beta(a, b)"
+    (t/is (m/neg? ((D #(ad/regularized-gamma-p -0.5 %)) 1.0)) "gamma(-0.5) < 0")
+    (t/is (m/pos? ((D #(ad/regularized-gamma-p -1.5 %)) 1.0)) "gamma(-1.5) > 0")
+    (t/is (m/neg? ((D #(ad/regularized-beta % -0.5 2.0)) 0.3)) "beta(-0.5, 2) < 0")
+    (t/is (m/zero? ((D #(ad/regularized-gamma-p -1.0 %)) 1.0)) "a pole: P is constant"))
+  (t/testing "shape parameters without a derivative"
+    (doseq [[f arg] [[#(ad/polygamma % 1.0) :m] [#(ad/lower-incomplete-gamma % 1.0) :s] [#(ad/upper-incomplete-gamma % 1.0) :s]
+                     [#(ad/regularized-gamma-p % 1.0) :a] [#(ad/regularized-gamma-q % 1.0) :a]
+                     [#(ad/incomplete-beta 0.3 % 2.0) :a] [#(ad/regularized-beta 0.3 2.0 %) :b]]]
+      (t/is (= arg (:argument (thrown-data #((D f) 2.0)))) (str arg)))
+    (t/is (= {:function :polygamma :argument :m} (thrown-data (fn [] ((D #(ad/polygamma % 1.0)) 2.0)))))
+    (t/is (= (special/polygamma 3.0 1.0) ((D #(ad/polygamma (ad/+ 2.0 (ad/* 0.0 %)) %)) 1.0)) "a dual with zero partials is a constant")
+    (t/is (= ((D #(ad/regularized-gamma-p 2.0 %)) 1.5)
+             ((D #(ad/regularized-gamma-p (ad/+ 2.0 (ad/* 0.0 %)) %)) 1.5)) "the same as the constant")
+    (t/is (m/delta-eq (m/* 0.75 (m/exp -1.5)) ((D (fn [s] ((D #(ad/regularized-gamma-p 2.0 (ad/* s %))) 1.0))) 1.5) 1.0e-15)
+          "nested through x: d/ds (s P'(2, s)) = d/ds s^2 exp(-s)")
+    (t/is (= :a (:argument (thrown-data (fn [] ((D (fn [a] ((D #(ad/regularized-gamma-p a %)) 1.0))) 2.0)))))
+          "a mixed derivative in the shape parameter throws: the inner pass computes the value P(a, x) with the dual a")
+    (t/is (= [(special/polygamma 0.0 2.0) (special/polygamma 1.0 2.0)]
+             ((ad/gradient (fn [[m x]] (ad/* (ad/polygamma 0.0 x) m))) [1.0 2.0]))
+          "a dual used outside of the shape parameter is differentiated"))
+  (t/testing "closed forms"
+    (t/is (m/< (m/abs ((D ad/gamma) 1.4616321449683622)) 1.0e-15) "the minimum of gamma")
+    (t/is (m/delta-eq (m// (m/sq m/PI) 6.0) ((D ad/digamma) 1.0) 1.0e-15) "trigamma(1) = pi^2/6")))
+
+(t/deftest rule-test
+  (let [my-sin (ad/rule m/sin m/cos)
+        my-mul (ad/rule (fn [x y] (m/* x y)) (fn [_ y] y) (fn [x _] x))]
+    (t/testing "numbers: the function itself, arguments coerced to doubles"
+      (t/is (= (m/sin 2.0) (my-sin 2)))
+      (t/is (= 6.0 (my-mul 2 3)))
+      (t/is (= :x ((ad/rule (fn [_] :x) nil) 1)) "the result is returned unchanged"))
+    (t/testing "first derivatives"
+      (t/is (= (m/cos 0.5) ((D my-sin) 0.5)))
+      (t/is (= [3.0 2.0] ((ad/gradient (fn [[x y]] (my-mul x y))) [2 3])))
+      (t/is (= [[3.0 2.0]] ((ad/jacobian (fn [[x y]] [(my-mul x y)])) [2 3])))
+      (t/is (= 5.0 ((ad/jvp (fn [[x y]] (my-mul x y))) [2 3] [1 1])))
+      (t/is (= [2.0 0.0] ((ad/gradient (fn [[x _]] (my-mul x 2.0))) [5 7])) "a constant argument")
+      (t/is (= (m/* 2.0 (m/cos 1.0)) ((D (fn [x] (my-sin (ad/* 2.0 x)))) 0.5)) "chain rule")
+      (t/is (= (ad/primal ((ad/jvp (fn [[x]] (my-sin x))) [1.0] [3.0])) (m/* 3.0 (m/cos 1.0)))))
+    (t/testing "perturbations of an outer derivative in the partials (not in the value) are first order"
+      (t/is (= (m/cos 1.0) ((D (fn [s] ((ad/jvp (fn [[x]] (my-sin x))) [1.0] [s]))) 5.0))))
+    (t/testing "nested derivatives throw"
+      (t/is (contains? (thrown-data #((D my-sin 2) 0.5)) :tag))
+      (t/is (contains? (thrown-data #((ad/hessian (fn [[x y]] (my-mul x y))) [2 3])) :tag))
+      (t/is (contains? (thrown-data #((ad/hvp (fn [[x y]] (my-mul x y))) [2 3] [1 1])) :tag))
+      (t/is (contains? (thrown-data #((D (fn [y] ((D (fn [x] (my-mul x y))) 1.0))) 2.0)) :tag)
+            "a mixed derivative: the other argument is a dual of an outer derivative")
+      (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"first-order derivatives only" ((D my-sin 2) 0.5))))
+    (t/testing "nil: no derivative in the argument"
+      (let [f (ad/rule (fn [x y] (m/+ x y)) (fn [_ _] 1.0) nil)]
+        (t/is (= [1.0] ((ad/gradient (fn [[x]] (f x 2.0))) [1])))
+        (t/is (= {:function :rule :argument :y} (thrown-data #((ad/gradient (fn [[x y]] (f x y))) [1 2]))))
+        (t/is (= [1.0] ((ad/gradient (fn [[x]] (f x (ad/* 0.0 x)))) [1])) "zero partials are accepted"))
+      (t/is (= {:function :rule :argument :x} (thrown-data (fn [] ((D (ad/rule m/sin nil)) 1.0))))))
+    (t/testing "NaN guard"
+      (let [my-sqrt (ad/rule m/sqrt (fn [x] (m// 0.5 (m/sqrt x))))
+            finite-derivative (ad/rule m/sqrt (constantly 1.0))]
+        (t/is (nan? ((D my-sqrt) -1.0)))
+        (t/is (nan? ((D finite-derivative) -1.0)) "a finite derivative where the value is NaN")
+        (t/is (= 1.0 ((D finite-derivative) 4.0)))))
+    (t/testing "errors"
+      (t/is (invalid? #(ad/rule nil m/cos) :f nil))
+      (t/is (invalid? #(ad/rule m/sin 1) :df 1))
+      (t/is (invalid? #(ad/rule + 1 nil) :dfx 1))
+      (t/is (invalid? #(ad/rule + nil "a") :dfy "a"))
+      (t/is (fn? (ad/rule m/sin nil)))
+      (t/is (fn? (ad/rule + nil nil)))
+      (t/is (thrown? ClassCastException ((D (ad/rule (fn [_] :x) m/cos)) 1.0)) "the value is not a number")
+      (t/is (thrown? Exception ((D (ad/rule m/sin (fn [_] :x))) 1.0)) "the derivative is not a number"))))
+
+(t/deftest chain-laziness-test
+  (t/testing "a derivative is evaluated only for an argument with partials in the layer"
+    (let [f (fn [x y] (rules/chain [a x, b y, _v (ops/add a b)] :test 1.0 (throw (Exception. "not evaluated"))))]
+      (t/is (= [1.0] (partials (f (ad/dual 1 2.0 [1.0]) 3.0))))
+      (t/is (thrown? Exception (f (ad/dual 1 2.0 [1.0]) (ad/dual 1 3.0 [0.0]))) "a dual of the layer, even with zero partials")
+      (t/is (= [1.0] (partials (f (ad/dual 2 2.0 [1.0]) (ad/dual 1 3.0 [1.0])))) "an older dual is a constant")))
+  (t/testing "the result has zero partials when no argument with a derivative has partials"
+    (let [g (fn [x y] (rules/chain [a x, b y, _v (ops/add a b)] :test nil 1.0))]
+      (t/is (= [0.0] (partials (g (ad/dual 1 2.0 [0.0]) 3.0)))))))

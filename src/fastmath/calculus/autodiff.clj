@@ -10,17 +10,26 @@
   Defined functions:
 
   - derivatives: [[derivative]], [[gradient]], [[jacobian]], [[hessian]],
+  - derivative products: [[jvp]], [[hvp]],
   - arithmetic: [[+]], [[-]], [[*]], [[/]],
-  - elementary functions: [[sin]], [[cos]], [[exp]], [[log]], [[pow]],
+  - elementary functions: [[sin]], [[cos]], [[tan]], [[asin]], [[acos]], [[atan]], [[atan2]], [[sinh]], [[cosh]], [[tanh]], [[asinh]], [[acosh]], [[atanh]], [[exp]], [[expm1]], [[log]], [[log1p]], [[log2]], [[log10]], [[pow]], [[sqrt]], [[cbrt]], [[sq]], [[hypot]],
+  - piecewise functions: [[abs]], [[min]], [[max]], [[signum]], [[floor]], [[ceil]],
+  - gamma and beta functions: [[gamma]], [[log-gamma]], [[log-gamma-1p]], [[inv-gamma-1pm1]], [[digamma]], [[trigamma]], [[polygamma]], [[beta]], [[log-beta]], [[lower-incomplete-gamma]], [[upper-incomplete-gamma]], [[regularized-gamma-p]], [[regularized-gamma-q]], [[incomplete-beta]], [[regularized-beta]],
+  - functions with derivatives given by the user: [[rule]],
   - comparisons: [[<]], [[<=]], [[>]], [[>=]], [[==]],
   - duals: [[dual]], [[primal]], [[scalar]].
 
-  Limitations: a function returning a function can not be differentiated (it throws). A dual which escapes its derivative call (stored in an atom, a cache or a lazy sequence realized later) is detected only when it flows into the result of an enclosing derivative, which then throws. An escaped dual used only in a comparison (a branch) is not detected and can silently give a wrong derivative, as can a dual left over from a finished, unrelated derivative call, or a dual of an earlier pass of the same [[gradient]], [[jacobian]] or [[hessian]] call reused in a later pass: such duals have older tags and are treated as constants."
-  (:refer-clojure :exclude [+ - * / < > <= >= ==])
+  The values of the functions are the values of `fastmath.core` and `fastmath.special`, the derivatives follow DiffRules.jl. Where a function is not defined (its value is `NaN` for arguments which are not `NaN`, for example [[acosh]] below `1`) all its derivatives are `NaN`. At the kinks of the piecewise functions the derivatives are those of ForwardDiff.jl. The shape parameters of the incomplete gamma and beta functions and the order of [[polygamma]] have no derivative: a dual depending on the variables there throws, a constant (or a dual with zero partials) is accepted.
+
+  Limitations: a function returning a function can not be differentiated (it throws). A dual which escapes its derivative call (stored in an atom, a cache or a lazy sequence realized later) is detected only when it flows into the result of an enclosing derivative, which then throws. An escaped dual used only in a comparison (a branch) is not detected and can silently give a wrong derivative, as can a dual left over from a finished, unrelated derivative call, or a dual of an earlier pass of the same [[gradient]], [[jacobian]], [[hessian]] or [[hvp]] call reused in a later pass: such duals have older tags and are treated as constants."
+  (:refer-clojure :exclude [+ - * / < > <= >= == abs min max])
   (:require [fastmath.core :as m]
             [fastmath.calculus.common :as cc]
             [fastmath.calculus.autodiff.dual :as d]
             [fastmath.calculus.autodiff.ops :as ops]
+            [fastmath.calculus.autodiff.elementary :as el]
+            [fastmath.calculus.autodiff.special :as sp]
+            [fastmath.calculus.autodiff.rules :as rules]
             [fastmath.calculus.autodiff.derivatives :as der])
   (:import [fastmath.calculus.autodiff.dual Dual]))
 
@@ -29,7 +38,7 @@
 
 ;; The public API. The implementation lives in the internal namespaces `fastmath.calculus.autodiff.dual` (the dual
 ;; type, tags, partials containers), `fastmath.calculus.autodiff.ops` (arithmetic and derivative rules) and
-;; `fastmath.calculus.autodiff.derivatives` (seeding, extraction and passes).
+;; `fastmath.calculus.autodiff.derivatives` (seeding, extraction, passes and derivative products).
 
 ;; ## Duals
 
@@ -217,6 +226,553 @@
   See also [[exp]], [[log]]."
   [x y] (ops/pow x y))
 
+;; ## Public API: elementary functions
+
+(defn tan
+  "Tangent of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in radians.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1 + tan(x)^2`.
+
+  See also [[sin]], [[cos]], [[atan]]."
+  [x] (el/tan x))
+
+(defn asin
+  "Arcus sine of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `[-1, 1]`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/sqrt(1 - x^2)`, infinite at `-1` and `1`; outside `[-1, 1]` the value and all derivatives are `NaN`.
+
+  See also [[acos]], [[atan]], [[sin]]."
+  [x] (el/asin x))
+
+(defn acos
+  "Arcus cosine of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `[-1, 1]`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-1/sqrt(1 - x^2)`, infinite at `-1` and `1`; outside `[-1, 1]` the value and all derivatives are `NaN`.
+
+  See also [[asin]], [[atan]], [[cos]]."
+  [x] (el/acos x))
+
+(defn atan
+  "Arcus tangent of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(1 + x^2)`.
+
+  See also [[atan2]], [[tan]]."
+  [x] (el/atan x))
+
+(defn atan2
+  "Angle of the point `(x, y)` from the positive x axis, as `Math/atan2`: the first argument is `y`.
+
+  Parameters:
+
+  - `y` (number or dual): the second coordinate.
+  - `x` (number or dual): the first coordinate.
+
+  Returns a double when both arguments are numbers, otherwise a dual. The partial derivatives are `x/(x^2 + y^2)` in `y` and `-y/(x^2 + y^2)` in `x`, `NaN` at the origin.
+
+  See also [[atan]], [[hypot]]."
+  [y x] (el/atan2 y x))
+
+(defn sinh
+  "Hyperbolic sine of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `cosh(x)`.
+
+  See also [[cosh]], [[tanh]], [[asinh]]."
+  [x] (el/sinh x))
+
+(defn cosh
+  "Hyperbolic cosine of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `sinh(x)`.
+
+  See also [[sinh]], [[tanh]], [[acosh]]."
+  [x] (el/cosh x))
+
+(defn tanh
+  "Hyperbolic tangent of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `1 - tanh(x)^2`.
+
+  See also [[sinh]], [[cosh]], [[atanh]]."
+  [x] (el/tanh x))
+
+(defn asinh
+  "Area hyperbolic sine (inverse of [[sinh]]) of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/sqrt(x^2 + 1)`.
+
+  See also [[acosh]], [[atanh]], [[sinh]]."
+  [x] (el/asinh x))
+
+(defn acosh
+  "Area hyperbolic cosine (inverse of [[cosh]]) of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 1`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/sqrt(x^2 - 1)`, infinite at `1`; below `1` the value and all derivatives are `NaN`.
+
+  See also [[asinh]], [[atanh]], [[cosh]]."
+  [x] (el/acosh x))
+
+(defn atanh
+  "Area hyperbolic tangent (inverse of [[tanh]]) of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `[-1, 1]`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(1 - x^2)`, infinite at `-1` and `1`; outside `[-1, 1]` the value and all derivatives are `NaN`.
+
+  See also [[asinh]], [[acosh]], [[tanh]]."
+  [x] (el/atanh x))
+
+(defn expm1
+  "`exp(x) - 1` of a number or a dual, accurate for `x` near zero.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `exp(x)`.
+
+  See also [[exp]], [[log1p]]."
+  [x] (el/expm1 x))
+
+(defn log1p
+  "`log(1 + x)` of a number or a dual, accurate for `x` near zero.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= -1`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(1 + x)`, infinite at `-1`; below `-1` the value and all derivatives are `NaN`.
+
+  See also [[log]], [[expm1]]."
+  [x] (el/log1p x))
+
+(defn log2
+  "Logarithm base 2 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(x ln 2)`, infinite at zero; for a negative argument the value and all derivatives are `NaN`.
+
+  See also [[log]], [[log10]]."
+  [x] (el/log2 x))
+
+(defn log10
+  "Logarithm base 10 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(x ln 10)`, infinite at zero; for a negative argument the value and all derivatives are `NaN`.
+
+  See also [[log]], [[log2]]."
+  [x] (el/log10 x))
+
+(defn sqrt
+  "Square root of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(2 sqrt(x))`, infinite at zero; for a negative argument the value and all derivatives are `NaN`.
+
+  See also [[cbrt]], [[sq]], [[pow]]."
+  [x] (el/sqrt x))
+
+(defn cbrt
+  "Cubic root of a number or a dual, defined for negative arguments too.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(3 cbrt(x)^2)`, infinite at zero.
+
+  See also [[sqrt]], [[pow]]."
+  [x] (el/cbrt x))
+
+(defn sq
+  "Square `x * x` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `2x`.
+
+  See also [[sqrt]], [[pow]]."
+  [x] (el/sq x))
+
+(defn hypot
+  "Euclidean norm of two or three numbers or duals, without an intermediate overflow.
+
+  Parameters:
+
+  - `x`, `y` (numbers or duals), optionally `z` (number or dual).
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivative in each argument is the argument divided by the norm, `NaN` at the origin.
+
+  See also [[sqrt]], [[atan2]]."
+  ([x y] (el/hypot x y))
+  ([x y z] (el/hypot x y z)))
+
+;; ## Public API: piecewise functions
+
+(defn abs
+  "Absolute value of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the sign of `x` given by its sign bit, as in ForwardDiff.jl: `1` at `0.0` and `-1` at `-0.0`.
+
+  See also [[signum]], [[max]]."
+  [x] (el/abs x))
+
+(defn signum
+  "Sign of a number or a dual: `1.0`, `0.0` or `-1.0`.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The value is `0.0` for `0.0`, `-0.0` and `NaN`, as `fastmath.core/signum`. The derivative is `0` everywhere, also at zero.
+
+  See also [[abs]]."
+  [x] (el/signum x))
+
+(defn floor
+  "Rounding of a number or a dual towards negative infinity.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `0` everywhere, also at the integers.
+
+  See also [[ceil]]."
+  [x] (el/floor x))
+
+(defn ceil
+  "Rounding of a number or a dual towards positive infinity.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `0` everywhere, also at the integers.
+
+  See also [[floor]]."
+  [x] (el/ceil x))
+
+(defn max
+  "The largest of numbers and duals.
+
+  The value is the value of `fastmath.core/max`. The partial derivatives are those of the first argument when its value is strictly larger, otherwise of the second one, as in ForwardDiff.jl: the values are compared, not the partials, so at a tie the derivative of the second argument is taken (unlike [[>]], which compares the partials at a tie). With `NaN` the value is `NaN` and the derivatives are those of the second argument.
+
+  Parameters:
+
+  - one or more numbers or duals, folded from the left for more than two.
+
+  Returns a double when all arguments are numbers, otherwise a dual.
+
+  See also [[min]], [[abs]]."
+  ([x] (d/leaf x))
+  ([x y] (el/max x y))
+  ([x y & more] (reduce el/max (el/max x y) more)))
+
+(defn min
+  "The smallest of numbers and duals.
+
+  The value is the value of `fastmath.core/min`. The partial derivatives are those of the second argument when the value of the first one is strictly larger, otherwise of the first one, as in ForwardDiff.jl: the values are compared, not the partials, so at a tie the derivative of the first argument is taken (unlike [[<]], which compares the partials at a tie). With `NaN` the value is `NaN` and the derivatives are those of the first argument.
+
+  Parameters:
+
+  - one or more numbers or duals, folded from the left for more than two.
+
+  Returns a double when all arguments are numbers, otherwise a dual.
+
+  See also [[max]], [[abs]]."
+  ([x] (d/leaf x))
+  ([x y] (el/min x y))
+  ([x y & more] (reduce el/min (el/min x y) more)))
+
+;; ## Public API: gamma and beta functions
+
+(defn gamma
+  "Gamma function of a number or a dual, see [[fastmath.special/gamma]].
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `gamma(x) digamma(x)`; at the poles (zero and the negative integers) the value and all derivatives are `NaN`.
+
+  See also [[log-gamma]], [[digamma]], [[beta]]."
+  [x] (sp/gamma x))
+
+(defn log-gamma
+  "Logarithm of the absolute value of the gamma function of a number or a dual, see [[fastmath.special/log-gamma]].
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `digamma(x)`, also for negative arguments.
+
+  See also [[gamma]], [[log-gamma-1p]], [[digamma]]."
+  [x] (sp/log-gamma x))
+
+(defn log-gamma-1p
+  "`log-gamma(1 + x)` of a number or a dual, accurate for `x` near zero, see [[fastmath.special/log-gamma-1p]].
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `digamma(1 + x)`.
+
+  See also [[log-gamma]], [[inv-gamma-1pm1]]."
+  [x] (sp/log-gamma-1p x))
+
+(defn inv-gamma-1pm1
+  "`1/gamma(1 + x) - 1` of a number or a dual, accurate for `x` near zero, see [[fastmath.special/inv-gamma-1pm1]].
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-digamma(1 + x)/gamma(1 + x)`.
+
+  See also [[gamma]], [[log-gamma-1p]]."
+  [x] (sp/inv-gamma-1pm1 x))
+
+(defn digamma
+  "Digamma function (the derivative of [[log-gamma]]) of a number or a dual, see [[fastmath.special/digamma]].
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `trigamma(x)`.
+
+  See also [[trigamma]], [[polygamma]], [[log-gamma]]."
+  [x] (sp/digamma x))
+
+(defn trigamma
+  "Trigamma function (the derivative of [[digamma]]) of a number or a dual, see [[fastmath.special/trigamma]].
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `polygamma(2, x)`.
+
+  See also [[digamma]], [[polygamma]]."
+  [x] (sp/trigamma x))
+
+(defn polygamma
+  "Polygamma function of order `m` (the `m`-th derivative of [[digamma]]) of a number or a dual, see [[fastmath.special/polygamma]].
+
+  Parameters:
+
+  - `m` (number or dual): the order, a nonnegative integer (any other value gives `NaN`). It has no derivative: a dual depending on the variables throws, a constant or a dual with zero partials is accepted.
+  - `x` (number or dual).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `polygamma(m + 1, x)`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[digamma]], [[trigamma]]."
+  [m x] (sp/polygamma m x))
+
+(defn beta
+  "Beta function of numbers or duals, see [[fastmath.special/beta]].
+
+  Parameters:
+
+  - `p`, `q` (numbers or duals).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The partial derivatives are `beta(p, q) (digamma(p) - digamma(p + q))` in `p` and `beta(p, q) (digamma(q) - digamma(p + q))` in `q`.
+
+  See also [[log-beta]], [[gamma]]."
+  [p q] (sp/beta p q))
+
+(defn log-beta
+  "Logarithm of the beta function of numbers or duals, see [[fastmath.special/log-beta]].
+
+  Parameters:
+
+  - `p`, `q` (numbers or duals).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The partial derivatives are `digamma(p) - digamma(p + q)` in `p` and `digamma(q) - digamma(p + q)` in `q`.
+
+  See also [[beta]], [[log-gamma]]."
+  [p q] (sp/log-beta p q))
+
+(defn lower-incomplete-gamma
+  "Lower incomplete gamma function of numbers or duals, see [[fastmath.special/lower-incomplete-gamma]].
+
+  Parameters:
+
+  - `s` (number or dual): the shape parameter. It has no derivative: a dual depending on the variables throws, a constant or a dual with zero partials is accepted.
+  - `x` (number or dual).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `x^(s-1) exp(-x)`.
+
+  Throws `ex-info` with `{:function :argument}` when `s` depends on the variables.
+
+  See also [[upper-incomplete-gamma]], [[regularized-gamma-p]]."
+  [s x] (sp/lower-incomplete-gamma s x))
+
+(defn upper-incomplete-gamma
+  "Upper incomplete gamma function of numbers or duals, see [[fastmath.special/upper-incomplete-gamma]].
+
+  Parameters:
+
+  - `s` (number or dual): the shape parameter. It has no derivative: a dual depending on the variables throws, a constant or a dual with zero partials is accepted.
+  - `x` (number or dual).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `-x^(s-1) exp(-x)`.
+
+  Throws `ex-info` with `{:function :argument}` when `s` depends on the variables.
+
+  See also [[lower-incomplete-gamma]], [[regularized-gamma-q]]."
+  [s x] (sp/upper-incomplete-gamma s x))
+
+(defn regularized-gamma-p
+  "Regularized lower incomplete gamma function `P(a, x)` of numbers or duals, see [[fastmath.special/regularized-gamma-p]].
+
+  Parameters:
+
+  - `a` (number or dual): the shape parameter. It has no derivative: a dual depending on the variables throws, a constant or a dual with zero partials is accepted.
+  - `x` (number or dual).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `x^(a-1) exp(-x) / gamma(a)`, computed without overflow for large `a`.
+
+  Throws `ex-info` with `{:function :argument}` when `a` depends on the variables.
+
+  See also [[regularized-gamma-q]], [[lower-incomplete-gamma]]."
+  [a x] (sp/regularized-gamma-p a x))
+
+(defn regularized-gamma-q
+  "Regularized upper incomplete gamma function `Q(a, x)` of numbers or duals, see [[fastmath.special/regularized-gamma-q]].
+
+  Parameters:
+
+  - `a` (number or dual): the shape parameter. It has no derivative: a dual depending on the variables throws, a constant or a dual with zero partials is accepted.
+  - `x` (number or dual).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `-x^(a-1) exp(-x) / gamma(a)`, computed without overflow for large `a`.
+
+  Throws `ex-info` with `{:function :argument}` when `a` depends on the variables.
+
+  See also [[regularized-gamma-p]], [[upper-incomplete-gamma]]."
+  [a x] (sp/regularized-gamma-q a x))
+
+(defn incomplete-beta
+  "Incomplete beta function `B(x; a, b)` of numbers or duals, see [[fastmath.special/incomplete-beta]]. The first argument is `x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `[0, 1]`.
+  - `a`, `b` (numbers or duals): the shape parameters. They have no derivative: a dual depending on the variables throws, a constant or a dual with zero partials is accepted.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is `x^(a-1) (1-x)^(b-1)`.
+
+  Throws `ex-info` with `{:function :argument}` when `a` or `b` depends on the variables.
+
+  See also [[regularized-beta]], [[beta]]."
+  [x a b] (sp/incomplete-beta x a b))
+
+(defn regularized-beta
+  "Regularized incomplete beta function `I_x(a, b)` of numbers or duals, see [[fastmath.special/regularized-beta]]. The first argument is `x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `[0, 1]`.
+  - `a`, `b` (numbers or duals): the shape parameters. They have no derivative: a dual depending on the variables throws, a constant or a dual with zero partials is accepted.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is `x^(a-1) (1-x)^(b-1) / beta(a, b)`, computed without overflow for large `a` and `b`.
+
+  Throws `ex-info` with `{:function :argument}` when `a` or `b` depends on the variables.
+
+  See also [[incomplete-beta]], [[beta]]."
+  [x a b] (sp/regularized-beta x a b))
+
+;; ## Public API: rules of the user
+
+(defn rule
+  "Creates a function with a derivative given by the user, which accepts numbers and duals like the functions of this namespace.
+
+  Use it for a function which is not built from the operations of this namespace (a primitive function, a library call), when its derivative is known. The derivative is first order only: the created function works in [[derivative]] of order `1`, [[gradient]], [[jacobian]] and [[jvp]], and throws in nested derivatives ([[derivative]] of order `2` or more, [[hessian]], [[hvp]]), which would need the derivative of the derivative.
+
+  Parameters:
+
+  - `f` (function): the value, a function of one or two doubles returning a number.
+  - `df` (function or `nil`): the derivative of a function of one argument, a function of a double returning a number.
+  - `dfx`, `dfy` (functions or `nil`): the partial derivatives of a function of two arguments in the first and the second argument, functions of two doubles returning numbers.
+
+  A derivative given as `nil` means that the function has no derivative in this argument: a dual depending on the variables there throws, a constant (or a dual with zero partials) is accepted.
+
+  Returns a function of one argument (for `f` and `df`) or two arguments (for `f`, `dfx` and `dfy`). Called with numbers only, it returns `(f x)` or `(f x y)` with the arguments coerced to doubles. Called with duals, the value and the derivatives are evaluated at the values of the arguments and the result is a dual; where the value is `NaN` for arguments which are not `NaN`, the derivatives are `NaN`.
+
+  Throws `ex-info` with `{:option :value :expected}` when `f` or a derivative is neither a function nor `nil` (`f` can not be `nil`). The created function throws `ex-info` with `{:tag}` in a nested derivative, and `ex-info` with `{:function :argument}` for a dual depending on the variables in an argument without a derivative.
+
+  See also [[derivative]], [[gradient]]."
+  ([f df]
+   (when-not (ifn? f) (cc/invalid-option! :f f "a function"))
+   (when-not (or (nil? df) (ifn? df)) (cc/invalid-option! :df df "a function or nil"))
+   (rules/rule1 f df))
+  ([f dfx dfy]
+   (when-not (ifn? f) (cc/invalid-option! :f f "a function"))
+   (when-not (or (nil? dfx) (ifn? dfx)) (cc/invalid-option! :dfx dfx "a function or nil"))
+   (when-not (or (nil? dfy) (ifn? dfy)) (cc/invalid-option! :dfy dfy "a function or nil"))
+   (rules/rule2 f dfx dfy)))
+
 ;; ## Public API: comparisons
 
 
@@ -395,3 +951,38 @@
   See also [[gradient]], [[jacobian]], [[fastmath.calculus/hessian]] (finite differences)."
   ([f] (der/hessian f nil))
   ([f options] (der/hessian f options)))
+
+(defn jvp
+  "Creates the Jacobian-vector product (the directional derivative) of a multivariate function `f` with forward-mode automatic differentiation.
+
+  For a scalar function the product is the directional derivative, the gradient times the direction; for a vector valued function it is the Jacobian matrix times the direction. It is computed in one pass, without the gradient or the Jacobian: `f` is called once with every input `x_i` replaced by a dual with the single partial `v_i`. The result is exact up to the floating point rounding, it can differ from the product of [[gradient]] or [[jacobian]] and the direction in the last bits (a different order of the summation). Products can be nested with other derivatives: every call uses a fresh tag.
+
+  Parameters:
+
+  - `f` (function): vector of `n` numbers or duals -> number or dual, or a sequential of `m` numbers or duals.
+
+  Returns a function of a point `x` and a direction `v` (both any sequence of `n` numbers or duals, or a `double[]`) returning the product: a double for a scalar `f`, a vector of `m` elements for a vector valued `f`; duals when `x` or `v` contain duals of an enclosing derivative. For the empty point `f` is called once and the product is `0.0` (or a vector of zeros).
+
+  The returned function throws `ex-info` with `{:count-x :count-v}` when `x` and `v` have different lengths, and `ex-info` when `f` returns something else than a number, a dual or a sequential of them (a function, a `double[]`), and when a dual of a finished derivative call leaks into the result of an enclosing derivative.
+
+  See also [[hvp]], [[gradient]], [[jacobian]]."
+  [f] (der/jvp f))
+
+(defn hvp
+  "Creates the Hessian-vector product of a multivariate scalar function `f` with forward-mode automatic differentiation.
+
+  The product is computed as the Jacobian-vector product ([[jvp]]) of the [[gradient]] (nested forward mode), without the Hessian matrix: its cost is about one gradient of duals, the cost of the full [[hessian]] is about `n / chunk-size` of them. The result is exact up to the floating point rounding, it can differ from the product of [[hessian]] and the direction in the last bits.
+
+  Parameters:
+
+  - `f` (function): vector of numbers or duals -> number or dual.
+  - `options` (map, optional): options of the inner [[gradient]]
+    - `:chunk-size` - the number of inputs differentiated in one pass, an integer >= 1 (default: balanced chunks of at most 8).
+
+  Returns a function of a point `x` and a direction `v` (both any sequence of `n` numbers or duals, or a `double[]`) returning the product as a vector of `n` elements: doubles, or duals when `x` or `v` contain duals of an enclosing derivative. The product for the empty point is `[]` and `f` is not called.
+
+  Throws `ex-info` with `{:option :value :expected}` when `:chunk-size` is less than 1. The returned function throws as [[jvp]] and [[gradient]] do.
+
+  See also [[jvp]], [[hessian]], [[gradient]]."
+  ([f] (der/hvp f nil))
+  ([f options] (der/hvp f options)))

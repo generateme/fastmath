@@ -94,7 +94,9 @@
 
 ;; ## Partials arithmetic (`nil` is a zero vector)
 
-(defn- p-add [px py]
+(defn p-add
+  "Sum of partials, `nil` is a zero vector."
+  [px py]
   (cond (nil? px) py
         (nil? py) px
         :else (do (d/check-same-length! px py) (d/p-map2 add px py))))
@@ -104,8 +106,8 @@
         (nil? px) (d/p-map neg py)
         :else (do (d/check-same-length! px py) (d/p-map2 sub px py))))
 
-(defn- p-scale
-  "Each partial times `s` (element on the left), without allocating a closure."
+(defn p-scale
+  "Each partial times `s` (element on the left), without allocating a closure; `nil` for `nil`."
   [p s]
   (when p
     (let [^objects p p

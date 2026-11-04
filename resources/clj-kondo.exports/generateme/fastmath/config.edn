@@ -30,7 +30,8 @@
                                           fastmath.clustering/mec-data
                                           fastmath.clustering/spectral-data]}}
  
- :lint-as {fastmath.random/gen-noise-function clojure.core/def
+ :lint-as {fastmath.calculus.autodiff.rules/chain clojure.core/let
+           fastmath.random/gen-noise-function clojure.core/def
            fastmath.stats/build-extent clojure.core/def
            fastmath.curves/make-config-method clojure.core/def
            fastmath.interpolation/apache-commons-interpolator clojure.core/def}}
