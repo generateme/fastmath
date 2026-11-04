@@ -284,7 +284,7 @@
   - `y` (number or dual): the second coordinate.
   - `x` (number or dual): the first coordinate.
 
-  Returns a double when both arguments are numbers, otherwise a dual. The partial derivatives are `x/(x^2 + y^2)` in `y` and `-y/(x^2 + y^2)` in `x`, `NaN` at the origin.
+  Returns a double when both arguments are numbers, otherwise a dual. The partial derivatives are `x/(x^2 + y^2)` in `y` and `-y/(x^2 + y^2)` in `x`, computed without overflow or underflow of the squares; they are `NaN` at the origin and `0` (the limit) at an infinite argument.
 
   See also [[atan]], [[hypot]]."
   [y x] (el/atan2 y x))
@@ -452,7 +452,7 @@
 
   - `x`, `y` (numbers or duals), optionally `z` (number or dual).
 
-  Returns a double when all arguments are numbers, otherwise a dual. The partial derivative in each argument is the argument divided by the norm, `NaN` at the origin.
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivative in each argument is the argument divided by the norm, `NaN` at the origin. At an infinite argument the limits are used: the sign of the only infinite argument, `0` for the finite ones, `NaN` when several arguments are infinite.
 
   See also [[sqrt]], [[atan2]]."
   ([x y] (el/hypot x y))
@@ -511,7 +511,7 @@
 (defn max
   "The largest of numbers and duals.
 
-  The value is the value of `fastmath.core/max`. The partial derivatives are those of the first argument when its value is strictly larger, otherwise of the second one, as in ForwardDiff.jl: the values are compared, not the partials, so at a tie the derivative of the second argument is taken (unlike [[>]], which compares the partials at a tie). With `NaN` the value is `NaN` and the derivatives are those of the second argument.
+  The value is the value of `fastmath.core/max`. The partial derivatives are those of the first argument when its value is strictly larger, otherwise of the second one, as in ForwardDiff.jl: the values are compared, not the partials, so at a tie the derivative of the second argument is taken (unlike [[>]], which compares the partials at a tie). With `NaN` the value is `NaN` and the derivatives are those of the second argument. Zeros of different signs are a tie: the value is the second argument, `(max 0.0 -0.0)` is `-0.0`.
 
   Parameters:
 
@@ -527,7 +527,7 @@
 (defn min
   "The smallest of numbers and duals.
 
-  The value is the value of `fastmath.core/min`. The partial derivatives are those of the second argument when the value of the first one is strictly larger, otherwise of the first one, as in ForwardDiff.jl: the values are compared, not the partials, so at a tie the derivative of the first argument is taken (unlike [[<]], which compares the partials at a tie). With `NaN` the value is `NaN` and the derivatives are those of the first argument.
+  The value is the value of `fastmath.core/min`. The partial derivatives are those of the second argument when the value of the first one is strictly larger, otherwise of the first one, as in ForwardDiff.jl: the values are compared, not the partials, so at a tie the derivative of the first argument is taken (unlike [[<]], which compares the partials at a tie). With `NaN` the value is `NaN` and the derivatives are those of the first argument. Zeros of different signs are a tie: the value is the second argument, `(min 0.0 -0.0)` is `-0.0`.
 
   Parameters:
 
@@ -894,7 +894,7 @@
 
   The function `f` receives a vector and has to be built from the operations of this namespace. The gradient is exact up to the floating point rounding. Gradients can be nested with other derivatives: every pass uses a fresh tag.
 
-  The inputs are differentiated in passes over chunks of at most `:chunk-size` inputs, each pass calls `f` once with the inputs of the chunk replaced by duals. The default chunk size splits `n` inputs evenly into chunks of at most 8. Small chunks are faster for sparse functions (each operation depends on few inputs), larger for dense ones. The result does not depend on the chunk size, except at a tie of a comparison (see [[<]]): a tie is decided by the partial derivatives, so a branch taken at a tie can depend on the chunk.
+  The inputs are differentiated in passes over chunks of at most `:chunk-size` inputs, each pass calls `f` once with the inputs of the chunk replaced by duals. The default chunk size splits `n` inputs evenly into chunks of at most 8. Small chunks are faster for sparse functions (each operation depends on few inputs), larger for dense ones. The result does not depend on the chunk size, except at a tie of a comparison (see [[<]]): a tie is decided by the partial derivatives, so a branch taken at a tie can depend on the chunk. Also where a partial derivative is infinite: in one pass the infinite factor multiplies the zero partials of the other inputs of the chunk, `0 * Inf` is `NaN` (as in ForwardDiff.jl), so the derivatives in these inputs are `NaN`, while with `:chunk-size` `1` they are not; for example the gradient of `sqrt(x) y` at `[0 1]` is `[Inf NaN]`, or `[Inf 0]` with one input per pass.
 
   Parameters:
 
@@ -915,7 +915,7 @@
 
   The function `f` receives a vector and has to be built from the operations of this namespace. The Jacobian is exact up to the floating point rounding.
 
-  The inputs are differentiated in passes over chunks of at most `:chunk-size` inputs, each pass calls `f` once with the inputs of the chunk replaced by duals. The default chunk size splits `n` inputs evenly into chunks of at most 8. Small chunks are faster for sparse functions (each operation depends on few inputs), larger for dense ones. The result does not depend on the chunk size, except at a tie of a comparison (see [[<]]): a tie is decided by the partial derivatives, so a branch taken at a tie can depend on the chunk.
+  The inputs are differentiated in passes over chunks of at most `:chunk-size` inputs, each pass calls `f` once with the inputs of the chunk replaced by duals. The default chunk size splits `n` inputs evenly into chunks of at most 8. Small chunks are faster for sparse functions (each operation depends on few inputs), larger for dense ones. The result does not depend on the chunk size, except at a tie of a comparison (see [[<]]): a tie is decided by the partial derivatives, so a branch taken at a tie can depend on the chunk. Also where a partial derivative is infinite: in one pass the infinite factor multiplies the zero partials of the other inputs of the chunk, `0 * Inf` is `NaN` (as in ForwardDiff.jl), so the derivatives in these inputs are `NaN`, while with `:chunk-size` `1` they are not; for example the gradient of `sqrt(x) y` at `[0 1]` is `[Inf NaN]`, or `[Inf 0]` with one input per pass.
 
   Parameters:
 
@@ -936,7 +936,7 @@
 
   The Hessian is computed as the Jacobian of the gradient (nested forward mode), it is exact up to the floating point rounding. The matrix is symmetric up to the rounding, the symmetry is not enforced.
 
-  The inputs are differentiated in passes over chunks of at most `:chunk-size` inputs, each pass calls `f` once with the inputs of the chunk replaced by duals. The default chunk size splits `n` inputs evenly into chunks of at most 8. Small chunks are faster for sparse functions (each operation depends on few inputs), larger for dense ones. The result does not depend on the chunk size, except at a tie of a comparison (see [[<]]): a tie is decided by the partial derivatives, so a branch taken at a tie can depend on the chunk. The same chunk size is used for the gradient and for the Jacobian.
+  The inputs are differentiated in passes over chunks of at most `:chunk-size` inputs, each pass calls `f` once with the inputs of the chunk replaced by duals. The default chunk size splits `n` inputs evenly into chunks of at most 8. Small chunks are faster for sparse functions (each operation depends on few inputs), larger for dense ones. The result does not depend on the chunk size, except at a tie of a comparison (see [[<]]): a tie is decided by the partial derivatives, so a branch taken at a tie can depend on the chunk. Also where a partial derivative is infinite: in one pass the infinite factor multiplies the zero partials of the other inputs of the chunk, `0 * Inf` is `NaN` (as in ForwardDiff.jl), so the derivatives in these inputs are `NaN`, while with `:chunk-size` `1` they are not; for example the gradient of `sqrt(x) y` at `[0 1]` is `[Inf NaN]`, or `[Inf 0]` with one input per pass. The same chunk size is used for the gradient and for the Jacobian.
 
   Parameters:
 
@@ -955,7 +955,7 @@
 (defn jvp
   "Creates the Jacobian-vector product (the directional derivative) of a multivariate function `f` with forward-mode automatic differentiation.
 
-  For a scalar function the product is the directional derivative, the gradient times the direction; for a vector valued function it is the Jacobian matrix times the direction. It is computed in one pass, without the gradient or the Jacobian: `f` is called once with every input `x_i` replaced by a dual with the single partial `v_i`. The result is exact up to the floating point rounding, it can differ from the product of [[gradient]] or [[jacobian]] and the direction in the last bits (a different order of the summation). Products can be nested with other derivatives: every call uses a fresh tag.
+  For a scalar function the product is the directional derivative, the gradient times the direction; for a vector valued function it is the Jacobian matrix times the direction. It is computed in one pass, without the gradient or the Jacobian: `f` is called once with every input `x_i` replaced by a dual with the single partial `v_i`. A partial derivative which is infinite in an input with a zero direction gives `NaN` (`0 * Inf`), as in ForwardDiff.jl. The result is exact up to the floating point rounding, it can differ from the product of [[gradient]] or [[jacobian]] and the direction in the last bits (a different order of the summation). Products can be nested with other derivatives: every call uses a fresh tag.
 
   Parameters:
 

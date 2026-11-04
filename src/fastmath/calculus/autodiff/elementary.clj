@@ -95,19 +95,52 @@
 (defn- dual-log2 [x] (r/chain [v x, _y (log2 v)] :log2 (div (div 1.0 v) m/LN2)))
 (defn- dual-log10 [x] (r/chain [v x, _y (log10 v)] :log10 (div (div 1.0 v) m/LN10)))
 
+;; The norm and the angle: the partials are built from the norm `hypot`, without the squares (which under- or
+;; overflow at moderate magnitudes); at an infinite argument the limits are used (`Inf / Inf` would be `NaN`).
+
+(defn- infinite-count
+  "The number of arguments with an infinite value, `0` when an argument is `NaN` (no limit is taken then)."
+  [& xs]
+  (let [ss (map d/scalar xs)]
+    (if (some m/nan? ss) 0 (count (filter (fn [^double v] (Double/isInfinite v)) ss)))))
+
+(defn- norm-partial
+  "`c / h`, the partial of the norm `h` in its argument `c`. At an infinite norm with infinite arguments the limit:
+  `sign(c)` when `c` is the only infinite argument, `0` for a finite `c`, `NaN` when several arguments are infinite
+  (the limit depends on the direction)."
+  [c h ^long infinite-arguments]
+  (if (and (m/pos? infinite-arguments) (Double/isInfinite (d/scalar h)))
+    (cond
+      (not (Double/isInfinite (d/scalar c))) 0.0
+      (m/== 1 infinite-arguments) (m/signum (d/scalar c))
+      :else ##NaN)
+    (div c h)))
+
+(defn- angle-partial
+  "`c / (y^2 + x^2)` as `(c / h) / h` with `h = hypot(y, x)`; `0` at an infinite argument (the limit `1/|(y, x)|`)."
+  [c h ^long infinite-arguments]
+  (if (m/pos? infinite-arguments)
+    0.0
+    (div (div c h) h)))
+
 (defn- dual-atan2
   [y x]
   (r/chain [a y, b x, _z (atan2 a b)] :atan2
-    (div b (add (mul a a) (mul b b)))
-    (div (neg a) (add (mul a a) (mul b b)))))
+    (angle-partial b (hypot a b) (infinite-count a b))
+    (angle-partial (neg a) (hypot a b) (infinite-count a b))))
 
 (defn- dual-hypot
   [x y]
-  (r/chain [a x, b y, h (hypot a b)] :hypot (div a h) (div b h)))
+  (r/chain [a x, b y, h (hypot a b)] :hypot
+    (norm-partial a h (infinite-count a b))
+    (norm-partial b h (infinite-count a b))))
 
 (defn- dual-hypot3
   [x y z]
-  (r/chain [a x, b y, c z, h (hypot a b c)] :hypot (div a h) (div b h) (div c h)))
+  (r/chain [a x, b y, c z, h (hypot a b c)] :hypot
+    (norm-partial a h (infinite-count a b c))
+    (norm-partial b h (infinite-count a b c))
+    (norm-partial c h (infinite-count a b c))))
 
 ;; ## Kinks (as in ForwardDiff.jl)
 

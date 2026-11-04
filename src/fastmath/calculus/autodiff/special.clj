@@ -76,10 +76,14 @@
 ;; separately.
 
 (defn- gamma-sign
-  "Sign of `gamma(a)` for a non-pole `a`: `-1` for a negative `a` with an odd `floor(a)`, otherwise `1`."
+  "Sign of `gamma(a)` for a non-pole `a`: `-1` for a negative `a` with an odd `floor(a)`, otherwise `1`. The parity is
+  computed in doubles: `a` can be beyond the `long` range (every such double is an even integer)."
   ^double [a]
   (let [sa (d/scalar a)]
-    (if (and (m/neg? sa) (m/odd? (long (m/floor sa)))) -1.0 1.0)))
+    (if (m/neg? sa)
+      (let [f (m/floor sa)]
+        (if (m/== 1.0 (m/abs (m/- f (m/* 2.0 (m/floor (m/* 0.5 f)))))) -1.0 1.0))
+      1.0)))
 
 (defn- beta-sign
   "Sign of `beta(a, b) = gamma(a) gamma(b) / gamma(a + b)`."
@@ -96,13 +100,35 @@
       (m/== sx ##Inf) 0.0
       :else (exp (sub (sub (mul (sub s 1.0) (log x)) x) log-norm)))))
 
+(defn- scale-keeping-zeros
+  "The number or dual `p` times the double `s`, every zero of the value and of the partials (recursively) kept zero,
+  also for an infinite `s`. Used where the zeros are exact (positive powers of zero) and `s` is the reciprocal of an
+  underflowed normalization: the true product of an exact zero and a finite, unrepresentable number is zero."
+  [p ^double s]
+  (if (instance? Dual p)
+    (let [^Dual p p]
+      (d/new-dual (.tag p) (scale-keeping-zeros (.value p) s) (d/p-map #(scale-keeping-zeros % s) (.partials p))))
+    (let [v (.doubleValue ^Number p)]
+      (if (m/zero? v) v (m/* v s)))))
+
 (defn- beta-density
-  "`x^(a-1) (1-x)^(b-1) / exp(log-norm)`."
+  "`x^(a-1) (1-x)^(b-1) / exp(log-norm)`.
+
+  At the ends the power form is used. When the normalization underflows (`beta(a, b)` below the smallest double) its
+  reciprocal is infinite and multiplies the power form keeping the zeros: they are exact zeros of positive powers
+  (`a - 1` at `x = 0`, `b - 1` at `x = 1`), so `0 * Inf` is `0` and every order is exact (`0`, or `Inf` where the
+  true value overflows)."
   [x a b log-norm]
-  (let [sx (d/scalar x)]
+  (let [sx (d/scalar x)
+        ea (sub a 1.0)
+        eb (sub b 1.0)]
     (if (or (m/zero? sx) (m/== 1.0 sx))
-      (div (mul (pow x (sub a 1.0)) (pow (sub 1.0 x) (sub b 1.0))) (exp log-norm))
-      (exp (sub (add (mul (sub a 1.0) (log x)) (mul (sub b 1.0) (el/log1p (neg x)))) log-norm)))))
+      (let [norm (exp log-norm)
+            power-form (mul (pow x ea) (pow (sub 1.0 x) eb))]
+        (if (m/zero? (d/scalar norm))
+          (scale-keeping-zeros power-form (m/exp (m/- (d/scalar log-norm))))
+          (div power-form norm)))
+      (exp (sub (add (mul ea (log x)) (mul eb (el/log1p (neg x)))) log-norm)))))
 
 (defn- dual-lower-incomplete-gamma
   [s x]

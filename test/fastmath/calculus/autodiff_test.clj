@@ -533,6 +533,12 @@
       (t/is (= ((ad/jacobian (fn [v] [(reduce ad/* v) (reduce ad/+ v)]) {:chunk-size 1}) x)
                ((ad/jacobian (fn [v] [(reduce ad/* v) (reduce ad/+ v)]) {:chunk-size 40}) x))
             "jacobian")))
+  (t/testing "documented: an infinite partial times the zero seeds of the other inputs of the chunk is NaN (as ForwardDiff)"
+    (let [f (fn [[x y]] (ad/* (ad/sqrt x) y))]
+      (t/is (= ##Inf (first ((ad/gradient f) [0.0 1.0]))))
+      (t/is (nan? (second ((ad/gradient f) [0.0 1.0]))) "one pass: 0 * Inf")
+      (t/is (= [##Inf 0.0] ((ad/gradient f {:chunk-size 1}) [0.0 1.0])) "one input per pass")
+      (t/is (nan? ((ad/jvp f) [0.0 1.0] [0.0 1.0])) "jvp: a zero direction of the infinite partial")))
   (t/testing "constant function and unused inputs"
     (t/is (= [0.0 0.0] ((ad/gradient (constantly 5)) [1 2])))
     (t/is (= [1.0 0.0 0.0] ((ad/gradient (fn [v] (v 0)) {:chunk-size 1}) [1 2 3]))))
@@ -830,7 +836,31 @@
     (t/is (= [true true] (mapv nan? ((ad/gradient (fn [[x y]] (ad/hypot x y))) [0.0 0.0]))))
     (t/is (nan? ((D #(ad/atan2 % 0.0)) 0.0)))
     (t/is (= -1.0 ((D #(ad/atan2 1.0 %)) 0.0)))
-    (t/is (every? nan? ((ad/gradient (fn [[x y z]] (ad/hypot x y z))) [0.0 0.0 0.0])) "hypot of three arguments"))
+    (t/is (every? nan? ((ad/gradient (fn [[x y z]] (ad/hypot x y z))) [0.0 0.0 0.0])) "hypot of three arguments")
+  (t/testing "atan2 at extreme magnitudes: partials from the norm, the squares would under- or overflow"
+    (let [g (ad/gradient (fn [[y x]] (ad/atan2 y x)))]
+      (t/is (every? true? (map #(m/delta-eq %1 %2 1.0e-14 1.0e-14) [5.0e199 -5.0e199] (g [1e-200 1e-200]))) "1/(2 * 1e-200)")
+      (t/is (every? true? (map #(m/delta-eq %1 %2 1.0e-14 1.0e-14) [5.0e-201 -5.0e-201] (g [1e200 1e200]))) "1/(2 * 1e200)")
+      (t/is (every? true? (map #(m/delta-eq (double %1) (double %2) 1.0e-14 1.0e-14)
+                               [-1.6e199 -1.2e199 -1.2e199 1.6e199]
+                               (flatten ((ad/hessian (fn [[y x]] (ad/atan2 y x))) [1e-100 2e-100]))))
+            "hessian: -2xy/r^4, (y^2 - x^2)/r^4, 2xy/r^4")))
+  (t/testing "infinite arguments: the limits of the partials"
+    (let [atan2-gradient (ad/gradient (fn [[y x]] (ad/atan2 y x)))
+          hypot-gradient (ad/gradient (fn [[x y]] (ad/hypot x y)))]
+      (doseq [p [[##Inf 1.0] [1.0 ##-Inf] [##Inf ##Inf] [##-Inf ##-Inf]]]
+        (t/is (= [0.0 0.0] (atan2-gradient p)) (str "atan2 " p)))
+      (t/is (= [1.0 0.0] (hypot-gradient [##Inf 1.0])))
+      (t/is (= [-1.0 0.0] (hypot-gradient [##-Inf 1.0])))
+      (t/is (= [0.0 -1.0] (hypot-gradient [1.0 ##-Inf])))
+      (t/is (= [0.0 1.0 0.0] ((ad/gradient (fn [[x y z]] (ad/hypot x y z))) [1.0 ##Inf 2.0])) "three arguments")
+      (t/is (every? nan? (hypot-gradient [##Inf ##Inf])) "several infinite arguments: no limit")
+      (t/is (every? nan? (hypot-gradient [##NaN ##Inf])) "NaN: no limit")
+      (t/is (every? nan? (atan2-gradient [##NaN ##Inf])) "NaN: no limit")
+      (t/is (= [[0.0 0.0] [0.0 0.0]] ((ad/hessian (fn [[x y]] (ad/hypot x y))) [##Inf 1.0])) "second derivatives: the limits are constants")))
+  (t/testing "zeros of different signs are a tie of max and min: the value is the second argument"
+    (t/is (= [-0.0 0.0 -0.0 0.0] [(ad/max 0.0 -0.0) (ad/max -0.0 0.0) (ad/min 0.0 -0.0) (ad/min -0.0 0.0)]))
+    (t/is (= -0.0 (ad/primal (ad/max (ad/dual 1 0.0 [1.0]) -0.0))))))
   (t/testing "infinite derivatives at the ends of the domains"
     (t/is (= [##Inf ##Inf ##Inf ##Inf ##Inf ##Inf]
              [((D ad/sqrt) 0.0) ((D ad/cbrt) 0.0) ((D ad/asin) 1.0) ((D ad/acosh) 1.0) ((D ad/atanh) 1.0) ((D ad/log1p) -1.0)]))
@@ -906,18 +936,36 @@
       (t/is (m/zero? ((D #(f sh %) 2) ##Inf)) (str f " s=" sh " order 2"))
       (t/is (nan? ((D #(f sh %)) ##-Inf)) (str f " s=" sh " -Inf")))
     (t/is (m/zero? ((D #(ad/regularized-gamma-p 2.0 %)) Double/MAX_VALUE)) "the largest finite x"))
+  (t/testing "shape parameters beyond the long range: the sign of gamma is computed in doubles"
+    (t/is (m/zero? ((D #(ad/regularized-gamma-p -1e19 %)) 1.0)))
+    (t/is (m/zero? ((D #(ad/regularized-gamma-q -1e300 %)) 1.0)))
+    (t/is (nan? ((D #(ad/regularized-beta % -1e19 2.0)) 0.5)) "no exception, the value is NaN")
+    (t/is (= [-1.0 1.0 -1.0 1.0] (mapv #(m/signum ((D (fn [x] (ad/regularized-gamma-p % x))) 1.0)) [-0.5 -1.5 -2.5 -3.5]))
+          "the signs of gamma between the poles"))
+  (t/testing "the ends of [0, 1] with an underflowing beta(a, b): the normalization folded into the vanishing power"
+    (doseq [[a b x] [[800.0 800.0 0.0] [800.0 800.0 1.0] [1e4 1e4 0.0] [1e4 1e4 1.0] [1e4 2.0 0.0] [2.0 1e4 1.0]]]
+      (t/is (= 0.0 ((D #(ad/regularized-beta % a b)) x)) (str a " " b " at " x))
+      (t/is (= 0.0 ((D #(ad/regularized-beta % a b) 2) x)) (str a " " b " at " x " order 2")))
+    (doseq [[a b x d2] [[1.5 1e300 0.0 ##Inf] [2.0 1e300 0.0 ##Inf] [3.0 1e300 0.0 0.0]]]
+      ;; the density x^(a-1) (1-x)^(b-1) / beta(a, b) is 0 at x = 0; its derivative is Inf for a - 1 <= 1
+      ;; ((a - 1) x^(a-2) / beta(a, b), beta(a, b) ~ 1e-450 underflows), 0 for a - 1 > 1
+      (t/is (= 0.0 ((D #(ad/regularized-beta % a b)) x)) (str a " " b " at " x))
+      (t/is (= d2 ((D #(ad/regularized-beta % a b) 2) x)) (str a " " b " at " x " order 2")))
+    ;; mpmath closed form x^(a-1) (1-x)^(b-1) / beta(a, b) at x = 0.5, a = b = 1e4: 112.8365062444084
+    (t/is (m/delta-eq 112.8365062444084 ((D #(ad/regularized-beta % 1e4 1e4)) 0.5) 1.0e-11 1.0e-11)
+          "inside: the log-space form (cancellation in the exponent, measured 1.2e-12)"))
   (t/testing "inv-gamma-1pm1 for large x: no cancellation in 1 + inv-gamma-1pm1(x)"
     ;; mpmath 1.3.0, 40 digits: diff of 1/gamma(1+x) - 1 at 20 and 30, -digamma(101)/gamma(101) at 100
     (doseq [[x e] [[20.0 -1.2415312996950121e-18] [30.0 -1.2884956145011096e-32] [100.0 -4.9398358551324245e-158]]]
-      (t/is (m/< (m/abs (m// (m/- ((D ad/inv-gamma-1pm1) x) e) e)) 1.0e-14) (str "relative error at " x)))
+      (t/is (m/< (m/abs (m// (m/- (double ((D ad/inv-gamma-1pm1) x)) (double e)) (double e))) 1.0e-14) (str "relative error at " x)))
     (t/is (m/zero? ((D ad/inv-gamma-1pm1) 200.0)) "underflow"))
   (t/testing "closed forms"
-    (t/is (m/< (m/abs ((D ad/gamma) 1.4616321449683622)) 1.0e-15) "the minimum of gamma")
+    (t/is (m/< (m/abs (double ((D ad/gamma) 1.4616321449683622))) 1.0e-15) "the minimum of gamma")
     (t/is (m/delta-eq (m// (m/sq m/PI) 6.0) ((D ad/digamma) 1.0) 1.0e-15) "trigamma(1) = pi^2/6")))
 
 (t/deftest rule-test
   (let [my-sin (ad/rule m/sin m/cos)
-        my-mul (ad/rule (fn [x y] (m/* x y)) (fn [_ y] y) (fn [x _] x))]
+        my-mul (ad/rule (fn [^double x ^double y] (m/* x y)) (fn [_ y] y) (fn [x _] x))]
     (t/testing "numbers: the function itself, arguments coerced to doubles"
       (t/is (= (m/sin 2.0) (my-sin 2)))
       (t/is (= 6.0 (my-mul 2 3)))
@@ -940,7 +988,7 @@
             "a mixed derivative: the other argument is a dual of an outer derivative")
       (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"first-order derivatives only" ((D my-sin 2) 0.5))))
     (t/testing "nil: no derivative in the argument"
-      (let [f (ad/rule (fn [x y] (m/+ x y)) (fn [_ _] 1.0) nil)]
+      (let [f (ad/rule (fn [^double x ^double y] (m/+ x y)) (fn [_ _] 1.0) nil)]
         (t/is (= [1.0] ((ad/gradient (fn [[x]] (f x 2.0))) [1])))
         (t/is (= {:function :rule :argument :y} (thrown-data #((ad/gradient (fn [[x y]] (f x y))) [1 2]))))
         (t/is (= [1.0] ((ad/gradient (fn [[x]] (f x (ad/* 0.0 x)))) [1])) "zero partials are accepted"))
