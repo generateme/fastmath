@@ -829,7 +829,8 @@
     (t/is (nan? ((D #(ad/hypot % 0.0)) 0.0)))
     (t/is (= [true true] (mapv nan? ((ad/gradient (fn [[x y]] (ad/hypot x y))) [0.0 0.0]))))
     (t/is (nan? ((D #(ad/atan2 % 0.0)) 0.0)))
-    (t/is (= -1.0 ((D #(ad/atan2 1.0 %)) 0.0))))
+    (t/is (= -1.0 ((D #(ad/atan2 1.0 %)) 0.0)))
+    (t/is (every? nan? ((ad/gradient (fn [[x y z]] (ad/hypot x y z))) [0.0 0.0 0.0])) "hypot of three arguments"))
   (t/testing "infinite derivatives at the ends of the domains"
     (t/is (= [##Inf ##Inf ##Inf ##Inf ##Inf ##Inf]
              [((D ad/sqrt) 0.0) ((D ad/cbrt) 0.0) ((D ad/asin) 1.0) ((D ad/acosh) 1.0) ((D ad/atanh) 1.0) ((D ad/log1p) -1.0)]))
@@ -898,6 +899,18 @@
     (t/is (= [(special/polygamma 0.0 2.0) (special/polygamma 1.0 2.0)]
              ((ad/gradient (fn [[m x]] (ad/* (ad/polygamma 0.0 x) m))) [1.0 2.0]))
           "a dual used outside of the shape parameter is differentiated"))
+  (t/testing "infinite x: the limit 0 at +Inf (the log-space form is Inf - Inf there), NaN at -Inf (the value is NaN)"
+    (doseq [f [ad/lower-incomplete-gamma ad/upper-incomplete-gamma ad/regularized-gamma-p ad/regularized-gamma-q]
+            sh [0.5 2.0 10.0]]
+      (t/is (m/zero? ((D #(f sh %)) ##Inf)) (str f " s=" sh " order 1"))
+      (t/is (m/zero? ((D #(f sh %) 2) ##Inf)) (str f " s=" sh " order 2"))
+      (t/is (nan? ((D #(f sh %)) ##-Inf)) (str f " s=" sh " -Inf")))
+    (t/is (m/zero? ((D #(ad/regularized-gamma-p 2.0 %)) Double/MAX_VALUE)) "the largest finite x"))
+  (t/testing "inv-gamma-1pm1 for large x: no cancellation in 1 + inv-gamma-1pm1(x)"
+    ;; mpmath 1.3.0, 40 digits: diff of 1/gamma(1+x) - 1 at 20 and 30, -digamma(101)/gamma(101) at 100
+    (doseq [[x e] [[20.0 -1.2415312996950121e-18] [30.0 -1.2884956145011096e-32] [100.0 -4.9398358551324245e-158]]]
+      (t/is (m/< (m/abs (m// (m/- ((D ad/inv-gamma-1pm1) x) e) e)) 1.0e-14) (str "relative error at " x)))
+    (t/is (m/zero? ((D ad/inv-gamma-1pm1) 200.0)) "underflow"))
   (t/testing "closed forms"
     (t/is (m/< (m/abs ((D ad/gamma) 1.4616321449683622)) 1.0e-15) "the minimum of gamma")
     (t/is (m/delta-eq (m// (m/sq m/PI) 6.0) ((D ad/digamma) 1.0) 1.0e-15) "trigamma(1) = pi^2/6")))
@@ -943,6 +956,9 @@
       (t/is (invalid? #(ad/rule m/sin 1) :df 1))
       (t/is (invalid? #(ad/rule + 1 nil) :dfx 1))
       (t/is (invalid? #(ad/rule + nil "a") :dfy "a"))
+      (doseq [not-fn [{1.0 2.0} :a [1.0] #{1.0} #'m/sin]]
+        (t/is (invalid? #(ad/rule not-fn nil) :f not-fn) (str "not a function: " not-fn))
+        (t/is (invalid? #(ad/rule m/sin not-fn) :df not-fn) (str "not a function: " not-fn)))
       (t/is (fn? (ad/rule m/sin nil)))
       (t/is (fn? (ad/rule + nil nil)))
       (t/is (thrown? ClassCastException ((D (ad/rule (fn [_] :x) m/cos)) 1.0)) "the value is not a number")

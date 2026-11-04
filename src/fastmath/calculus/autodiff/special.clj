@@ -46,7 +46,11 @@
 (defn- dual-gamma [x] (r/chain [v x, y (gamma v)] :gamma (mul (digamma v) y)))
 (defn- dual-log-gamma [x] (r/chain [v x, _y (log-gamma v)] :log-gamma (digamma v)))
 (defn- dual-log-gamma-1p [x] (r/chain [v x, _y (log-gamma-1p v)] :log-gamma-1p (digamma (add 1.0 v))))
-(defn- dual-inv-gamma-1pm1 [x] (r/chain [v x, y (inv-gamma-1pm1 v)] :inv-gamma-1pm1 (neg (mul (digamma (add 1.0 v)) (add y 1.0)))))
+(defn- dual-inv-gamma-1pm1
+  "The derivative `-digamma(1 + x) / gamma(1 + x)`; not with `1 + inv-gamma-1pm1(x)`, which loses all digits when
+  `1 / gamma(1 + x)` is below the rounding of `1` (`x > 18`)."
+  [x]
+  (r/chain [v x, _y (inv-gamma-1pm1 v)] :inv-gamma-1pm1 (neg (div (digamma (add 1.0 v)) (gamma (add 1.0 v))))))
 (defn- dual-digamma [x] (r/chain [v x, _y (digamma v)] :digamma (trigamma v)))
 (defn- dual-trigamma [x] (r/chain [v x, _y (trigamma v)] :trigamma (polygamma 2.0 v)))
 (defn- dual-polygamma [m x] (r/chain [m m, x x, _y (polygamma m x)] :polygamma nil (polygamma (add m 1.0) x)))
@@ -83,11 +87,14 @@
   (m/* (gamma-sign a) (gamma-sign b) (gamma-sign (add a b))))
 
 (defn- gamma-density
-  "`x^(s-1) e^(-x) / exp(log-norm)`."
+  "`x^(s-1) e^(-x) / exp(log-norm)`; `0` at `x = +Inf`, its limit (the log-space form is `Inf - Inf = NaN` there for
+  `s > 1`)."
   [s x log-norm]
-  (if (m/zero? (d/scalar x))
-    (div (mul (pow x (sub s 1.0)) (exp (neg x))) (exp log-norm))
-    (exp (sub (sub (mul (sub s 1.0) (log x)) x) log-norm))))
+  (let [sx (d/scalar x)]
+    (cond
+      (m/zero? sx) (div (mul (pow x (sub s 1.0)) (exp (neg x))) (exp log-norm))
+      (m/== sx ##Inf) 0.0
+      :else (exp (sub (sub (mul (sub s 1.0) (log x)) x) log-norm)))))
 
 (defn- beta-density
   "`x^(a-1) (1-x)^(b-1) / exp(log-norm)`."

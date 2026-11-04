@@ -760,17 +760,17 @@
 
   Returns a function of one argument (for `f` and `df`) or two arguments (for `f`, `dfx` and `dfy`). Called with numbers only, it returns `(f x)` or `(f x y)` with the arguments coerced to doubles. Called with duals, the value and the derivatives are evaluated at the values of the arguments and the result is a dual; where the value is `NaN` for arguments which are not `NaN`, the derivatives are `NaN`.
 
-  Throws `ex-info` with `{:option :value :expected}` when `f` or a derivative is neither a function nor `nil` (`f` can not be `nil`). The created function throws `ex-info` with `{:tag}` in a nested derivative, and `ex-info` with `{:function :argument}` for a dual depending on the variables in an argument without a derivative.
+  Throws `ex-info` with `{:option :value :expected}` when `f` or a derivative is neither a function (`fn?`: not a keyword, a map, a vector or a var) nor `nil` (`f` can not be `nil`). The created function throws `ex-info` with `{:tag}` in a nested derivative, and `ex-info` with `{:function :argument}` for a dual depending on the variables in an argument without a derivative.
 
   See also [[derivative]], [[gradient]]."
   ([f df]
-   (when-not (ifn? f) (cc/invalid-option! :f f "a function"))
-   (when-not (or (nil? df) (ifn? df)) (cc/invalid-option! :df df "a function or nil"))
+   (when-not (fn? f) (cc/invalid-option! :f f "a function"))
+   (when-not (or (nil? df) (fn? df)) (cc/invalid-option! :df df "a function or nil"))
    (rules/rule1 f df))
   ([f dfx dfy]
-   (when-not (ifn? f) (cc/invalid-option! :f f "a function"))
-   (when-not (or (nil? dfx) (ifn? dfx)) (cc/invalid-option! :dfx dfx "a function or nil"))
-   (when-not (or (nil? dfy) (ifn? dfy)) (cc/invalid-option! :dfy dfy "a function or nil"))
+   (when-not (fn? f) (cc/invalid-option! :f f "a function"))
+   (when-not (or (nil? dfx) (fn? dfx)) (cc/invalid-option! :dfx dfx "a function or nil"))
+   (when-not (or (nil? dfy) (fn? dfy)) (cc/invalid-option! :dfy dfy "a function or nil"))
    (rules/rule2 f dfx dfy)))
 
 ;; ## Public API: comparisons
