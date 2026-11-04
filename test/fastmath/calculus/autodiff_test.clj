@@ -51,12 +51,21 @@
                "gradient" "hessian" "hvp" "hypot" "incomplete-beta" "inv-gamma-1pm1" "jacobian" "jvp" "log" "log-beta"
                "log-gamma" "log-gamma-1p" "log10" "log1p" "log2" "lower-incomplete-gamma" "max" "min" "polygamma" "pow"
                "primal" "regularized-beta" "regularized-gamma-p" "regularized-gamma-q" "rule" "scalar" "signum" "sin"
-               "sinh" "sq" "sqrt" "tan" "tanh" "trigamma" "upper-incomplete-gamma"}
+               "sinh" "sq" "sqrt" "tan" "tanh" "trigamma" "upper-incomplete-gamma"
+               "sec" "csc" "cot" "sech" "csch" "coth" "asec" "acsc" "acot" "asech" "acsch" "acoth"
+               "sinpi" "cospi" "tanpi" "cotpi" "secpi" "cscpi" "sinc"
+               "exp2" "exp10" "logb" "ln" "xlogx" "xlogy" "xlog1py" "log1pexp" "logexpm1" "log1mexp" "log1pmx"
+               "log1psq" "logcosh" "exprel" "expexp" "cexpexp" "cloglog" "loglog"
+               "sigmoid" "logit" "logaddexp" "logsubexp" "logsumexp"
+               "trunc" "round" "rint" "frac" "sfrac" "mod" "rem" "sgn" "copy-sign"
+               "cb" "pow2" "pow3" "pow10" "spow" "safe-sqrt" "fma" "muladd" "lerp" "smoothstep" "smooth-max" "norm"}
              (set (map str (keys (ns-publics 'fastmath.calculus.autodiff))))))
     (t/is (= '([f]) (:arglists (meta #'ad/jvp))) "jvp has no options")
     (t/is (every? #(:no-doc (meta (find-ns %)))
                   ['fastmath.calculus.autodiff.dual 'fastmath.calculus.autodiff.ops 'fastmath.calculus.autodiff.rules
                    'fastmath.calculus.autodiff.elementary 'fastmath.calculus.autodiff.special
+                   'fastmath.calculus.autodiff.logexp 'fastmath.calculus.autodiff.piecewise
+                   'fastmath.calculus.autodiff.arithmetic
                    'fastmath.calculus.autodiff.derivatives])
           "internal namespaces are excluded from the documentation"))
   (t/testing "invalid input throws (caller error, the exception type is not specified)"
@@ -1021,3 +1030,226 @@
   (t/testing "the result has zero partials when no argument with a derivative has partials"
     (let [g (fn [x y] (rules/chain [a x, b y, _v (ops/add a b)] :test nil 1.0))]
       (t/is (= [0.0] (partials (g (ad/dual 1 2.0 [0.0]) 3.0)))))))
+
+;; fastmath.core functions (phase 5a)
+
+(def ^:private core-reference
+  (delay (edn/read-string (slurp (io/resource "calculus/autodiff_core_reference.edn")))))
+
+(def ^:private core-mpmath-reference
+  (delay (edn/read-string (slurp (io/resource "calculus/autodiff_core_mpmath_reference.edn")))))
+
+(def ^:private core-unary
+  "id -> [function of the facade, function of fastmath.core]"
+  {:sec [ad/sec m/sec] :csc [ad/csc m/csc] :cot [ad/cot m/cot] :sech [ad/sech m/sech] :csch [ad/csch m/csch]
+   :coth [ad/coth m/coth] :asec [ad/asec m/asec] :acsc [ad/acsc m/acsc] :acot [ad/acot m/acot]
+   :asech [ad/asech m/asech] :acsch [ad/acsch m/acsch] :acoth [ad/acoth m/acoth] :sinpi [ad/sinpi m/sinpi]
+   :cospi [ad/cospi m/cospi] :tanpi [ad/tanpi m/tanpi] :cotpi [ad/cotpi m/cotpi] :secpi [ad/secpi m/secpi]
+   :cscpi [ad/cscpi m/cscpi] :sinc [ad/sinc m/sinc] :exp2 [ad/exp2 m/exp2] :exp10 [ad/exp10 m/exp10]
+   :ln [ad/ln m/ln] :xlogx [ad/xlogx m/xlogx] :log1pexp [ad/log1pexp m/log1pexp]
+   :logexpm1 [ad/logexpm1 m/logexpm1] :log1mexp [ad/log1mexp m/log1mexp] :log1pmx [ad/log1pmx m/log1pmx]
+   :log1psq [ad/log1psq m/log1psq] :logcosh [ad/logcosh m/logcosh] :exprel [ad/exprel m/exprel]
+   :expexp [ad/expexp m/expexp] :cexpexp [ad/cexpexp m/cexpexp] :cloglog [ad/cloglog m/cloglog]
+   :loglog [ad/loglog m/loglog] :sigmoid [ad/sigmoid m/sigmoid] :logit [ad/logit m/logit]
+   :trunc [ad/trunc m/trunc] :rint [ad/rint m/rint] :round [ad/round (fn [x] (double (m/round x)))]
+   :frac [ad/frac m/frac] :sfrac [ad/sfrac m/sfrac] :cb [ad/cb m/cb] :pow2 [ad/pow2 m/pow2] :pow3 [ad/pow3 m/pow3]
+   :pow10 [ad/pow10 m/pow10] :safe-sqrt [ad/safe-sqrt m/safe-sqrt]})
+
+(def ^:private core-multi
+  {:logb [ad/logb m/logb] :xlogy [ad/xlogy m/xlogy] :xlog1py [ad/xlog1py m/xlog1py]
+   :logaddexp [ad/logaddexp m/logaddexp] :logsubexp [ad/logsubexp m/logsubexp] :mod [ad/mod m/mod]
+   :rem [ad/rem m/rem] :copy-sign [ad/copy-sign m/copy-sign] :spow [ad/spow m/spow] :fma [ad/fma m/fma]
+   :muladd [ad/muladd m/muladd] :lerp [ad/lerp m/lerp] :smoothstep [ad/smoothstep m/smoothstep]
+   :norm [ad/norm m/norm] :norm5 [ad/norm m/norm]})
+
+(def ^:private core-sequence
+  "id -> [function of the facade, function of fastmath.core], both of `xs` and `alpha`"
+  {:logsumexp [(fn [xs _] (ad/logsumexp xs)) (fn [xs _] (m/logsumexp xs))]
+   :smooth-max-lse [#(ad/smooth-max %1 %2 :lse) #(m/smooth-max %1 %2 :lse)]
+   :smooth-max-mellowmax [#(ad/smooth-max %1 %2 :mellowmax) #(m/smooth-max %1 %2 :mellowmax)]
+   :smooth-max-boltzmann [#(ad/smooth-max %1 %2 :boltzmann) #(m/smooth-max %1 %2 :boltzmann)]
+   :smooth-max-p-norm [#(ad/smooth-max %1 %2 :p-norm) #(m/smooth-max %1 %2 :p-norm)]
+   :smooth-max-smu [#(ad/smooth-max %1 %2 :smu) #(m/smooth-max %1 %2 :smu)]})
+
+(defn- all-close? [expected actual] (every? true? (map #(rule-close? %1 %2 1.0e-14) (flatten expected) (flatten actual))))
+
+(t/deftest core-reference-test
+  ;; measured: max error relative to max(1, |expected|) 8.5e-15 (sinpi, its value is sin(pi x): sinpi(7) is not 0),
+  ;; 3.0e-15 (cospi), 4.2e-15 (smooth-max), below 1e-15 elsewhere
+  (t/testing "ForwardDiff reference, first and second derivatives"
+    (t/is (= (set (keys core-unary)) (set (keys (:unary @core-reference)))) "every function is in the reference")
+    (doseq [[id rows] (:unary @core-reference)
+            :let [f (first (core-unary id))]
+            [x d1 d2] rows]
+      (t/is (rule-close? d1 ((D f) x) 1.0e-14) (str id " d1 at " x))
+      (t/is (rule-close? d2 ((D f 2) x) 1.0e-14) (str id " d2 at " x))))
+  (t/testing "ForwardDiff reference, gradients and hessians of functions of 2, 3 and 5 arguments"
+    (t/is (= (set (keys core-multi)) (set (keys (:multi @core-reference)))) "every function is in the reference")
+    (doseq [[id rows] (:multi @core-reference)
+            :let [g (fn [v] (apply (first (core-multi id)) v))]
+            {:keys [x gradient hessian]} rows]
+      (t/is (all-close? gradient ((ad/gradient g) x)) (str id " gradient at " x))
+      (t/is (all-close? hessian ((ad/hessian g) x)) (str id " hessian at " x))))
+  (t/testing "ForwardDiff reference of the defining formulas, gradients and hessians in the elements of a sequence"
+    (t/is (= (set (keys core-sequence)) (set (keys (:sequence @core-reference)))) "every family is in the reference")
+    (doseq [[id rows] (:sequence @core-reference)
+            {:keys [xs alpha gradient hessian]} rows
+            :let [g (fn [v] ((first (core-sequence id)) v alpha))]]
+      (t/is (all-close? gradient ((ad/gradient g) xs)) (str id " gradient at " xs))
+      (t/is (all-close? hessian ((ad/hessian g) xs)) (str id " hessian at " xs))))
+  (t/testing "the values are the values of fastmath.core, for numbers and for duals"
+    (doseq [[id rows] (:unary @core-reference)
+            :let [[f g] (core-unary id)]
+            [x] rows]
+      (t/is (= (g x) (f x) (ad/primal (f (ad/dual 1 x [1.0])))) (str id " at " x)))
+    (doseq [[id rows] (:multi @core-reference)
+            :let [[f g] (core-multi id)]
+            {:keys [x]} rows]
+      (t/is (= (apply g x) (apply f x) (ad/primal (apply f (ad/dual 1 (first x) [1.0]) (rest x)))) (str id " at " x)))
+    (doseq [[id rows] (:sequence @core-reference)
+            :let [[f g] (core-sequence id)]
+            {:keys [xs alpha]} rows]
+      (t/is (= (g xs alpha) (f xs alpha) (ad/primal (f (map #(ad/dual 1 % [1.0]) xs) alpha))) (str id " at " xs)))
+    (t/is (= (m/log 2.0 8.0) (ad/log 2 8) (ad/logb 2 8)) "log with a base is logb")
+    (t/is (all-close? [(m// (m/- (m/log 8.0)) (m/* 2.0 (m/sq (m/log 2.0)))) (m// 1.0 (m/* 8.0 (m/log 2.0)))]
+                      ((ad/gradient (fn [[b x]] (ad/log b x))) [2.0 8.0]))))
+  (t/testing "mpmath reference of the functions without a Julia rule, sinc and exprel around the series threshold"
+    ;; measured: max error relative to max(1, |expected|) 8.0e-16 (exprel'' at -0.56, the direct form), below 4e-16
+    ;; elsewhere
+    (t/is (= #{:sinc :exprel :expexp :cexpexp :cloglog :loglog :log1psq} (set (keys @core-mpmath-reference))))
+    (doseq [[id rows] @core-mpmath-reference
+            :let [f (first (core-unary id))]
+            [x d1 d2] rows]
+      (t/is (rule-close? d1 ((D f) x) 1.0e-14) (str id " d1 at " x))
+      (t/is (rule-close? d2 ((D f 2) x) 1.0e-14) (str id " d2 at " x)))
+    (t/is (= 0.0 ((D ad/sinc) 0.0)))
+    (t/is (m/delta-eq (m// (m/sq m/PI) -3.0) ((D ad/sinc 2) 0.0)) "sinc''(0) = -pi^2/3")
+    (t/is (= 0.5 ((D ad/exprel) 0.0)))
+    (t/is (m/delta-eq (m// 1.0 3.0) ((D ad/exprel 2) 0.0)))))
+
+(t/deftest core-kinks-test
+  (t/testing "rounding: the derivative is 0 everywhere"
+    (doseq [f [ad/trunc ad/rint ad/round ad/sgn] x [-2.5 -1.0 -0.0 0.0 0.5 2.0 2.5]]
+      (t/is (= 0.0 ((D f) x)) (str f " at " x)))
+    (t/is (= [3.0 -2.0 2.0 -2.0] [(ad/round 2.5) (ad/round -2.5) (ad/rint 2.5) (ad/rint -2.5)]) "half up and half to even")
+    (t/is (= 9.223372036854776E18 (ad/round 1.0e20)) "round saturates at the long range")
+    (t/is (= [1.0 1.0 1.0 -1.0] (map ad/sgn [0.0 -0.0 ##NaN -2.0]))))
+  (t/testing "fractional parts: the slope, NaN at the nonzero integers"
+    (t/is (= [1.0 -1.0 1.0 -1.0] (map (D ad/frac) [2.5 -2.5 0.0 -0.0])) "by the sign bit, as abs")
+    (t/is (= [1.0 1.0 1.0] (map (D ad/sfrac) [2.5 -2.5 0.0])))
+    (t/is (every? nan? (map (D ad/frac) [3.0 -3.0 1.0e20 ##Inf])))
+    (t/is (every? nan? (map (D ad/sfrac) [3.0 -3.0 1.0e20])))
+    (t/is (= 0.0 (ad/frac 1.0e20)) "fastmath.core/frac beyond the long range"))
+  (t/testing "mod and rem: NaN at an integer quotient"
+    (t/is (= [1.0 -2.0] ((ad/gradient (fn [[x y]] (ad/mod x y))) [5.5 2.0])))
+    (t/is (= [1.0 2.0] ((ad/gradient (fn [[x y]] (ad/rem x y))) [-5.5 2.0])))
+    (t/is (= [1.0 3.0] ((ad/gradient (fn [[x y]] (ad/mod x y))) [-5.5 2.0])) "floored")
+    (doseq [f [ad/mod ad/rem] x [[6.0 2.0] [0.0 2.0] [-3.0 1.5]]]
+      (t/is (every? nan? ((ad/gradient (fn [[x y]] (f x y))) x)) (str f " at " x)))
+    (doseq [f [ad/mod ad/rem] [x y] [[6.0 2.0] [0.0 2.0] [-3.0 1.5]]]
+      (t/is (nan? ((D (fn [v] (f v y))) x)) (str f " in x alone at " [x y]))
+      (t/is (nan? ((D (fn [v] (f x v))) y)) (str f " in y alone at " [x y])))
+    (t/is (= [1.0 1.0] [((D (fn [v] (ad/mod v 2.0))) 5.5) ((D (fn [v] (ad/rem v 2.0))) -5.5)]))
+    (t/is (= (m/mod -5.5 2.0) (ad/mod -5.5 2) 0.5))
+    (t/is (= (m/rem -5.5 2.0) (ad/rem -5.5 2) -1.5)))
+  (t/testing "copy-sign: 1 or -1 by the sign bits, 0 in the sign"
+    (t/is (= [-1.0 0.0] ((ad/gradient (fn [[x y]] (ad/copy-sign x y))) [2.0 -1.0])))
+    (t/is (= [1.0 0.0] ((ad/gradient (fn [[x y]] (ad/copy-sign x y))) [-2.0 -1.0])))
+    (t/is (= -1.0 ((D (fn [x] (ad/copy-sign x -0.0))) 2.0)))
+    (t/is (= 1.0 ((D (fn [x] (ad/copy-sign x 0.0))) 2.0)))
+    ;; signed zeros: the identity or the negation of the magnitude decides (ForwardDiff.jl gives the other sign here)
+    (t/is (= [1.0 -1.0 -1.0] [((D (fn [x] (ad/copy-sign x -0.0))) -2.0) ((D (fn [x] (ad/copy-sign x 1.0))) -0.0)
+                              ((D (fn [x] (ad/copy-sign x -0.0))) 0.0)])))
+  (t/testing "spow at zero"
+    (t/is (= [1.0 0.0 ##Inf] (map (fn [e] ((D (fn [x] (ad/spow x e))) 0.0)) [1.0 2.0 0.5])))
+    (t/is (= 0.0 ((D (fn [e] (ad/spow 0.0 e))) 2.0)) "the limit in the exponent, as pow")
+    (t/is (= [0.5 1.0] [((D (fn [x] (ad/spow x 2.0))) -0.25) ((D (fn [x] (ad/spow x 1.0))) -3.0)]) "-x^2 and x"))
+  (t/testing "safe-sqrt: a constant for a negative argument"
+    (t/is (= [0.0 0.0 0.25] (map (D ad/safe-sqrt) [-2.0 -1.0e-300 4.0])))
+    (t/is (= 0.0 ((D ad/safe-sqrt 2) -2.0))))
+  (t/testing "smoothstep: 0 where clamped, at the edges and for equal edges"
+    (doseq [x [-0.5 0.0 1.0 1.5]]
+      (t/is (= [0.0 0.0 0.0] ((ad/gradient (fn [[a b c]] (ad/smoothstep a b c))) [0.0 1.0 x])) (str "at " x)))
+    (t/is (= [0.0 0.0 0.0] ((ad/gradient (fn [[a b c]] (ad/smoothstep a b c))) [1.0 1.0 0.5])))
+    (t/is (= 1.5 ((D (fn [x] (ad/smoothstep 0.0 1.0 x))) 0.5))))
+  (t/testing "norm: a constant end for equal ends of the source range"
+    (t/is (= [0.0 0.0 0.0] ((ad/gradient (fn [[a b c]] (ad/norm a b c))) [0.5 1.0 1.0])))
+    (t/is (= [0.0 0.0 0.0 1.0 0.0] ((ad/gradient (fn [v] (apply ad/norm v))) [0.5 1.0 1.0 10.0 20.0])))
+    (t/is (= [0.0 0.0 0.0 0.0 1.0] ((ad/gradient (fn [v] (apply ad/norm v))) [1.5 1.0 1.0 10.0 20.0]))))
+  (t/testing "xlogy and xlog1py at x = 0: the convention of LogExpFunctions"
+    (t/is (= [(m/log 2.0) 0.0] ((ad/gradient (fn [[x y]] (ad/xlogy x y))) [0.0 2.0])))
+    (t/is (= [[0.0 0.5] [0.5 0.0]] ((ad/hessian (fn [[x y]] (ad/xlogy x y))) [0.0 2.0])) "the mixed derivative is 1/y")
+    (t/is (= 0.0 ((D (fn [y] (ad/xlogy 0.0 y))) 0.0)) "a constant zero x")
+    (let [[dx dy] ((ad/gradient (fn [[x y]] (ad/xlogy x y))) [0.0 0.0])]
+      (t/is (and (= ##-Inf dx) (nan? dy)) "x with partials: 0/0, as ForwardDiff"))
+    (t/is (= [(m/log1p 2.0) 0.0] ((ad/gradient (fn [[x y]] (ad/xlog1py x y))) [0.0 2.0])))
+    (t/is (= ##-Inf ((D ad/xlogx) 0.0))))
+  (t/testing "outside the domain the derivatives are NaN"
+    (doseq [[f x] [[ad/asec 0.5] [ad/acsc -0.5] [ad/asech 1.5] [ad/logit 1.5] [ad/log1mexp 1.0] [ad/logexpm1 -1.0]
+                   [ad/cloglog 1.5] [ad/loglog 1.5] [ad/xlogx -1.0] [ad/acoth 0.5]]]
+      (t/is (nan? ((D f) x)) (str f " at " x))
+      (t/is (nan? ((D f 2) x)) (str f " second at " x)))))
+
+(t/deftest core-sequence-test
+  (t/testing "logsumexp"
+    (t/is (invalid? #(ad/logsumexp []) :xs []) "an empty sequence throws, unlike fastmath.core/logsumexp")
+    (t/is (= 2.5 (ad/logsumexp [2.5])))
+    (t/is (= [1.0] ((ad/gradient ad/logsumexp) [2.5])))
+    (t/is (= (m/logsumexp [1 2 3]) (ad/logsumexp [1 2 3]) (ad/logsumexp '(1.0 2.0 3.0))))
+    (t/is (= [1.0 0.0] ((ad/gradient ad/logsumexp) [##Inf 1.0])) "one +Inf: the limit, as LogExpFunctions")
+    (t/is (= [0.0 1.0 0.0] ((ad/gradient ad/logsumexp) [1.0 ##Inf ##-Inf])))
+    (t/is (= [[0.0 0.0] [0.0 0.0]] ((ad/hessian ad/logsumexp) [##Inf 1.0])))
+    (t/is (every? nan? ((ad/gradient ad/logsumexp) [##Inf ##Inf 1.0])) "more than one +Inf: NaN, as LogExpFunctions"))
+  (t/testing "smooth-max"
+    (t/is (invalid? #(ad/smooth-max []) :xs []))
+    (t/is (= (m/smooth-max [1.0 2.0]) (ad/smooth-max [1 2])) "alpha 2 and :lse by default")
+    (doseq [family [:sigmoid :circular :quadratic :cubic :quartic :exponential :lse :smu]]
+      (t/is (= (m/smooth-max [1.0 2.0 0.5] 3.0 family) (ad/smooth-max [1 2 0.5] 3 family)) (str family " numbers")))
+    (doseq [family [:sigmoid :circular :quadratic :cubic :quartic :exponential :unknown]]
+      (t/is (= {:function :smooth-max :family family}
+               (thrown-data #(ad/smooth-max [(ad/dual 1 1.0 [1.0]) 2.0] 3.0 family)))
+            (str family " duals")))
+    (t/is (= {:function :smooth-max :argument :alpha}
+             (thrown-data #((ad/gradient (fn [[x a]] (ad/smooth-max [x 2.0] a :lse))) [1.0 3.0])))
+          "alpha has no derivative")
+    (t/is (= {:function :smooth-max :argument :alpha}
+             (thrown-data #((ad/gradient (fn [[x a]] (ad/smooth-max [x 2.0] a :smu))) [1.0 3.0]))))
+    (t/is (= ((ad/gradient (fn [xs] (ad/smooth-max xs 3.0 :boltzmann))) [1.0 2.0])
+             (map ad/scalar ((ad/gradient (fn [xs] (ad/smooth-max xs (ad/dual 1 3.0 [0.0]) :boltzmann))) [1.0 2.0])))
+          "a dual alpha with zero partials is a constant")
+    (t/is (= 2.5 (ad/smooth-max [2.5] 2.0 :smu)) "one element")
+    (doseq [family [:smu :lse :p-norm]]
+      (t/is (= {:function :smooth-max :argument :alpha}
+               (thrown-data #(ad/smooth-max [2.5] (ad/dual 1 2.0 [1.0]) family)))
+            (str family " one element, alpha depends on the variable"))
+      (t/is (dual-is? (ad/smooth-max [2.5] (ad/dual 1 2.0 [0.0]) family) 1 2.5 [0.0]) (str family " a dual result")))
+    (t/is (= [1.0] ((ad/gradient (fn [xs] (ad/smooth-max xs 2.0 :smu))) [2.5])))))
+
+(t/deftest chain-n-test
+  (t/testing "chain with more than three arguments"
+    (let [f (fn [a b c e] (rules/chain [a a, b b, c c, e e, _v (ops/add (ops/add a b) (ops/mul c e))] :f4
+                            1.0 1.0 e c))]
+      (t/is (= [1.0 1.0 4.0 3.0] (partials (f (ad/dual 1 1.0 [1 0 0 0]) (ad/dual 1 2.0 [0 1 0 0])
+                                              (ad/dual 1 3.0 [0 0 1 0]) (ad/dual 1 4.0 [0 0 0 1])))))
+      (t/is (= [3.0] (partials (f 1.0 2.0 3.0 (ad/dual 1 4.0 [1.0]))))))
+    (let [g (fn [a b c e] (rules/chain [_a a, _b b, _c c, _e e, _v (m/sqrt -1.0)] :nan 1.0 1.0 1.0 1.0))]
+      (t/is (every? nan? (partials (g 1.0 2.0 3.0 (ad/dual 1 4.0 [1.0])))) "outside the domain")
+      (t/is (= [1.0] (partials (g 1.0 2.0 ##NaN (ad/dual 1 4.0 [1.0])))) "a NaN input: no guard")
+      (t/is (= [1.0] (partials (g 1.0 2.0 3.0 (ad/dual 1 ##NaN [1.0])))) "a NaN in the fourth input: no guard")))
+  (t/testing "chain-seq: outside the domain the derivatives are NaN"
+    (let [f (fn [xs] (rules/chain-seq :test xs [] (fn [_ _] ##NaN) (fn [_ _ _] (fn [_] 1.0))))]
+      (t/is (every? nan? (partials (f [1.0 (ad/dual 1 2.0 [1.0])]))))
+      (t/is (= [1.0] (partials (f [##NaN (ad/dual 1 2.0 [1.0])]))) "a NaN input: no guard")))
+  (t/testing "chain-seq: a derivative only for the elements with partials, the factory only when needed"
+    (let [calls (atom [])
+          f (fn [xs] (rules/chain-seq :test xs [] (fn [vs _] (reduce ops/add vs))
+                                      (fn [_ _ _] (swap! calls conj :factory) (fn [v] (swap! calls conj v) 1.0))))]
+      (t/is (= [1.0] (partials (f [1.0 (ad/dual 1 2.0 [1.0]) 3.0]))))
+      (t/is (= [:factory 2.0] @calls))
+      (reset! calls [])
+      (t/is (= [0.0] (partials (f [1.0 (ad/dual 1 2.0 [0.0]) (ad/dual 2 3.0 [0.0])]))))
+      (t/is (= [:factory 3.0] @calls) "the elements of the older layer are constants")
+      (reset! calls [])
+      (t/is (= [0.0] (partials (rules/chain-seq :test [1.0] [[:p (ad/dual 1 2.0 [0.0])]] (fn [vs _] (first vs))
+                                                (fn [_ _ _] (swap! calls conj :factory))))))
+      (t/is (= [] @calls) "no element has partials"))))

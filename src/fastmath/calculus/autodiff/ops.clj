@@ -92,6 +92,11 @@
   [x]
   (if (instance? Dual x) (dual-log x) (m/log (.doubleValue ^Number x))))
 
+(defn horner
+  "The polynomial with the coefficients `cs` (a vector of doubles, the constant term first) at `u`, a number or a dual."
+  [cs u]
+  (reduce (fn [acc c] (add c (mul u acc))) 0.0 (rseq cs)))
+
 ;; ## Partials arithmetic (`nil` is a zero vector)
 
 (defn p-add

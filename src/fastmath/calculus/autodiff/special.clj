@@ -17,29 +17,21 @@
 
 ;; ## Operations on numbers and duals
 
-(defmacro ^:private dispatch
-  "A dual in any argument selects the dual rule, otherwise the arguments are coerced to doubles and passed to the
-  `fastmath.special` function."
-  [dual-rule special-fn & args]
-  `(if (or ~@(map (fn [a] `(instance? Dual ~a)) args))
-     (~dual-rule ~@args)
-     (~special-fn ~@(map (fn [a] `(.doubleValue ~(with-meta a {:tag 'Number}))) args))))
-
-(defn gamma "Gamma function." [x] (dispatch dual-gamma s/gamma x))
-(defn log-gamma "Logarithm of the absolute value of the gamma function." [x] (dispatch dual-log-gamma s/log-gamma x))
-(defn log-gamma-1p "`log-gamma(1 + x)`." [x] (dispatch dual-log-gamma-1p s/log-gamma-1p x))
-(defn inv-gamma-1pm1 "`1 / gamma(1 + x) - 1`." [x] (dispatch dual-inv-gamma-1pm1 s/inv-gamma-1pm1 x))
-(defn digamma "Digamma function." [x] (dispatch dual-digamma s/digamma x))
-(defn trigamma "Trigamma function." [x] (dispatch dual-trigamma s/trigamma x))
-(defn polygamma "Polygamma function of order `m`." [m x] (dispatch dual-polygamma s/polygamma m x))
-(defn beta "Beta function." [p q] (dispatch dual-beta s/beta p q))
-(defn log-beta "Logarithm of the beta function." [p q] (dispatch dual-log-beta s/log-beta p q))
-(defn lower-incomplete-gamma "Lower incomplete gamma function." [s x] (dispatch dual-lower-incomplete-gamma s/lower-incomplete-gamma s x))
-(defn upper-incomplete-gamma "Upper incomplete gamma function." [s x] (dispatch dual-upper-incomplete-gamma s/upper-incomplete-gamma s x))
-(defn regularized-gamma-p "Regularized lower incomplete gamma function." [a x] (dispatch dual-regularized-gamma-p s/regularized-gamma-p a x))
-(defn regularized-gamma-q "Regularized upper incomplete gamma function." [a x] (dispatch dual-regularized-gamma-q s/regularized-gamma-q a x))
-(defn incomplete-beta "Incomplete beta function, `x` first." [x a b] (dispatch dual-incomplete-beta s/incomplete-beta x a b))
-(defn regularized-beta "Regularized incomplete beta function, `x` first." [x a b] (dispatch dual-regularized-beta s/regularized-beta x a b))
+(defn gamma "Gamma function." [x] (r/dispatch dual-gamma s/gamma x))
+(defn log-gamma "Logarithm of the absolute value of the gamma function." [x] (r/dispatch dual-log-gamma s/log-gamma x))
+(defn log-gamma-1p "`log-gamma(1 + x)`." [x] (r/dispatch dual-log-gamma-1p s/log-gamma-1p x))
+(defn inv-gamma-1pm1 "`1 / gamma(1 + x) - 1`." [x] (r/dispatch dual-inv-gamma-1pm1 s/inv-gamma-1pm1 x))
+(defn digamma "Digamma function." [x] (r/dispatch dual-digamma s/digamma x))
+(defn trigamma "Trigamma function." [x] (r/dispatch dual-trigamma s/trigamma x))
+(defn polygamma "Polygamma function of order `m`." [m x] (r/dispatch dual-polygamma s/polygamma m x))
+(defn beta "Beta function." [p q] (r/dispatch dual-beta s/beta p q))
+(defn log-beta "Logarithm of the beta function." [p q] (r/dispatch dual-log-beta s/log-beta p q))
+(defn lower-incomplete-gamma "Lower incomplete gamma function." [s x] (r/dispatch dual-lower-incomplete-gamma s/lower-incomplete-gamma s x))
+(defn upper-incomplete-gamma "Upper incomplete gamma function." [s x] (r/dispatch dual-upper-incomplete-gamma s/upper-incomplete-gamma s x))
+(defn regularized-gamma-p "Regularized lower incomplete gamma function." [a x] (r/dispatch dual-regularized-gamma-p s/regularized-gamma-p a x))
+(defn regularized-gamma-q "Regularized upper incomplete gamma function." [a x] (r/dispatch dual-regularized-gamma-q s/regularized-gamma-q a x))
+(defn incomplete-beta "Incomplete beta function, `x` first." [x a b] (r/dispatch dual-incomplete-beta s/incomplete-beta x a b))
+(defn regularized-beta "Regularized incomplete beta function, `x` first." [x a b] (r/dispatch dual-regularized-beta s/regularized-beta x a b))
 
 ;; ## Derivative rules: gamma, polygamma and beta (the forms of DiffRules.jl)
 

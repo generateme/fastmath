@@ -13,22 +13,30 @@
   - derivative products: [[jvp]], [[hvp]],
   - arithmetic: [[+]], [[-]], [[*]], [[/]],
   - elementary functions: [[sin]], [[cos]], [[tan]], [[asin]], [[acos]], [[atan]], [[atan2]], [[sinh]], [[cosh]], [[tanh]], [[asinh]], [[acosh]], [[atanh]], [[exp]], [[expm1]], [[log]], [[log1p]], [[log2]], [[log10]], [[pow]], [[sqrt]], [[cbrt]], [[sq]], [[hypot]],
-  - piecewise functions: [[abs]], [[min]], [[max]], [[signum]], [[floor]], [[ceil]],
+  - reciprocal and inverse trigonometric and hyperbolic functions: [[sec]], [[csc]], [[cot]], [[sech]], [[csch]], [[coth]], [[asec]], [[acsc]], [[acot]], [[asech]], [[acsch]], [[acoth]],
+  - pi-scaled functions: [[sinpi]], [[cospi]], [[tanpi]], [[cotpi]], [[secpi]], [[cscpi]], [[sinc]],
+  - exponential and logarithmic variants: [[exp2]], [[exp10]], [[logb]], [[ln]], [[xlogx]], [[xlogy]], [[xlog1py]], [[log1pexp]], [[logexpm1]], [[log1mexp]], [[log1pmx]], [[log1psq]], [[logcosh]], [[exprel]], [[expexp]], [[cexpexp]], [[cloglog]], [[loglog]],
+  - sigmoid and log-sum-exp: [[sigmoid]], [[logit]], [[logaddexp]], [[logsubexp]], [[logsumexp]], [[smooth-max]],
+  - piecewise functions: [[abs]], [[min]], [[max]], [[signum]], [[floor]], [[ceil]], [[trunc]], [[rint]], [[round]], [[sgn]], [[frac]], [[sfrac]], [[mod]], [[rem]], [[copy-sign]],
+  - powers and convenience functions: [[cb]], [[pow2]], [[pow3]], [[pow10]], [[spow]], [[safe-sqrt]], [[fma]], [[muladd]], [[lerp]], [[smoothstep]], [[norm]],
   - gamma and beta functions: [[gamma]], [[log-gamma]], [[log-gamma-1p]], [[inv-gamma-1pm1]], [[digamma]], [[trigamma]], [[polygamma]], [[beta]], [[log-beta]], [[lower-incomplete-gamma]], [[upper-incomplete-gamma]], [[regularized-gamma-p]], [[regularized-gamma-q]], [[incomplete-beta]], [[regularized-beta]],
   - functions with derivatives given by the user: [[rule]],
   - comparisons: [[<]], [[<=]], [[>]], [[>=]], [[==]],
   - duals: [[dual]], [[primal]], [[scalar]].
 
-  The values of the functions are the values of `fastmath.core` and `fastmath.special`, the derivatives follow DiffRules.jl. Where a function is not defined (its value is `NaN` for arguments which are not `NaN`, for example [[acosh]] below `1`) all its derivatives are `NaN`. At the kinks of the piecewise functions the derivatives are those of ForwardDiff.jl. The shape parameters of the incomplete gamma and beta functions and the order of [[polygamma]] have no derivative: a dual depending on the variables there throws, a constant (or a dual with zero partials) is accepted.
+  The values of the functions are the values of `fastmath.core` and `fastmath.special`, the derivatives follow DiffRules.jl. Where a function is not defined (its value is `NaN` for arguments which are not `NaN`, for example [[acosh]] below `1`) all its derivatives are `NaN`. At the kinks of the piecewise functions the derivatives are those of ForwardDiff.jl, at the jumps (of [[frac]], [[sfrac]], [[mod]], [[rem]]) they are `NaN`. The shape parameters of the incomplete gamma and beta functions, the order of [[polygamma]] and the sharpness of [[smooth-max]] have no derivative: a dual depending on the variables there throws, a constant (or a dual with zero partials) is accepted.
 
   Limitations: a function returning a function can not be differentiated (it throws). A dual which escapes its derivative call (stored in an atom, a cache or a lazy sequence realized later) is detected only when it flows into the result of an enclosing derivative, which then throws. An escaped dual used only in a comparison (a branch) is not detected and can silently give a wrong derivative, as can a dual left over from a finished, unrelated derivative call, or a dual of an earlier pass of the same [[gradient]], [[jacobian]], [[hessian]] or [[hvp]] call reused in a later pass: such duals have older tags and are treated as constants."
-  (:refer-clojure :exclude [+ - * / < > <= >= == abs min max])
+  (:refer-clojure :exclude [+ - * / < > <= >= == abs min max mod rem])
   (:require [fastmath.core :as m]
             [fastmath.calculus.common :as cc]
             [fastmath.calculus.autodiff.dual :as d]
             [fastmath.calculus.autodiff.ops :as ops]
             [fastmath.calculus.autodiff.elementary :as el]
             [fastmath.calculus.autodiff.special :as sp]
+            [fastmath.calculus.autodiff.logexp :as lx]
+            [fastmath.calculus.autodiff.piecewise :as pw]
+            [fastmath.calculus.autodiff.arithmetic :as ar]
             [fastmath.calculus.autodiff.rules :as rules]
             [fastmath.calculus.autodiff.derivatives :as der])
   (:import [fastmath.calculus.autodiff.dual Dual]))
@@ -195,16 +203,18 @@
   [x] (ops/exp x))
 
 (defn log
-  "Natural logarithm of a number or a dual.
+  "Natural logarithm of a number or a dual, or the logarithm with a base.
 
   Parameters:
 
   - `x` (number or dual).
+  - `base` (number or dual, optional): the base, the same as [[logb]].
 
-  Returns a double for a number, otherwise a dual. The value is `NaN` for a negative argument and `-Inf` for zero; the derivative is `1/x`, infinite at zero and `NaN` (as all higher derivatives) for a negative argument, outside the domain.
+  Returns a double for numbers, otherwise a dual. The value is `NaN` for a negative argument and `-Inf` for zero; the derivative is `1/x`, infinite at zero and `NaN` (as all higher derivatives) for a negative argument, outside the domain. With a base the partial derivatives are those of [[logb]].
 
-  See also [[exp]], [[pow]]."
-  [x] (ops/log x))
+  See also [[exp]], [[pow]], [[logb]], [[ln]]."
+  ([x] (ops/log x))
+  ([base x] (lx/logb base x)))
 
 (defn pow
   "Power `x^y` of numbers and duals.
@@ -742,6 +752,802 @@
 
   See also [[incomplete-beta]], [[beta]]."
   [x a b] (sp/regularized-beta x a b))
+
+;; ## Public API: reciprocal and inverse trigonometric and hyperbolic functions
+
+(defn sec
+  "Secant of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in radians.
+
+  Returns a double for a number, otherwise a dual. The derivative is `sec(x) tan(x)`.
+
+  See also [[csc]], [[cot]], [[cos]]."
+  [x] (el/sec x))
+
+(defn csc
+  "Cosecant of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in radians.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-csc(x) cot(x)`, infinite at the multiples of `pi`.
+
+  See also [[sec]], [[cot]], [[sin]]."
+  [x] (el/csc x))
+
+(defn cot
+  "Cotangent of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in radians.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-(1 + cot(x)^2)`.
+
+  See also [[tan]], [[csc]]."
+  [x] (el/cot x))
+
+(defn sech
+  "Hyperbolic secant of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-tanh(x) sech(x)`.
+
+  See also [[csch]], [[coth]], [[cosh]]."
+  [x] (el/sech x))
+
+(defn csch
+  "Hyperbolic cosecant of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-coth(x) csch(x)`, infinite at `0`.
+
+  See also [[sech]], [[coth]], [[sinh]]."
+  [x] (el/csch x))
+
+(defn coth
+  "Hyperbolic cotangent of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-csch(x)^2`, infinite at `0`.
+
+  See also [[tanh]], [[csch]]."
+  [x] (el/coth x))
+
+(defn asec
+  "Arcus secant of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value with `|x| >= 1`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(|x| sqrt(x^2 - 1))`, infinite at `-1` and `1`; inside `(-1, 1)` the value and all derivatives are `NaN`.
+
+  See also [[acsc]], [[acos]]."
+  [x] (el/asec x))
+
+(defn acsc
+  "Arcus cosecant of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value with `|x| >= 1`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-1/(|x| sqrt(x^2 - 1))`, infinite at `-1` and `1`; inside `(-1, 1)` the value and all derivatives are `NaN`.
+
+  See also [[asec]], [[asin]]."
+  [x] (el/acsc x))
+
+(defn acot
+  "Arcus cotangent of a number or a dual, `pi/2 - atan(x)`.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-1/(1 + x^2)`.
+
+  See also [[atan]], [[cot]]."
+  [x] (el/acot x))
+
+(defn asech
+  "Area hyperbolic secant of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `(0, 1]`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-1/(x sqrt(1 - x^2))`, infinite at `0` and `1`; outside the domain the value and all derivatives are `NaN`.
+
+  See also [[acosh]], [[sech]]."
+  [x] (el/asech x))
+
+(defn acsch
+  "Area hyperbolic cosecant of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-1/(|x| sqrt(1 + x^2))`, infinite at `0`.
+
+  See also [[asinh]], [[csch]]."
+  [x] (el/acsch x))
+
+(defn acoth
+  "Area hyperbolic cotangent of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value with `|x| > 1`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(1 - x^2)`; inside `[-1, 1]` the value is `NaN` or infinite.
+
+  See also [[atanh]], [[coth]]."
+  [x] (el/acoth x))
+
+;; ## Public API: pi-scaled functions and sinc
+
+(defn sinpi
+  "Sine of `pi x` for a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in half-turns.
+
+  Returns a double for a number, otherwise a dual. The value is `fastmath.core/sinpi`, `sin(pi x)`. The derivative is `pi cospi(x)`.
+
+  See also [[cospi]], [[sin]]."
+  [x] (el/sinpi x))
+
+(defn cospi
+  "Cosine of `pi x` for a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in half-turns.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-pi sinpi(x)`.
+
+  See also [[sinpi]], [[cos]]."
+  [x] (el/cospi x))
+
+(defn tanpi
+  "Tangent of `pi x` for a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in half-turns.
+
+  Returns a double for a number, otherwise a dual. The derivative is `pi (1 + tanpi(x)^2)`.
+
+  See also [[cotpi]], [[tan]]."
+  [x] (el/tanpi x))
+
+(defn cotpi
+  "Cotangent of `pi x` for a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in half-turns.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-pi (1 + cotpi(x)^2)`.
+
+  See also [[tanpi]], [[cot]]."
+  [x] (el/cotpi x))
+
+(defn secpi
+  "Secant of `pi x` for a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in half-turns.
+
+  Returns a double for a number, otherwise a dual. The derivative is `pi secpi(x) tanpi(x)`.
+
+  See also [[cscpi]], [[sec]]."
+  [x] (el/secpi x))
+
+(defn cscpi
+  "Cosecant of `pi x` for a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): angle in half-turns.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-pi cscpi(x) cotpi(x)`.
+
+  See also [[secpi]], [[csc]]."
+  [x] (el/cscpi x))
+
+(defn sinc
+  "Normalized sinc of a number or a dual, `sin(pi x)/(pi x)`, `1` at `0`.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `(cos(pi x) - sinc(x))/x`; near `0`, where this form cancels, a Taylor series is used, so the derivatives at `0` are the limits (`0`, `-pi^2/3`, ...).
+
+  See also [[sinpi]]."
+  [x] (el/sinc x))
+
+;; ## Public API: exponential and logarithmic variants
+
+(defn exp2
+  "Power of two, `2^x`, of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `2^x ln(2)`.
+
+  See also [[exp10]], [[exp]], [[log2]]."
+  [x] (lx/exp2 x))
+
+(defn exp10
+  "Power of ten, `10^x`, of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `10^x ln(10)`.
+
+  See also [[exp2]], [[exp]], [[log10]]."
+  [x] (lx/exp10 x))
+
+(defn logb
+  "Logarithm of `x` with the base `b`, `log(x)/log(b)`, of numbers and duals.
+
+  Parameters:
+
+  - `b` (number or dual): the base, positive and not `1`.
+  - `x` (number or dual): a positive value.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `-log(x)/(b log(b)^2)` in `b` and `1/(x log(b))` in `x`.
+
+  See also [[log]], [[log2]], [[log10]]."
+  [b x] (lx/logb b x))
+
+(defn ln
+  "Natural logarithm of a number or a dual, the same as [[log]] with one argument.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/x`.
+
+  See also [[log]], [[exp]]."
+  [x] (ops/log x))
+
+(defn xlogx
+  "`x log(x)` of a number or a dual, `0` at `0`.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1 + log(x)`, `-Inf` at `0`; for a negative argument the value and all derivatives are `NaN`.
+
+  See also [[xlogy]], [[log]]."
+  [x] (lx/xlogx x))
+
+(defn xlogy
+  "`x log(y)` of numbers and duals, `0` when `x` is `0` and `y` is not `NaN`.
+
+  Parameters:
+
+  - `x` (number or dual).
+  - `y` (number or dual): a value `>= 0`.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `log(y)` in `x` and `x/y` in `y`; the latter is `0` when `x` is zero together with all its derivatives and `y` is not `NaN`, as in LogExpFunctions.jl.
+
+  See also [[xlogx]], [[xlog1py]]."
+  [x y] (lx/xlogy x y))
+
+(defn xlog1py
+  "`x log(1 + y)` of numbers and duals, `0` when `x` is `0` and `y` is not `NaN`.
+
+  Parameters:
+
+  - `x` (number or dual).
+  - `y` (number or dual): a value `>= -1`.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `log(1 + y)` in `x` and `x/(1 + y)` in `y`; the latter is `0` when `x` is zero together with all its derivatives and `y` is not `NaN`, as in LogExpFunctions.jl.
+
+  See also [[xlogy]], [[log1p]]."
+  [x y] (lx/xlog1py x y))
+
+(defn log1pexp
+  "`log(1 + exp(x))` (softplus) of a number or a dual, without overflow.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is [[sigmoid]] of `x`.
+
+  See also [[logexpm1]], [[log1mexp]], [[logaddexp]]."
+  [x] (lx/log1pexp x))
+
+(defn logexpm1
+  "`log(exp(x) - 1)` of a number or a dual, the inverse of [[log1pexp]].
+
+  Parameters:
+
+  - `x` (number or dual): a positive value.
+
+  Returns a double for a number, otherwise a dual. The derivative is `exp(x - logexpm1(x))`; for `x <= 0` the value and all derivatives are `NaN` (or infinite at `0`).
+
+  See also [[log1pexp]], [[expm1]]."
+  [x] (lx/logexpm1 x))
+
+(defn log1mexp
+  "`log(1 - exp(x))` of a number or a dual, accurate near `0`.
+
+  Parameters:
+
+  - `x` (number or dual): a negative value.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-exp(x - log1mexp(x))`; for a positive argument the value and all derivatives are `NaN`.
+
+  See also [[log1pexp]], [[logsubexp]]."
+  [x] (lx/log1mexp x))
+
+(defn log1pmx
+  "`log(1 + x) - x` of a number or a dual, accurate near `0`.
+
+  Parameters:
+
+  - `x` (number or dual): a value `> -1`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-x/(1 + x)`.
+
+  See also [[log1p]]."
+  [x] (lx/log1pmx x))
+
+(defn log1psq
+  "`log(1 + x^2)` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `2x/(1 + x^2)` (`0` beyond `|x| = 1.3e154`, where `x^2` overflows).
+
+  See also [[log1p]]."
+  [x] (lx/log1psq x))
+
+(defn logcosh
+  "`log(cosh(x))` of a number or a dual, without overflow.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `tanh(x)`.
+
+  See also [[cosh]], [[tanh]]."
+  [x] (lx/logcosh x))
+
+(defn exprel
+  "`(exp(x) - 1)/x` of a number or a dual, `1` at `0`.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `(exp(x) - exprel(x))/x`; near `0`, where this form cancels, a Taylor series is used (the derivative at `0` is `1/2`), and above it for a positive `x` the form `exprel(x) (1 - 1/x) + 1/x`.
+
+  See also [[expm1]], [[exp]]."
+  [x] (lx/exprel x))
+
+(defn expexp
+  "`exp(-exp(-x))` (the Gumbel distribution function) of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `exp(-x - exp(-x))`.
+
+  See also [[cexpexp]], [[loglog]]."
+  [x] (lx/expexp x))
+
+(defn cexpexp
+  "`1 - exp(-exp(x))` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `exp(x - exp(x))`.
+
+  See also [[expexp]], [[cloglog]]."
+  [x] (lx/cexpexp x))
+
+(defn cloglog
+  "Complementary log-log, `log(-log(1 - x))`, of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `(0, 1)`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-1/((1 - x) log(1 - x))`; outside `[0, 1]` the value and all derivatives are `NaN`.
+
+  See also [[loglog]], [[cexpexp]]."
+  [x] (lx/cloglog x))
+
+(defn loglog
+  "Log-log, `-log(-log(x))`, of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `(0, 1)`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-1/(x log(x))`; outside `[0, 1]` the value and all derivatives are `NaN`.
+
+  See also [[cloglog]], [[expexp]]."
+  [x] (lx/loglog x))
+
+;; ## Public API: sigmoid and log-sum-exp
+
+(defn sigmoid
+  "Logistic sigmoid, `1/(1 + exp(-x))`, of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `sigmoid(x) (1 - sigmoid(x))`.
+
+  See also [[logit]], [[log1pexp]]."
+  [x] (lx/sigmoid x))
+
+(defn logit
+  "Logit, `log(x/(1 - x))`, of a number or a dual, the inverse of [[sigmoid]].
+
+  Parameters:
+
+  - `x` (number or dual): a value in `(0, 1)`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(x (1 - x))`; outside `[0, 1]` the value and all derivatives are `NaN`.
+
+  See also [[sigmoid]]."
+  [x] (lx/logit x))
+
+(defn logaddexp
+  "`log(exp(x) + exp(y))` of numbers and duals, without overflow.
+
+  Parameters:
+
+  - `x` (number or dual).
+  - `y` (number or dual).
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `exp(x - z)` and `exp(y - z)`, `z` the value.
+
+  See also [[logsubexp]], [[logsumexp]]."
+  [x y] (lx/logaddexp x y))
+
+(defn logsubexp
+  "`log(|exp(x) - exp(y)|)` of numbers and duals.
+
+  Parameters:
+
+  - `x` (number or dual).
+  - `y` (number or dual).
+
+  Returns a double when all arguments are numbers, otherwise a dual. With `z` the value, the partial derivatives are `exp(x - z)` and `-exp(y - z)` when `x > y`, otherwise `-exp(x - z)` and `exp(y - z)`, as in LogExpFunctions.jl; at `x = y` the value is `-Inf` and the derivatives are infinite or `NaN`.
+
+  See also [[logaddexp]], [[log1mexp]]."
+  [x y] (lx/logsubexp x y))
+
+(defn logsumexp
+  "`log(sum(exp(xs)))` of a sequence of numbers and duals, without overflow.
+
+  Parameters:
+
+  - `xs` (non-empty sequence of numbers and duals).
+
+  Returns a double when all elements are numbers, otherwise a dual. The partial derivatives are the softmax, `exp(x_i - z)`, `z` the value; with exactly one element `+Inf` they are its limit, `1` in that element and `0` in the others (as LogExpFunctions.jl), and `NaN` with more than one.
+
+  Throws `ex-info` with `{:option :value :expected}` for an empty sequence (`fastmath.core/logsumexp` returns a value there).
+
+  See also [[logaddexp]], [[smooth-max]]."
+  [xs] (lx/logsumexp xs))
+
+;; ## Public API: rounding and kinks
+
+(defn trunc
+  "Rounding of a number or a dual towards zero.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `0` everywhere, also at the integers.
+
+  See also [[floor]], [[ceil]], [[rint]], [[frac]]."
+  [x] (pw/trunc x))
+
+(defn rint
+  "Rounding of a number or a dual to the nearest integer, half to even.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `0` everywhere, also at the half-integers.
+
+  See also [[round]], [[trunc]]."
+  [x] (pw/rint x))
+
+(defn round
+  "Rounding of a number or a dual to the nearest integer, half up, as a double.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The value is `fastmath.core/round` as a double: it saturates at the `long` range (`(round 1e20)` is `9.223372036854776E18`) and is `0.0` for `NaN`. The derivative is `0` everywhere.
+
+  See also [[rint]], [[trunc]]."
+  [x] (pw/round x))
+
+(defn sgn
+  "Sign of a number or a dual: `-1.0` for a negative value, otherwise `1.0` (also for `0.0`, `-0.0` and `NaN`).
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `0` everywhere, also at zero.
+
+  See also [[signum]], [[copy-sign]]."
+  [x] (pw/sgn x))
+
+(defn frac
+  "Unsigned fractional part of a number or a dual, `|x - trunc(x)|`.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the sign of `x` by its sign bit (`1` at `0.0`, `-1` at `-0.0`, as [[abs]]) and `NaN` at the nonzero integers (the jumps); for an infinite argument the value and the derivatives are `NaN`.
+
+  See also [[sfrac]], [[trunc]], [[mod]]."
+  [x] (pw/frac x))
+
+(defn sfrac
+  "Signed fractional part of a number or a dual, `x - trunc(x)`.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `1`, `NaN` at the nonzero integers (the jumps).
+
+  See also [[frac]], [[rem]]."
+  [x] (pw/sfrac x))
+
+(defn mod
+  "Floored modulus of numbers and duals, the sign of the divisor.
+
+  Parameters:
+
+  - `x` (number or dual): the dividend.
+  - `y` (number or dual): the divisor.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `1` in `x` and `-floor(x/y)` in `y`; both are `NaN` when `x/y` is an integer (the jumps), as in DiffRules.jl.
+
+  See also [[rem]], [[frac]]."
+  [x y] (pw/mod x y))
+
+(defn rem
+  "Truncated remainder of numbers and duals, the sign of the dividend.
+
+  Parameters:
+
+  - `x` (number or dual): the dividend.
+  - `y` (number or dual): the divisor.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `1` in `x` and `-trunc(x/y)` in `y`; both are `NaN` when `x/y` is an integer (the jumps), as in DiffRules.jl.
+
+  See also [[mod]], [[sfrac]]."
+  [x y] (pw/rem x y))
+
+(defn copy-sign
+  "The magnitude of the first argument with the sign of the second one, for numbers and duals.
+
+  Parameters:
+
+  - `magnitude` (number or dual).
+  - `sign` (number or dual): only its sign bit is used.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `1` in `magnitude` when the sign bits of the arguments agree and `-1` otherwise, and `0` in `sign`.
+
+  See also [[abs]], [[sgn]]."
+  [magnitude sign] (pw/copy-sign magnitude sign))
+
+;; ## Public API: powers and convenience functions
+
+(defn cb
+  "Cube of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `3x^2`.
+
+  See also [[pow3]], [[sq]], [[pow]]."
+  [x] (ar/cb x))
+
+(defn pow2
+  "Square of a number or a dual, the same as [[sq]].
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `2x`.
+
+  See also [[sq]], [[pow]]."
+  [x] (ar/pow2 x))
+
+(defn pow3
+  "Cube of a number or a dual, the same as [[cb]].
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `3x^2`.
+
+  See also [[cb]], [[pow]]."
+  [x] (ar/cb x))
+
+(defn pow10
+  "Tenth power of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `10x^9`.
+
+  See also [[pow]]."
+  [x] (ar/pow10 x))
+
+(defn spow
+  "Symmetric power `sgn(x) |x|^e` of numbers and duals, defined for a negative base.
+
+  Parameters:
+
+  - `x` (number or dual): the base.
+  - `e` (number or dual): the exponent.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `e |x|^(e-1)` in `x` (infinite at `0` for `e < 1`) and `spow(x, e) log|x|` in `e`, `0` at `x = 0` for `e > 0` (the limit, as [[pow]] with a constant base).
+
+  See also [[pow]], [[abs]]."
+  [x e] (pw/spow x e))
+
+(defn safe-sqrt
+  "Square root of a number or a dual, `0` for a negative value.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(2 sqrt(x))`, and `0` for a negative argument (the value is the constant `0`).
+
+  See also [[sqrt]]."
+  [x] (pw/safe-sqrt x))
+
+(defn fma
+  "Fused multiply-add `x y + z` of numbers and duals.
+
+  Parameters:
+
+  - `x` (number or dual).
+  - `y` (number or dual).
+  - `z` (number or dual).
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `y`, `x` and `1`.
+
+  See also [[muladd]], [[*]], [[+]]."
+  [x y z] (ar/fma x y z))
+
+(defn muladd
+  "Multiply-add `x y + z` of numbers and duals, the same as [[fma]].
+
+  Parameters:
+
+  - `x` (number or dual).
+  - `y` (number or dual).
+  - `z` (number or dual).
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `y`, `x` and `1`.
+
+  See also [[fma]]."
+  [x y z] (ar/fma x y z))
+
+(defn lerp
+  "Linear interpolation `start + t (stop - start)` of numbers and duals.
+
+  Parameters:
+
+  - `start` (number or dual).
+  - `stop` (number or dual).
+  - `t` (number or dual): the amount, extrapolates outside `[0, 1]`.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The partial derivatives are `1 - t`, `t` and `stop - start`.
+
+  See also [[norm]], [[smoothstep]]."
+  [start stop t] (ar/lerp start stop t))
+
+(defn smoothstep
+  "Smooth Hermite step of numbers and duals: `0` up to `edge0`, `1` from `edge1`, `3t^2 - 2t^3` between, `t = (x - edge0)/(edge1 - edge0)`.
+
+  Parameters:
+
+  - `edge0` (number or dual).
+  - `edge1` (number or dual).
+  - `x` (number or dual).
+
+  Returns a double when all arguments are numbers, otherwise a dual. Between the edges the partial derivatives are `-s (1 - t)`, `-s t` and `s` with `s = 6t(1 - t)/(edge1 - edge0)`; outside (where `t` is clamped, also at the edges) they are `0`.
+
+  See also [[lerp]], [[norm]]."
+  [edge0 edge1 x] (pw/smoothstep edge0 edge1 x))
+
+(defn norm
+  "Linear map of numbers and duals from one range to another.
+
+  Parameters:
+
+  - `v` (number or dual): the value to map.
+  - `start`, `stop` (numbers or duals): the source range, mapped to `[0, 1]` (3 arguments).
+  - `start1`, `stop1`, `start2`, `stop2` (numbers or duals): the source and the target ranges (5 arguments).
+
+  Returns a double when all arguments are numbers, otherwise a dual. With `t = (v - start)/(stop - start)` the partial derivatives are `1/w`, `(t - 1)/w` and `-t/w` in `v`, `start` and `stop`, `w = stop - start`; with 5 arguments these are multiplied by `stop2 - start2` and the derivatives in `start2` and `stop2` are `1 - t` and `t`. For equal ends of the source range the value is a constant end (as `fastmath.core/norm`) and the derivatives in the source range and `v` are `0`.
+
+  See also [[lerp]], [[smoothstep]]."
+  ([v start stop] (ar/norm v start stop))
+  ([v start1 stop1 start2 stop2] (ar/norm v start1 stop1 start2 stop2)))
+
+(defn smooth-max
+  "Smooth maximum of a sequence of numbers and duals, `fastmath.core/smooth-max`.
+
+  Parameters:
+
+  - `xs` (non-empty sequence of numbers and duals).
+  - `alpha` (number, default `2.0`): the sharpness; it has no derivative.
+  - `family` (keyword, default `:lse`): the smoothing family, see `fastmath.core/smooth-max`.
+
+  Returns a double when all elements and `alpha` are numbers, otherwise a dual. Derivatives are available for the families `:lse`, `:mellowmax` (both the softmax of `alpha xs`), `:boltzmann`, `:p-norm` (`sign(x_i) (|x_i|/z)^(alpha-1)`, `z` the value) and `:smu` (a fold of the pairwise rule).
+
+  Throws `ex-info` with `{:option :value :expected}` for an empty sequence (`fastmath.core/smooth-max` returns a value there). For duals throws `ex-info` with `{:function :family}` for the piecewise families (`:sigmoid`, `:circular`, `:quadratic`, `:cubic`, `:quartic`, `:exponential`), and with `{:function :argument}` when `alpha` depends on the variables.
+
+  See also [[logsumexp]], [[max]]."
+  ([xs] (lx/smooth-max xs 2.0 :lse))
+  ([xs alpha] (lx/smooth-max xs alpha :lse))
+  ([xs alpha family] (lx/smooth-max xs alpha family)))
 
 ;; ## Public API: rules of the user
 

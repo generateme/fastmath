@@ -3128,10 +3128,10 @@
 
   - `v` (double): the input value.
 
-  Returns `(abs (- v (long v)))`, i.e. the magnitude of the part of `v` remaining after truncation towards zero. Always in the range `[0.0, 1.0)`.
+  Returns `(abs (- v (trunc v)))`, i.e. the magnitude of the part of `v` remaining after truncation towards zero. Always in the range `[0.0, 1.0)`, `0.0` for every `v` beyond `2^52` in magnitude (all such doubles are integers). `NaN` for infinite and `NaN` input.
 
   See also [[sfrac]] for the signed version."
-  ^double [^double v] (abs (- v (unchecked-long v))))
+  ^double [^double v] (abs (- v (trunc v))))
 
 (defn sfrac
   "Signed fractional part of `v`.

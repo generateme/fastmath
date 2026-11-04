@@ -39,6 +39,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Fixed
 
+* `fastmath.core/frac` saturated beyond the `long` range (`(frac 1e20)` was `9.08e19`, now `0.0`)
 * `fastmath.min` and `fastmath.max` didn't return `##NaN` when `##NaN` was in arguments
 * `fastmath.complex` audit: `acosh` (negative imaginary part) and `asech` returned the negated value for part of the plane; `log`, `pow`, `tan`, `tanh`, `cot`, `coth` and the inverse trigonometric and hyperbolic functions overflowed or returned `NaN` for large arguments, `asin`, `acos`, `asinh`, `atan`, `atanh`, `log` lost the small part near 0, ±1 and the unit circle, `pow` returned `(Inf, Inf)` for a negative zero base and `0` for `0^-1`, signed zeros of `sinh`, `cosh`, `sec`, `cot`, ... did not follow C99; all functions are checked against mpmath and Julia
 * `fastmath.quaternion` audit: `exp` (and every function built on it) gave `NaN` for a large argument, `slerp` took the long arc for a negative dot product, `to-euler` and `to-angles` returned wrong angles at the gimbal lock, `reciprocal` overflowed, `norm` type hint, `rotation-quaternion` and `from-two-vectors` throw for a zero, infinite or `NaN` axis, `rotate` normalizes the rotation quaternion; all functions are checked against Quaternions.jl, scipy and pyquaternion

@@ -8,6 +8,16 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
+;; ## Dispatch
+
+(defmacro dispatch
+  "A dual in any argument (symbols) selects `(dual-rule args...)`, otherwise the arguments are coerced to doubles and
+  passed to `double-fn` (a function of `fastmath.core` or `fastmath.special`)."
+  [dual-rule double-fn & args]
+  `(if (or ~@(map (fn [a] `(instance? Dual ~a)) args))
+     (~dual-rule ~@args)
+     (~double-fn ~@(map (fn [a] `(.doubleValue ~(with-meta a {:tag 'Number}))) args))))
+
 ;; ## Chain rule helpers
 
 (defn outside-domain?
@@ -15,7 +25,13 @@
   derivatives, which are made `NaN` (a finite derivative formula would give a number outside the domain)."
   ([y a] (and (m/nan? (d/scalar y)) (not (m/nan? (d/scalar a)))))
   ([y a b] (and (m/nan? (d/scalar y)) (not (m/nan? (d/scalar a))) (not (m/nan? (d/scalar b)))))
-  ([y a b c] (and (m/nan? (d/scalar y)) (not (m/nan? (d/scalar a))) (not (m/nan? (d/scalar b))) (not (m/nan? (d/scalar c))))))
+  ([y a b c] (and (m/nan? (d/scalar y)) (not (m/nan? (d/scalar a))) (not (m/nan? (d/scalar b))) (not (m/nan? (d/scalar c)))))
+  ([y a b c & more] (and (outside-domain? y a b c) (not-any? (fn [x] (m/nan? (d/scalar x))) more))))
+
+(defn outside-domain-seq?
+  "[[outside-domain?]] of the value `y` and the inputs `xs` (a sequence)."
+  [y xs]
+  (and (m/nan? (d/scalar y)) (not-any? (fn [x] (m/nan? (d/scalar x))) xs)))
 
 (defn guard
   "The derivative factor `df`, times `NaN` outside the domain. The factor is scaled, not the partials, so the
@@ -32,7 +48,7 @@
                     {:function function :argument argument}))))
 
 (defmacro chain
-  "The dual result of a function of one to three arguments, at least one of them a dual, in the layer of the newest tag.
+  "The dual result of a function of a fixed number of arguments, at least one of them a dual, in the layer of the newest tag.
 
   `(chain [a x, b y, value (f a b)] :f dfa dfb)`: each argument pair binds the value of the argument in the layer
   (a constant is itself), the last pair binds the value of the function. The body is the name of the function (a
@@ -52,7 +68,7 @@
         t (gensym "tag")
         out (gensym "outside")
         acc (gensym "acc")]
-    (assert (and (<= 1 n 3) (= n (count derivatives))) "one to three arguments, one derivative for each")
+    (assert (and (<= 1 n) (= n (count derivatives))) "at least one argument, one derivative for each")
     `(let [~@(interleave gs (map second args))
            ~t ~(reduce (fn [a b] `(m/long-max ~a ~b)) (map (fn [g] `(d/tag-of ~g)) gs))
            ~@(mapcat (fn [[b] g] [b `(d/value-at ~g ~t)]) args gs)
@@ -66,6 +82,46 @@
                               `(if ~p (ops/p-add ~acc (ops/p-scale ~p (guard ~df ~out))) ~acc))])
                      args ps derivatives)]
        (d/new-dual ~t ~y (or ~acc (d/p-zeros (or ~@ps)))))))
+
+;; ## Chain rule of a function of a sequence
+
+(defn- tag-of-seq
+  ^long [xs]
+  (reduce (fn [^long t x] (m/long-max t (d/tag-of x))) 0 xs))
+
+(defn chain-seq
+  "The dual result of a function of a sequence `xs` (the arguments with a derivative) and of `params` (the arguments
+  without a derivative), at least one element of them a dual, in the layer of the newest tag.
+
+  - `function` (keyword): the name of the function, for the error data.
+  - `xs` (non-empty vector of numbers and duals).
+  - `params` (vector of `[name argument]` pairs): each argument accepts a constant or a dual with zero partials in the
+    layer ([[no-derivative!]]).
+  - `value-fn`: `(value-fn vs pvs)`, the value of the function at the values `vs` of `xs` and `pvs` of the parameters
+    in the layer (numbers or duals of the older layers).
+  - `derivative-fn`: `(derivative-fn vs pvs y)` returns the derivative of the function in an element as a function of
+    the value of that element; it is called once, only when an element has partials in the layer, and its result only
+    for such elements.
+
+  Outside the domain the derivatives are `NaN` ([[outside-domain-seq?]])."
+  [function xs params value-fn derivative-fn]
+  (let [t (m/long-max (tag-of-seq xs) (tag-of-seq (map second params)))
+        vs (mapv (fn [x] (d/value-at x t)) xs)
+        ps (mapv (fn [x] (d/partials-at x t)) xs)
+        pvs (mapv (fn [[argument x]]
+                    (no-derivative! function argument (d/partials-at x t))
+                    (d/value-at x t)) params)
+        y (value-fn vs pvs)
+        out (outside-domain-seq? y vs)
+        acc (when (some some? ps)
+              (let [df (derivative-fn vs pvs y)]
+                (reduce (fn [acc i]
+                          (if-let [p (ps i)]
+                            (ops/p-add acc (ops/p-scale p (guard (df (vs i)) out)))
+                            acc))
+                        nil (range (count vs)))))]
+    (d/new-dual t y (or acc (d/p-zeros (or (some identity ps)
+                                           (some (fn [[_ x]] (d/partials-at x t)) params)))))))
 
 ;; ## Rules defined by the user (first order)
 

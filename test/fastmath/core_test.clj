@@ -607,6 +607,13 @@
   (t/is (m/== -0.342225 (m/sfrac -3.342225)))
   (t/is (m/== 0.0 (m/sfrac 0.0)))
   (t/is (m/== (m/frac -3.342225) (apply m/frac [-3.342225])))
+  ;; beyond the long range every double is an integer; the former (long v) cast saturated: (frac 1e20) was 9.08e19
+  (t/is (m/== 0.0 (m/frac 1.0e20)))
+  (t/is (m/== 0.0 (m/frac -1.0e300)))
+  (t/is (m/== 0.0 (m/frac 9.007199254740993E15)))
+  (t/is (= (m/abs (m/- -2.7 (double (long -2.7)))) (m/frac -2.7)) "bit-identical to the cast inside the long range")
+  (t/is (m/nan? (m/frac ##Inf)))
+  (t/is (m/nan? (m/frac ##NaN)))
   (t/is (m/== (m/sfrac -3.342225) (apply m/sfrac [-3.342225]))))
 
 ;; Reference: hand-computed / bit-doubling identity for round-up-pow2.
