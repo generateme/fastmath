@@ -40,6 +40,12 @@ All notable changes to this project will be documented in this file. This change
 ### Fixed
 
 * `fastmath.core/frac` saturated beyond the `long` range (`(frac 1e20)` was `9.08e19`, now `0.0`)
+* log-exp family returns limits at infinities and doesn't overflow: `fastmath.core/logexpm1`, `logaddexp`, `logsumexp` (empty gives `##-Inf`), `smooth-max` (all families; empty gives `##-Inf`, `0.0` for `:p-norm`), `fastmath.vector/logsumexp`, `logmeanexp`, `softmax`, `logsoftmax`
+* `fastmath.core/log2` is a port of fdlibm `log2` (exact at powers of two, was up to 1.3 ulp off)
+* `fastmath.special/beta`, `log-beta` where `p+q` is a non-positive integer: no exception for huge arguments, accurate (was up to 100% off)
+* `fastmath.special` incomplete gamma for small and large shapes (no `NaN`, negative `Q` or hang) and regularized/incomplete beta for tiny and one large shape (no exception); two large shapes give `##NaN`
+* `fastmath.special` exponential integrals: `E1`/`Ein`/`Ei`/`En` at extreme arguments (no `NaN`), `Ein` below -2.15 and near 0, `E0(-0.0)` is `##-Inf`
+* `fastmath.special` spherical Bessel functions: limits at 0 for every order (the sign of zero picks the side), NaN and infinite orders; `bessel-I` at negative and `bessel-K` near integer orders accurate
 * `fastmath.min` and `fastmath.max` didn't return `##NaN` when `##NaN` was in arguments
 * `fastmath.complex` audit: `acosh` (negative imaginary part) and `asech` returned the negated value for part of the plane; `log`, `pow`, `tan`, `tanh`, `cot`, `coth` and the inverse trigonometric and hyperbolic functions overflowed or returned `NaN` for large arguments, `asin`, `acos`, `asinh`, `atan`, `atanh`, `log` lost the small part near 0, ±1 and the unit circle, `pow` returned `(Inf, Inf)` for a negative zero base and `0` for `0^-1`, signed zeros of `sinh`, `cosh`, `sec`, `cot`, ... did not follow C99; all functions are checked against mpmath and Julia
 * `fastmath.quaternion` audit: `exp` (and every function built on it) gave `NaN` for a large argument, `slerp` took the long arc for a negative dot product, `to-euler` and `to-angles` returned wrong angles at the gimbal lock, `reciprocal` overflowed, `norm` type hint, `rotation-quaternion` and `from-two-vectors` throw for a zero, infinite or `NaN` axis, `rotate` normalizes the rotation quaternion; all functions are checked against Quaternions.jl, scipy and pyquaternion

@@ -830,6 +830,69 @@
 (t/deftest logmeanexp-test
   (t/is (m/approx-eq (m/- (sut/logsumexp v3s) (m/log (sut/size v3s))) (sut/logmeanexp v3s))))
 
+;; Infinite elements (upstream group 1, N8): the shift by an infinite maximum gave Inf - Inf. The limits exist for
+;; logsumexp and logmeanexp, and for softmax only with exactly one element at the maximum (one-hot, or [1] for a
+;; single element); Julia LogExpFunctions returns NaN for every softmax with an infinite element.
+
+(defn- as-types
+  "The elements `xs` as a double array, a Clojure vector and, for 2-4 elements, a VecN."
+  [xs]
+  (cond-> [(double-array xs) (vec xs)]
+    (<= 2 (count xs) 4) (conj (apply (case (count xs) 2 sut/vec2 3 sut/vec3 4 sut/vec4) xs))))
+
+(defn- same-elements?
+  [expected actual]
+  (and (= (count expected) (count (seq actual)))
+       (every? true? (map (fn [^double e ^double a] (or (m/== e a) (and (m/nan? e) (m/nan? a)))) expected (seq actual)))))
+
+(t/deftest softmax-family-infinities-test
+  (t/testing "logsumexp and logmeanexp"
+    (doseq [[xs expected] [[[##-Inf] ##-Inf] [[##-Inf ##-Inf] ##-Inf] [[##Inf] ##Inf] [[##Inf 1.0] ##Inf]
+                           [[1.0 ##Inf ##Inf] ##Inf] [[##Inf ##-Inf] ##Inf] [[##-Inf 1.0] 1.0]]
+            v (as-types xs)]
+      (t/is (m/== expected (sut/logsumexp v)) (str "logsumexp " xs " " (type v)))
+      (when (m/inf? expected)
+        (t/is (m/== expected (sut/logmeanexp v)) (str "logmeanexp " xs " " (type v)))))
+    (doseq [xs [[##NaN ##Inf] [##Inf ##NaN] [##NaN ##-Inf] [##-Inf ##NaN]]
+            v (as-types xs)]
+      (t/is (m/nan? (sut/logsumexp v)) (str "logsumexp " xs " " (type v)))
+      (t/is (m/nan? (sut/logmeanexp v)) (str "logmeanexp " xs " " (type v)))))
+  (t/testing "empty input of any type"
+    (doseq [v [(double-array 0) [] '() (map identity [])]]
+      (t/is (m/== ##-Inf (sut/logsumexp v)) (str (type v)))
+      (t/is (m/nan? (sut/logmeanexp v)) (str (type v)))
+      (doseq [f [sut/softmax #(sut/softmax % 2.0) sut/logsoftmax #(sut/logsoftmax % 2.0)]]
+        (t/is (empty? (seq (f v))) (str (type v))))))
+  (t/testing "softmax and logsoftmax, both arities"
+    (doseq [[xs sm lsm] [[[##Inf] [1.0] [0.0]]
+                         [[##-Inf] [1.0] [0.0]]
+                         [[##Inf 1.0] [1.0 0.0] [0.0 ##-Inf]]
+                         [[1.0 ##Inf ##-Inf] [0.0 1.0 0.0] [##-Inf 0.0 ##-Inf]]
+                         [[##Inf ##-Inf] [1.0 0.0] [0.0 ##-Inf]]
+                         [[##Inf ##Inf] [##NaN ##NaN] [##NaN ##NaN]]
+                         [[##-Inf ##-Inf] [##NaN ##NaN] [##NaN ##NaN]]
+                         [[##NaN ##Inf] [##NaN ##NaN] [##NaN ##NaN]]
+                         [[##-Inf ##NaN] [##NaN ##NaN] [##NaN ##NaN]]]
+            v (as-types xs)]
+      (t/is (same-elements? sm (sut/softmax v)) (str "softmax " xs " " (type v)))
+      (t/is (same-elements? sm (sut/softmax v 2.0)) (str "softmax t " xs " " (type v)))
+      (t/is (same-elements? lsm (sut/logsoftmax v)) (str "logsoftmax " xs " " (type v)))
+      (t/is (same-elements? lsm (sut/logsoftmax v 2.0)) (str "logsoftmax t " xs " " (type v)))))
+  (t/testing "sequences, Vec4 and temperatures"
+    (doseq [v ['(##Inf 1.0) (map identity [##Inf 1.0])]]
+      (t/is (m/== ##Inf (sut/logsumexp v)))
+      (t/is (same-elements? [1.0 0.0] (sut/softmax v)))
+      (t/is (same-elements? [0.0 ##-Inf] (sut/logsoftmax v 0.5))))
+    (t/is (same-elements? [0.0 1.0 0.0 0.0] (sut/softmax (sut/vec4 1.0 ##Inf 2.0 3.0))))
+    (t/is (instance? fastmath.vector.Vec4 (sut/softmax (sut/vec4 1.0 ##Inf 2.0 3.0))))
+    (t/is (same-elements? [##NaN ##NaN ##NaN ##NaN] (sut/softmax (sut/vec4 ##Inf ##Inf 2.0 3.0))))
+    (t/is (m/nan? (sut/logsumexp (sut/vec2 ##NaN ##Inf))))
+    (t/is (same-elements? [1.0 0.0] (sut/softmax [##Inf 1.0] ##Inf)))
+    (t/is (same-elements? [0.0 ##-Inf] (sut/logsoftmax [1.0e308 -1.0e308]))))
+  (t/testing "finite input keeps the shifted computation"
+    (t/is (same-elements? [1.0 0.0] (sut/softmax (sut/vec2 800.0 1.0))))
+    (t/is (m/== -799.6867383124818 (sut/logsumexp (double-array [-800.0 -801.0]))))))
+
 ;; ==== Fastmath Vector Audit — Group 2.10: Orthogonal polynomials ====
 ;; Reference: R `poly(1:5, degree=4)` (base R's discrete orthogonal polynomial basis via
 ;; the same three-term-recurrence construction), 2026-09-23:

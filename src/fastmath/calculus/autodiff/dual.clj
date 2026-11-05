@@ -67,6 +67,11 @@
   ^double [x]
   (if (instance? Dual x) (recur (.value ^Dual x)) (.doubleValue ^Number x)))
 
+(defn scalar-infinite?
+  "Is the [[scalar]] value of a number or a dual infinite?"
+  [x]
+  (Double/isInfinite (scalar x)))
+
 ;; ## Tag layers
 
 (defn tag-of

@@ -13,15 +13,18 @@ Produces `test/resources/special/ei_reference.edn`, computed with `mpmath`:
     log(x) + gamma`, evaluated directly via `mpmath.expint(1,x) + log(x) +
     mpmath.euler` for `x > 0`, and via the alternating entire power series
     `sum_{k=1}^inf (-1)^(k+1) x^k / (k*k!)` (summed directly in mpmath, not
-    ported from fastmath's Taylor-coefficient code) for `x <= 0` down to the
-    fixed domain boundary `-2.15` (fastmath's `Ein` is undefined -- `NaN` --
-    below that, a known, documented limitation from reusing `E1`'s Taylor
-    coefficients, which are only accurate up to `|x| = 2.15`).
+    ported from fastmath's Taylor-coefficient code) for `x <= 0` (down to
+    `-716.3`; all terms have one sign there, no cancellation) and for
+    `0 < x < 1e-4` (where `E1 + log + gamma` cancels).
   - `En`   : `mpmath.expint(n, x)`, for a grid of integer orders (positive,
     negative, and zero -- real for `x < 0` too, since these reduce to
     elementary functions of `x` and `exp(-x)`) and non-integer orders
     (positive `x` only -- complex for `x < 0` per mpmath itself).
   - `Ei`   : `mpmath.ei(x)`, all real `x != 0`.
+  Extreme arguments (upstream group 3): `E1`/`Ein` up to the largest double,
+  `Ein` for tiny `|x|` (both signs), `Ei`/`E0`/`En` (negative orders) around
+  the overflow of `exp`, +-709.78 to +-716.4. Values beyond the double range
+  are left out (asserted by hand in the tests).
   - `li`   : `mpmath.li(x)`, `x > 0`, `x != 1` (singularity there).
   - `Li`   : `mpmath.li(x, offset=True)`, `x > 0`.
 
@@ -86,12 +89,24 @@ for edge in (0.0044, 0.053, 0.6, 2.15, 4.0, 10.0, 20.0, 200.0):
 
 POS_THRESH_DENSE = dedup([x for x in POS_THRESH_DENSE if x > 0])
 
+# extreme arguments (upstream group 3)
+EXP_OVERFLOW = [709.0, 709.5, 709.782712893384, 709.7827128933841, 709.79, 710.0,
+                711.0, 712.0, 712.5, 713.0, 714.0, 715.0, 716.0, 716.3]
+LARGE = [744.0, 745.0, 745.0000000000001, 746.0, 1.0e4, 1.0e20, 4.47e61,
+         4.48e61, 1.0e100, 1.0e300, 1.7976931348623157e308]
+TINY = [5e-324, 1e-300, 1e-200, 1e-100, 1e-50, 1e-20, 1e-15, 1e-10, 1e-8,
+        1e-6, 5e-5]
+EIN_NEG = [2.1500000000000004, 2.2, 2.5, 3.0, 4.0, 5.0, 7.0, 10.0, 15.0, 20.0,
+           30.0, 50.0, 100.0, 200.0, 205.0, 300.0, 500.0, 700.0, 709.0, 710.0,
+           712.0, 716.0, 716.3]
+
 # ---------------- E0 : all real x ----------------
-e0_xs = [-x for x in POS_THRESH_DENSE] + POS_THRESH_DENSE + [0.0, -0.0]
+e0_xs = ([-x for x in POS_THRESH_DENSE] + POS_THRESH_DENSE + [0.0, -0.0]
+         + [-x for x in EXP_OVERFLOW])
 e0_block = build_1arg(lambda x: mp.expint(0, mp.mpf(x)), e0_xs)
 
 # ---------------- E1 : x >= 0 ----------------
-e1_block = build_1arg(lambda x: mp.expint(1, mp.mpf(x)), POS_THRESH_DENSE)
+e1_block = build_1arg(lambda x: mp.expint(1, mp.mpf(x)), POS_THRESH_DENSE + LARGE)
 
 # ---------------- Ein : x >= -2.15 ----------------
 GAMMA = mp.euler
@@ -101,7 +116,7 @@ def ein_series(x):
     x = mp.mpf(x)
     s = mp.mpf(0)
     term = mp.mpf(1)
-    for k in range(1, 300):
+    for k in range(1, 20000):
         term = term * (-x) / k
         contrib = -term / k
         s += contrib
@@ -113,13 +128,14 @@ def ein_series(x):
 def ein_ref_fn(x):
     if x == 0.0:
         return mp.mpf(0)
-    if x > 0:
+    if x >= 1e-4:
         return mp.expint(1, mp.mpf(x)) + mp.log(mp.mpf(x)) + GAMMA
     return ein_series(x)
 
 
 ein_neg_xs = [-x for x in POS_THRESH_DENSE if x <= 2.15]
-ein_xs = ein_neg_xs + POS_THRESH_DENSE + [0.0]
+ein_xs = (ein_neg_xs + POS_THRESH_DENSE + [0.0] + TINY + [-x for x in TINY]
+          + [-x for x in EIN_NEG] + LARGE)
 ein_block = build_1arg(ein_ref_fn, ein_xs)
 
 # ---------------- En : (n, x) pairs ----------------
@@ -146,10 +162,22 @@ for n in frac_orders:
         if v is not None:
             en_n.append(n); en_x.append(x); en_ref.append(v)
 
+for n in (-1, -2, -3):
+    for x in [-x for x in EXP_OVERFLOW]:
+        v = to_double(mp.expint(n, mp.mpf(x)))
+        if v is not None:
+            en_n.append(float(n)); en_x.append(x); en_ref.append(v)
+for n in (2, 0.5):
+    for x in LARGE:
+        v = to_double(mp.expint(mp.mpf(n), mp.mpf(x)))
+        if v is not None:
+            en_n.append(float(n)); en_x.append(x); en_ref.append(v)
+
 en_block = {"order": en_n, "arg": en_x, "ref": en_ref}
 
 # ---------------- Ei : all real x != 0 ----------------
-ei_xs = [-x for x in POS_THRESH_DENSE] + POS_THRESH_DENSE
+ei_xs = ([-x for x in POS_THRESH_DENSE] + POS_THRESH_DENSE + EXP_OVERFLOW
+         + [-x for x in LARGE])
 ei_block = build_1arg(lambda x: mp.ei(mp.mpf(x)), ei_xs)
 
 # ---------------- li : x > 0, x != 1 ----------------

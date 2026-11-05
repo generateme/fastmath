@@ -36,7 +36,7 @@
   To revert to the original `clojure.core` functions, call [[unuse-primitive-operators]].
   Note that the `fastmath.core` versions are not a complete drop-in replacement due to their primitive-specific behavior (e.g., return types), and calling `unuse-primitive-operators` at the end of the namespace is recommended, especially in Clojure 1.12+."
   (:refer-clojure :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs integer?])
-  (:import [fastmath.java PrimitiveMath]
+  (:import [fastmath.java PrimitiveMath Array]
            [net.jafama FastMath]
            [org.apache.commons.math3.util Precision]
            [org.apache.commons.math3.special Gamma Beta]))
@@ -2004,12 +2004,12 @@
 
   - `x` (double): value to evaluate; must be positive for a real result (`exp(x)-1` must be positive).
 
-  Returns the result as a double. Returns `##NaN` (via `log` of a non-positive value) for `x <= 0`.
+  Returns the result as a double. Returns `##NaN` for `x < 0` and `##NaN`, `##-Inf` for `0.0`, and `x` itself for `x >= 36.8`, where `log(exp(x)-1)` rounds to `x` (no overflow for large `x`).
 
   See also [[log1pexp]], [[expm1]]."
-  {:inline (fn [x] `(log (expm1 (double ~x))))
+  {:inline (fn [x] `(let [x# (double ~x)] (if (< x# 36.8) (log (expm1 x#)) x#)))
    :inline-arities #{1}}
-  ^double [^double x] (log (expm1 x)))
+  ^double [^double x] (if (< x 36.8) (log (expm1 x)) x))
 
 ;; from julia
 (defn- log1pmx-ker
@@ -2069,14 +2069,14 @@
 
   - `x`, `y` (doubles): values to combine.
 
-  Returns the result as a double, computed without overflowing `exp(x)`/`exp(y)` for large arguments.
+  Returns the result as a double, computed without overflowing `exp(x)`/`exp(y)` for large arguments. Equal infinite arguments return that infinity.
 
   See also [[logsumexp]] (n-ary version), [[logsubexp]], [[log1pexp]]."
   ^double [^double x ^double y]
   (if (< x y)
     (+ y (log1pexp (- x y)))
     (+ (if-not (Double/isNaN y) x y)
-       (log1pexp (- y x)))))
+       (log1pexp (if (== x y) 0.0 (- y x))))))
 
 (defn logsubexp
   "Computes `log(abs(exp(x)-exp(y)))`, the numerically stable log-difference-of-exponentials.
@@ -2100,24 +2100,27 @@
 
   - `xs` (sequence of doubles): values to combine.
 
-  Returns the result as a double, computed without overflowing any individual `exp(xi)` for large arguments.
+  Returns the result as a double, computed without overflowing any individual `exp(xi)` for large arguments. Infinite elements give the limits (`##-Inf` elements contribute nothing, any `##Inf` gives `##Inf`), an empty sequence gives `##-Inf`, and any `##NaN` gives `##NaN`.
 
   See also [[logaddexp]] (2-arity version)."
   ^double [xs]
-  (loop [xs xs
-         r 0.0
-         alpha ##-Inf]
-    (let [x (double (first xs))
-          rst (rest xs)]
-      (if (<= x alpha)
-        (let [nr (+ r (exp (- x alpha)))]
-          (if-not (seq rst)
-            (+ (log nr) alpha)
-            (recur rst nr alpha)))
-        (let [nr (inc (* r (exp (- alpha x))))]
-          (if-not (seq rst)
-            (+ (log nr) x)
-            (recur rst nr x)))))))
+  (if-not (seq xs)
+    ##-Inf
+    (loop [xs xs
+           r 0.0
+           alpha ##-Inf]
+      (let [x (double (first xs))
+            rst (rest xs)]
+        (if (<= x alpha)
+          ;; x == alpha also covers equal infinities, where exp(x - alpha) is NaN
+          (let [nr (+ r (if (== x alpha) 1.0 (exp (- x alpha))))]
+            (if-not (seq rst)
+              (+ (log nr) alpha)
+              (recur rst nr alpha)))
+          (let [nr (inc (* r (exp (- alpha x))))]
+            (if-not (seq rst)
+              (+ (log nr) x)
+              (recur rst nr x))))))))
 
 (defn xlogx
   "Computes `x * log(x)`, with the convention `0 * log(0) = 0` (the limiting value, rather than `##NaN`).
@@ -2354,6 +2357,44 @@
       (- (log1p s) (log1p (- s))))
     (log (/ x (- 1.0 x)))))
 
+;; log2: port of FreeBSD msun e_log2.c and k_log.h (fdlibm, Sun Microsystems, 1993)
+(def ^{:private true :const true :tag 'double} LOG2_TWO54 1.80143985094819840000e+16)
+(def ^{:private true :const true :tag 'double} LOG2_IVLN2HI 1.44269504072144627571e+00)
+(def ^{:private true :const true :tag 'double} LOG2_IVLN2LO 1.67517131648865118353e-10)
+(def ^{:private true :const true :tag 'double} LOG2_LG1 6.666666666666735130e-01)
+(def ^{:private true :const true :tag 'double} LOG2_LG2 3.999999999940941908e-01)
+(def ^{:private true :const true :tag 'double} LOG2_LG3 2.857142874366239149e-01)
+(def ^{:private true :const true :tag 'double} LOG2_LG4 2.222219843214978396e-01)
+(def ^{:private true :const true :tag 'double} LOG2_LG5 1.818357216161805012e-01)
+(def ^{:private true :const true :tag 'double} LOG2_LG6 1.531383769920937332e-01)
+(def ^{:private true :const true :tag 'double} LOG2_LG7 1.479819860511658591e-01)
+
+(defn- log2-normal
+  "`k + log2(x)` for a positive, normal and finite `x`."
+  ^double [^double x ^long k]
+  (let [bits (Double/doubleToRawLongBits x)
+        hx (>> bits 32)
+        hm (bit-and hx 0x000fffff)
+        ;; i is 0x100000 when the mantissa is above sqrt(2): x/2 is used then
+        i (bit-and (long-add hm 0x95f64) 0x100000)
+        xn (Double/longBitsToDouble (bit-or (<< (bit-or hm (bit-xor i 0x3ff00000)) 32)
+                                            (bit-and bits 0xffffffff)))
+        y (double (long-add k (long-sub (>> hx 20) 1023) (>> i 20)))
+        f (- xn 1.0)
+        hfsq (* 0.5 f f)
+        s (/ f (+ 2.0 f))
+        z (* s s)
+        w (* z z)
+        t1 (* w (+ LOG2_LG2 (* w (+ LOG2_LG4 (* w LOG2_LG6)))))
+        t2 (* z (+ LOG2_LG1 (* w (+ LOG2_LG3 (* w (+ LOG2_LG5 (* w LOG2_LG7)))))))
+        r (* s (+ hfsq (+ t2 t1)))
+        hi (Double/longBitsToDouble (bit-and (Double/doubleToRawLongBits (- f hfsq)) -4294967296))
+        lo (+ (- (- f hi) hfsq) r)
+        val-hi (* hi LOG2_IVLN2HI)
+        val-lo (+ (* (+ lo hi) LOG2_IVLN2LO) (* lo LOG2_IVLN2HI))
+        sum (+ y val-hi)]
+    (+ (+ val-lo (+ (- y sum) val-hi)) sum)))
+
 (defn log2
   "Computes the base-2 logarithm of `x`.
 
@@ -2361,13 +2402,15 @@
 
   - `x` (double): value to take the logarithm of; must be positive for a real result.
 
-  Returns the result as a double.
+  Returns the result as a double, within about half an ulp of the exact value (a port of the FreeBSD/fdlibm `log2`); exact for every power of two. Returns `##-Inf` for `0.0` and `-0.0`, `##Inf` for `##Inf`, and `##NaN` for negative `x` and `##NaN`.
 
   See also [[log]], [[logb]], [[LOG2E]]."
-  {:inline (fn [x] `(* (log (double ~x)) INV_LN2))
-   :inline-arities #{1}}
   ^double [^double x]
-  (* (log x) INV_LN2))
+  (cond
+    (and (>= x Double/MIN_NORMAL) (< x ##Inf)) (log2-normal x 0)
+    (> x 0.0) (if (== x ##Inf) x (log2-normal (* x LOG2_TWO54) -54))
+    (zero? x) ##-Inf
+    :else ##NaN))
 
 ;; \\(\log_b x\\)
 (defn logb
@@ -3341,7 +3384,7 @@
 
 (defn bits->double
   "Convert 64 bits to double"
-  {:inline (fn [v] `(. Double (longBitsToDouble (double ~v))))
+  {:inline (fn [v] `(. Double (longBitsToDouble ~v)))
    :inline-arities #{1}}
   ^double [^long v]
   (Double/longBitsToDouble v))
@@ -3708,22 +3751,137 @@
 
 ;;
 
+;; smooth-max
+
 (defn- scale-xs
   [xs ^double alpha]
   (map (fn [^double x] (* x alpha)) xs))
 
+(defn- hard-extreme
+  "The maximum of `a` and `b` for positive `alpha`, the minimum otherwise: the limit of every smooth maximum when an argument is infinite or the arguments are far apart."
+  ^double [^double a ^double b ^double alpha]
+  (if (pos? alpha) (max a b) (min a b)))
+
+(defn- hard-extreme-seq
+  "[[hard-extreme]] of a non-empty sequence; `NaN` when any element is `NaN`."
+  ^double [xs ^double alpha]
+  (double (reduce (fn [^double a ^double b] (hard-extreme a b alpha)) xs)))
+
+(defmacro ^:private reduce-smooth-pairs
+  "Reduces `xs` with the literal `(fn [a b] body)`, the smooth maximum of two finite values. An infinite value gives [[hard-extreme]]; a `NaN` propagates through [[hard-extreme]] and every `body`."
+  [xs alpha [_ [a b] body]]
+  `(reduce (fn [~(vary-meta a assoc :tag 'double) ~(vary-meta b assoc :tag 'double)]
+             (if (or (Double/isInfinite ~a) (Double/isInfinite ~b))
+               (hard-extreme ~a ~b ~alpha)
+               ~body)) ~xs))
+
+(defn- smooth-max-lse
+  ^double [xs ^double alpha]
+  (if (Double/isInfinite alpha)
+    (hard-extreme-seq xs alpha)
+    (let [r (/ (logsumexp (scale-xs xs alpha)) alpha)]
+      ;; alpha * x overflowed for a finite x: the correction is below the ulp of the extreme (an infinite result
+      ;; without such an overflow is the true value, e.g. ln(n) / alpha for a tiny alpha)
+      (if (and (Double/isInfinite r)
+               (some (fn [^double x] (and (not (Double/isInfinite x)) (Double/isInfinite (* alpha x)))) xs))
+        (hard-extreme-seq xs alpha)
+        r))))
+
+;; measured against mpmath on 1248 cases (n 2..1000, alpha 2, -2, 0.01, 50, scales 1e-200..1e4): worst relative error
+;; 4.5e-1 for 0 (logsumexp only), 5.2e-15 for 0.1, 6.6e-16 for 1, 8.2e-16 for 2 and 5, 8.8e-16 for log1p only
+(def ^{:private true :const true :tag 'double} MELLOWMAX_SERIES_SPREAD 1.0)
+
+(defn- smooth-max-mellowmax-tiny-spread
+  "Mellowmax for `|alpha (x - m)| <= 1e-8`: the cumulant expansion `m + mean(u) + alpha var(u) / 2`, `u = x - m`,
+  computed from `u` (no subnormal `alpha u`); the next term is below `1e-16` of the correction."
+  ^double [xs ^double m ^double alpha]
+  (let [us (mapv (fn [^double x] (- x m)) xs)
+        n (count us)
+        mean (/ (double (reduce + us)) n)
+        variance (/ (double (reduce + (map (fn [^double u] (sq (- u mean))) us))) n)]
+    (+ m (+ mean (* 0.5 alpha variance)))))
+
+(defn- smooth-max-mellowmax
+  "Mellowmax shifted by the hard extreme `m`: `m + log(mean(exp(d)))/alpha`, `d = alpha (x - m) <= 0`. For a small spread `log1p(mean(expm1(d)))` avoids the cancellation of `logsumexp(d) - log(n)`; for a tiny spread the cumulant expansion avoids subnormal `d`."
+  ^double [xs ^double alpha]
+  (let [m (hard-extreme-seq xs alpha)]
+    (if (or (Double/isNaN m) (Double/isInfinite m) (Double/isInfinite alpha))
+      m
+      (let [ds (mapv (fn [^double x] (* alpha (- x m))) xs)
+            n (count ds)
+            dmin (double (reduce min ds))]
+        (cond
+          (>= dmin -1.0e-8) (smooth-max-mellowmax-tiny-spread xs m alpha)
+          (>= dmin (- MELLOWMAX_SERIES_SPREAD)) (+ m (/ (log1p (/ (double (reduce + (map (fn [^double d] (expm1 d)) ds))) n)) alpha))
+          :else (+ m (/ (- (logsumexp ds) (log n)) alpha)))))))
+
+(defn- smooth-max-boltzmann-shifted
+  "Boltzmann operator with the weights `exp(alpha (x - m))`, `m` the [[hard-extreme]] of `xs`, so the exponents are not positive and `alpha x` never overflows; elements equal to `m` get weight 1 (also an infinite `m`)."
+  ^double [^doubles xs ^double alpha]
+  (let [n (alength xs)
+        m (hard-extreme-seq xs alpha)]
+    (if (Double/isNaN m)
+      m
+      (let [ws (double-array n)
+            _ (dotimes [i n]
+                (let [x (Array/aget xs i)]
+                  (Array/aset ws i (if (== x m) 1.0 (exp (* alpha (- x m)))))))
+            den (double (loop [i 0 s 0.0] (if (< i n) (recur (inc i) (+ s (Array/aget ws i))) s)))]
+        (loop [i 0 s 0.0]
+          (if (< i n)
+            (let [w (Array/aget ws i)]
+              (recur (inc i) (if (zero? w) s (+ s (/ (* (Array/aget xs i) w) den)))))
+            s))))))
+
 (defn- smooth-max-boltzmann
   ^double [xs ^double alpha]
-  (let [eaxs (map (fn [^double x] (exp (* alpha x))) xs)
-        ^double den (reduce + eaxs)]
-    (reduce + (map (fn [^double x ^double eax]
-                     (/ (* x eax) den)) xs eaxs))))
+  (let [xs (double-array xs)
+        n (alength xs)
+        eaxs (double-array n)
+        _ (dotimes [i n] (Array/aset eaxs i (exp (* alpha (Array/aget xs i)))))
+        den (double (loop [i 1 s (Array/aget eaxs 0)]
+                      (if (< i n) (recur (inc i) (+ s (Array/aget eaxs i))) s)))
+        r (double (loop [i 1 s (/ (* (Array/aget xs 0) (Array/aget eaxs 0)) den)]
+                    (if (< i n) (recur (inc i) (+ s (/ (* (Array/aget xs i) (Array/aget eaxs i)) den))) s)))]
+    (if (and (< 0.0 den ##Inf) (< (abs r) ##Inf))
+      r
+      (smooth-max-boltzmann-shifted xs alpha))))
+
+(defn- smu-far-correction
+  "`(sqrt(d^2 + epsilon) - |d|) / 2`, the distance of the smooth maximum unit from the hard one, for a large `|d|` where `d^2` may overflow."
+  ^double [^double d ^double epsilon]
+  (let [ad (abs d)]
+    (/ (* 0.5 epsilon) (* ad (inc (sqrt (inc (/ (/ epsilon ad) ad))))))))
+
+(defn- smooth-max-p-norm-rescaled
+  "p-norm scaled by the dominant magnitude `m` (the largest for positive `alpha`, the smallest for negative), for a sum of powers which underflows or overflows."
+  ^double [xs ^double alpha]
+  (let [m (double (reduce (fn [^double a ^double x] (if (pos? alpha) (max a (abs x)) (min a (abs x))))
+                          (if (pos? alpha) 0.0 ##Inf) xs))]
+    (if (or (Double/isNaN m) (zero? m) (Double/isInfinite m))
+      m
+      (* m (pow (reduce + (map (fn [^double x] (pow (/ (abs x) m) alpha)) xs)) (/ alpha))))))
+
+(defn- smooth-max-p-norm
+  ^double [xs ^double alpha]
+  (let [s (double (reduce + (map (fn [^double x] (pow (abs x) alpha)) xs)))]
+    (if (and (>= s Double/MIN_NORMAL) (< s ##Inf))
+      (pow s (/ alpha))
+      (smooth-max-p-norm-rescaled xs alpha))))
 
 ;; https://iquilezles.org/articles/smin/
 
-(defmacro ^:private smooth-max-kernel [g a b k] `(- ~b (* ~k (~g (/ (- ~b ~a) ~k)))))
+;; an overflowing (b - a) / k gives a (or b): every kernel is x for large x and 0 for large negative x
+(defmacro ^:private smooth-max-kernel [g a b k]
+  `(let [x# (/ (- ~b ~a) ~k)]
+     (if (Double/isInfinite x#)
+       (if (pos? x#) ~a ~b)
+       (- ~b (* ~k (~g x#))))))
 
-(defn- sm-sigmoid  ^double [^double x] (/ x (- 1.0 (exp2 (- x)))))
+(defn- sm-sigmoid
+  "`x / (1 - 2^-x)`, without the cancellation near 0 (limit `1/ln 2`); `x` for large `x`, 0 for large negative `x`."
+  ^double [^double x]
+  (if (zero? x) INV_LN2 (/ x (- (expm1 (* (- x) LN2))))))
 
 (defn- sm-circular ^double [^double x]
   (cond
@@ -3774,44 +3932,52 @@
     - `:p-norm` - p-norm-based smooth absolute maximum; always returns non-negative values; does not act as smooth minimum for negative `alpha`.
     - `:sigmoid`, `:circular`, `:quadratic`, `:cubic`, `:quartic`, `:exponential` - pairwise reductions based on Inigo Quilez smooth minimum kernels for SDFs.
 
-  Returns the smooth maximum as a double.
+  Returns the smooth maximum as a double. Infinite elements give the limits (for positive `alpha` any `##Inf` gives `##Inf` and `##-Inf` elements contribute nothing, though `:mellowmax` still counts them in its mean; mirrored for negative `alpha`; `:p-norm` uses magnitudes), and the families do not overflow for large `alpha * x`. Any `##NaN` gives `##NaN`. A single element is returned as is (its magnitude for `:p-norm`); an empty `xs` gives `0.0` for `:p-norm` and `##-Inf` for the other families. An infinite `alpha` gives the hard maximum (minimum for `##-Inf`); `:p-norm` the largest (smallest) magnitude.
 
   See also [[logsumexp]] (used internally by the `:lse` and `:mellowmax` families)."
   (^double [xs] (smooth-max xs 2.0))
   (^double [xs ^double alpha] (smooth-max xs alpha :lse))
   (^double [xs ^double alpha family]
-   (case family
-     :lse (/ (logsumexp (scale-xs xs alpha)) alpha)
-     :boltzmann (smooth-max-boltzmann xs alpha)
-     :mellowmax (/ (- (logsumexp (scale-xs xs alpha))
-                      (log (count xs))) alpha)
-     :p-norm (pow (reduce + (map (fn [^double x]
-                                   (pow (abs x) alpha)) xs)) (/ alpha))
-     :smu (let [epsilon (abs (/ alpha))]
-            (reduce (if (pos? alpha)
-                      (fn [^double a ^double b]
-                        (* 0.5 (+ a b (sqrt (+ (sq (- a b))
-                                               epsilon)))))
-                      (fn [^double a ^double b]
-                        (* 0.5 (+ a b (- (sqrt (+ (sq (- a b))
-                                                  epsilon))))))) xs))
-     :sigmoid (let [k (* M_LN2 (- (/ alpha)))]
-                (reduce (fn [^double a ^double b]
-                          (smooth-max-kernel sm-sigmoid a b k)) xs))
-     :circular (let [k (* 3.414213562373096 (- (/ alpha)))]
-                 (reduce (fn [^double a ^double b]
-                           (smooth-max-kernel sm-circular a b k)) xs))
-     :quadratic (let [k (* 4.0 (- (/ alpha)))]
-                  (reduce (fn [^double a ^double b]
-                            (smooth-max-kernel sm-quadratic a b k)) xs))
-     :cubic (let [k (* 6.0 (- (/ alpha)))]
-              (reduce (fn [^double a ^double b]
-                        (smooth-max-kernel sm-cubic a b k)) xs))
-     :quartic (let [k (* 5.333333333333333 (- (/ alpha)))]
-                (reduce (fn [^double a ^double b]
-                          (smooth-max-kernel sm-quartic a b k)) xs))
-     :exponential (reduce (fn [^double a ^double b]
-                            (/ (log2 (+ (exp2 (* a alpha)) (exp2 (* b alpha)))) alpha)) xs))))
+   (if-not (seq xs)
+     (case family
+       :p-norm 0.0
+       (:lse :boltzmann :mellowmax :smu :sigmoid :circular :quadratic :cubic :quartic :exponential) ##-Inf)
+     (if-not (next (seq xs))
+       ;; a single element is its own smooth maximum (its magnitude for :p-norm): exact, signed zero kept
+       (let [x (double (first xs))]
+         (case family
+           :p-norm (abs x)
+           (:lse :boltzmann :mellowmax :smu :sigmoid :circular :quadratic :cubic :quartic :exponential) x))
+       (case family
+       :lse (smooth-max-lse xs alpha)
+       :boltzmann (smooth-max-boltzmann xs alpha)
+       :mellowmax (smooth-max-mellowmax xs alpha)
+       :p-norm (smooth-max-p-norm xs alpha)
+       :smu (let [epsilon (abs (/ alpha))]
+              (if (pos? alpha)
+                (reduce-smooth-pairs xs alpha (fn [a b]
+                                     (let [d (- a b)]
+                                       (if (> (abs d) 1.0e150)
+                                         (+ (max a b) (smu-far-correction d epsilon))
+                                         (* 0.5 (+ a b (sqrt (+ (sq d) epsilon))))))))
+                (reduce-smooth-pairs xs alpha (fn [a b]
+                                     (let [d (- a b)]
+                                       (if (> (abs d) 1.0e150)
+                                         (- (min a b) (smu-far-correction d epsilon))
+                                         (* 0.5 (+ a b (- (sqrt (+ (sq d) epsilon)))))))))))
+       :sigmoid (let [k (* M_LN2 (- (/ alpha)))]
+                  (reduce-smooth-pairs xs alpha (fn [a b] (smooth-max-kernel sm-sigmoid a b k))))
+       :circular (let [k (* 3.414213562373096 (- (/ alpha)))]
+                   (reduce-smooth-pairs xs alpha (fn [a b] (smooth-max-kernel sm-circular a b k))))
+       :quadratic (let [k (* 4.0 (- (/ alpha)))]
+                    (reduce-smooth-pairs xs alpha (fn [a b] (smooth-max-kernel sm-quadratic a b k))))
+       :cubic (let [k (* 6.0 (- (/ alpha)))]
+                (reduce-smooth-pairs xs alpha (fn [a b] (smooth-max-kernel sm-cubic a b k))))
+       :quartic (let [k (* 5.333333333333333 (- (/ alpha)))]
+                  (reduce-smooth-pairs xs alpha (fn [a b] (smooth-max-kernel sm-quartic a b k))))
+       :exponential (reduce-smooth-pairs xs alpha (fn [a b]
+                                         (+ (hard-extreme a b alpha)
+                                            (/ (log2 (inc (exp2 (- (abs (* alpha (- a b))))))) alpha)))))))))
 
 ;;
 

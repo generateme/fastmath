@@ -1,5 +1,5 @@
 (ns ^:no-doc fastmath.calculus.autodiff.special
-  "Internal: the gamma and beta functions of numbers and duals of [[fastmath.calculus.autodiff]], dispatched by `instance?`, and their derivative rules. The shape parameters of the incomplete functions and the order of [[polygamma]] have no derivative."
+  "Internal: the gamma and beta functions, the error functions and their inverses, and the Lambert W functions of numbers and duals of [[fastmath.calculus.autodiff]], dispatched by `instance?`, and their derivative rules. The shape parameters of the incomplete functions and the order of [[polygamma]] have no derivative."
   (:require [fastmath.core :as m]
             [fastmath.special :as s]
             [fastmath.calculus.autodiff.dual :as d]
@@ -13,7 +13,8 @@
 
 (declare dual-gamma dual-log-gamma dual-log-gamma-1p dual-inv-gamma-1pm1 dual-digamma dual-trigamma dual-polygamma
          dual-beta dual-log-beta dual-lower-incomplete-gamma dual-upper-incomplete-gamma dual-regularized-gamma-p
-         dual-regularized-gamma-q dual-incomplete-beta dual-regularized-beta)
+         dual-regularized-gamma-q dual-incomplete-beta dual-regularized-beta
+         dual-erf dual-erf2 dual-erfc dual-inv-erf dual-inv-erfc dual-lambert-W dual-lambert-W-1)
 
 ;; ## Operations on numbers and duals
 
@@ -32,6 +33,15 @@
 (defn regularized-gamma-q "Regularized upper incomplete gamma function." [a x] (r/dispatch dual-regularized-gamma-q s/regularized-gamma-q a x))
 (defn incomplete-beta "Incomplete beta function, `x` first." [x a b] (r/dispatch dual-incomplete-beta s/incomplete-beta x a b))
 (defn regularized-beta "Regularized incomplete beta function, `x` first." [x a b] (r/dispatch dual-regularized-beta s/regularized-beta x a b))
+(defn erf
+  "Error function; with two arguments `erf(x2) - erf(x1)`."
+  ([x] (r/dispatch dual-erf s/erf x))
+  ([x1 x2] (r/dispatch dual-erf2 s/erf x1 x2)))
+(defn erfc "Complementary error function." [x] (r/dispatch dual-erfc s/erfc x))
+(defn inv-erf "Inverse error function." [x] (r/dispatch dual-inv-erf s/inv-erf x))
+(defn inv-erfc "Inverse complementary error function." [x] (r/dispatch dual-inv-erfc s/inv-erfc x))
+(defn lambert-W "Lambert W, the principal branch." [x] (r/dispatch dual-lambert-W s/lambert-W x))
+(defn lambert-W-1 "Lambert W, the lower branch." [x] (r/dispatch dual-lambert-W-1 s/lambert-W-1 x))
 
 ;; ## Derivative rules: gamma, polygamma and beta (the forms of DiffRules.jl)
 
@@ -145,3 +155,32 @@
 (defn- dual-regularized-beta
   [x a b]
   (r/chain [x x, a a, b b, _y (regularized-beta x a b)] :regularized-beta (mul (beta-sign a b) (beta-density x a b (log-beta a b))) nil nil))
+
+;; ## Derivative rules: the error functions and Lambert W
+
+(def ^{:private true :const true :tag 'double} sqrt-pi-over-two (m// m/SQRTPI 2.0))
+
+(defn- erf-derivative "`(2/sqrt(pi)) exp(-x^2)`." [x] (mul m/M_2_SQRTPI (exp (neg (mul x x)))))
+
+(defn- dual-erf [x] (r/chain [v x, _y (erf v)] :erf (erf-derivative v)))
+(defn- dual-erf2 [x1 x2] (r/chain [a x1, b x2, _y (erf a b)] :erf (neg (erf-derivative a)) (erf-derivative b)))
+(defn- dual-erfc [x] (r/chain [v x, _y (erfc v)] :erfc (neg (erf-derivative v))))
+(defn- dual-inv-erf [x] (r/chain [v x, y (inv-erf v)] :inv-erf (mul sqrt-pi-over-two (exp (mul y y)))))
+(defn- dual-inv-erfc [x] (r/chain [v x, y (inv-erfc v)] :inv-erfc (neg (mul sqrt-pi-over-two (exp (mul y y))))))
+
+(defn- lambert-W-derivative
+  "The derivative of either branch at `x` with the value `W`: `1 / (exp(W) (1 + W))` for `|W| <= 1` (`1` at `0`, where
+  the quotient form is `0/0`; infinite at the branch point `-1/e`), otherwise `W / (x (1 + W))` (`exp(W)` would amplify
+  the rounding of `W` about `|W|` times: `3e-14` at `W = -697`). The limits at the infinite values: `-Inf` for
+  `W = -Inf` (the lower branch at `0`), `0` for `W = Inf` (the quotient form is `Inf/Inf` there); the higher derivatives
+  at these points are not limits."
+  [x w]
+  (let [sw (d/scalar w)]
+    (cond
+      (m/== ##-Inf sw) ##-Inf
+      (m/== ##Inf sw) 0.0
+      (m/<= (m/abs sw) 1.0) (div 1.0 (mul (exp w) (add 1.0 w)))
+      :else (div w (mul x (add 1.0 w))))))
+
+(defn- dual-lambert-W [x] (r/chain [v x, w (lambert-W v)] :lambert-W (lambert-W-derivative v w)))
+(defn- dual-lambert-W-1 [x] (r/chain [v x, w (lambert-W-1 v)] :lambert-W-1 (lambert-W-derivative v w)))

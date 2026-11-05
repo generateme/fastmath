@@ -175,9 +175,9 @@
   `sign(c)` when `c` is the only infinite argument, `0` for a finite `c`, `NaN` when several arguments are infinite
   (the limit depends on the direction)."
   [c h ^long infinite-arguments]
-  (if (and (m/pos? infinite-arguments) (Double/isInfinite (d/scalar h)))
+  (if (and (m/pos? infinite-arguments) (d/scalar-infinite? h))
     (cond
-      (not (Double/isInfinite (d/scalar c))) 0.0
+      (not (d/scalar-infinite? c)) 0.0
       (m/== 1 infinite-arguments) (m/signum (d/scalar c))
       :else ##NaN)
     (div c h)))

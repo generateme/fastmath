@@ -137,6 +137,10 @@
                     (m/+ c j))]
         (recur (m/inc j) s1 (m/+ s1 (m/* (m/- s1 s0) rj)))))))
 
+;; the terminating sum is linear in its degree (1e7: 0.15 s, 1e8: 1.5 s, 9e15: a hang) and loses about n eps (vs
+;; mpmath, x small: 5e-11 at 1e6, 5e-10 at 1e7, 5e-9 at 1e8); from 1e4 it overflows to NaN or Inf for moderate x
+(def ^{:private true :const true :tag 'double} TERMINATING-2F1-MAX-DEGREE 1.0e7)
+
 (defn- terminating-2F1-sum
   "`[sum_k (a)_k (b)_k / ((c)_k k!) x^k, sum_k |term_k|]` for `k = 0..n` as a [[Vec2]]; the ratio of the two is the condition number of the sum."
   ^Vec2 [a b c x n]
@@ -650,7 +654,9 @@
     :else (weniger-2F1 a b c x)))
 
 (defn hypergeometric-2F1
-  "Gauss's hypergeometric ₂F₁ function."
+  "Gauss's hypergeometric ₂F₁ function.
+
+  Returns `##NaN` for a terminating series (`a` or `b` a non-positive integer) of degree above `1e7` (the polynomial sum is linear in the degree and loses about `n` times the machine epsilon)."
   ^double [^double a ^double b ^double c ^double x]
   (let [absa (m/abs a)
         absb (m/abs b)]
@@ -686,7 +692,12 @@
       ;; elsewhere even though the true value is perfectly finite and
       ;; real -- fixed this session). The pole check above already
       ;; guarantees c cannot be an unreachable-in-time pole by this point.
-      (terminating-2F1 a b c x)
+      ;; a degree above 1e7 is out of reach of the polynomial sum (time and accuracy)
+      (if (m/> (m/min (if (and (m/not-pos? a) (m/integer? a)) (m/- a) ##Inf)
+                      (if (and (m/not-pos? b) (m/integer? b)) (m/- b) ##Inf))
+               TERMINATING-2F1-MAX-DEGREE)
+        ##NaN
+        (terminating-2F1 a b c x))
 
       (m/== a c) (m/exp (m/* -1.0 b (m/log1p (m/- x))))
       (m/== b c) (m/exp (m/* -1.0 a (m/log1p (m/- x))))

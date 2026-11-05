@@ -582,6 +582,203 @@
     (let [{ib-ref :inc :keys [x a b]} (:incbeta @beta-reference)]
       (t/is (v/edelta-eq (mapv sut/incomplete-beta x a b) ib-ref 1.0e-9 1.0e-8)))))
 
+;; Gamma and beta fixes (upstream group 2). Reference: mpmath 60 digits (`gamma_beta_reference.edn`, large shapes of
+;; the incomplete gamma function by Gauss-Legendre quadrature, R pgamma being off by 3e-9 at a = 1e20) and R pbeta for
+;; large beta shapes (`gamma_beta_large_reference.edn`); generators in utils/fastmath/dev/generate_special_gamma_beta_*.
+
+(def ^:private gamma-beta-reference
+  (delay (edn/read-string (slurp (io/resource "special/gamma_beta_reference.edn")))))
+
+(def ^:private gamma-beta-large-reference
+  (delay (edn/read-string (slurp (io/resource "special/gamma_beta_large_reference.edn")))))
+
+(defn- relative-error
+  "Relative error of `actual` against a nonzero `expected`; 0 when equal, `##Inf` for a NaN."
+  ^double [^double actual ^double expected]
+  (cond (m/== actual expected) 0.0
+        (m/nan? actual) ##Inf
+        :else (m/abs (m// (m/- actual expected) expected))))
+
+(defn- completes?
+  "True when `(f)` returns within a second (the continued fractions of Commons Math used to hang)."
+  [f]
+  (let [fut (future (f)) r (deref fut 1000 ::timeout)]
+    (when (= r ::timeout) (future-cancel fut))
+    (not= r ::timeout)))
+
+(t/deftest beta-cancelling-poles
+  (t/testing "p + q a non-positive integer: (-1)^p B(p, 1 - p - q), no long overflow"
+    (t/is (m/delta-eq 1.0e-300 (sut/beta 1.0e300 -1.0e300) 0.0 1.0e-13))
+    (t/is (m/delta-eq 1.0e-300 (sut/beta -1.0e300 1.0e300) 0.0 1.0e-13))
+    (t/is (m/delta-eq -46.051701859880914 (sut/log-beta 1.0e20 -1.0e20) 0.0 1.0e-15))
+    (t/is (m/delta-eq 1.0e-15 (sut/beta 1.0e15 -1.0e15) 0.0 1.0e-14)))
+  (t/testing "vs mpmath"
+    ;; observed: beta 1.1e-14, log-beta 2.2e-16
+    (let [{:keys [p q ref]} (:beta-poles @gamma-beta-reference)]
+      (doseq [[p q r] (map vector p q ref)]
+        (t/is (<= (relative-error (sut/beta p q) r) 1.0e-13) (str "beta " p " " q))
+        (t/is (<= (relative-error (sut/log-beta p q) (m/log (m/abs r))) 1.0e-14) (str "log-beta " p " " q))))))
+
+(t/deftest incomplete-gamma-small-shape
+  (t/testing "edges"
+    (t/is (m/delta-eq 5.597735947761608e-301 (sut/regularized-gamma-q 1.0e-300 0.5) 0.0 1.0e-13))
+    (t/is (m/delta-eq 0.5597735947761608 (sut/upper-incomplete-gamma 1.0e-300 0.5) 0.0 1.0e-13))
+    (t/is (m/delta-eq 3.683597761682032e-46 (sut/upper-incomplete-gamma 1.0e-300 100.0) 0.0 1.0e-13))
+    (t/is (m/== 1.0 (sut/regularized-gamma-q 0.01 0.0)))
+    (t/is (m/== (sut/gamma 0.01) (sut/upper-incomplete-gamma 0.01 0.0)))
+    (t/is (m/zero? (sut/regularized-gamma-q 0.01 ##Inf)))
+    (t/is (m/== 1.0 (sut/regularized-gamma-p 0.01 ##Inf)))
+    (t/is (m/nan? (sut/regularized-gamma-q 0.01 ##NaN)))
+    (t/is (m/nan? (sut/regularized-gamma-p ##NaN 0.5))))
+  (t/testing "subnormal shapes (Gamma(a) overflows; mpmath)"
+    (doseq [a [1.0e-310 4.9e-324]]
+      (t/is (m/== 1.0 (sut/regularized-gamma-q a 0.0)) (str a))
+      (t/is (m/zero? (sut/regularized-gamma-p a 0.0)) (str a))
+      (t/is (m/delta-eq 0.5597735947761608 (sut/upper-incomplete-gamma a 0.5) 0.0 1.0e-13) (str a))
+      (t/is (m/delta-eq 690.1983122333122 (sut/upper-incomplete-gamma a 1.0e-300) 0.0 1.0e-13) (str a))
+      (t/is (m/delta-eq 0.013048381094197037 (sut/upper-incomplete-gamma a 3.0) 0.0 1.0e-13) (str a)))
+    ;; subnormal: 13 significant digits
+    (t/is (m/delta-eq 5.5977359477617e-311 (sut/regularized-gamma-q 1.0e-310 0.5) 0.0 1.0e-12))
+    (t/is (m/== 4.9e-324 (sut/regularized-gamma-q 4.9e-324 0.5))))
+  (t/testing "huge x: the underflow, not En(1, x) (NaN above 4.5e61)"
+    (t/is (m/zero? (sut/regularized-gamma-q 1.0e-200 1.0e308)))
+    (t/is (m/zero? (sut/upper-incomplete-gamma 1.0e-20 1.0e200)))
+    (t/is (m/zero? (sut/regularized-gamma-q 4.9e-324 1.0e308)))
+    ;; Gamma(0.05, x) underflows from x = 745.2, below the 750 switch
+    (t/is (m/zero? (sut/upper-incomplete-gamma 0.05 749.9)))
+    (t/is (m/zero? (sut/upper-incomplete-gamma 0.05 750.0000000000001))))
+  (t/testing "NaN and infinite shapes: NaN, the limits"
+    (t/is (m/nan? (sut/upper-incomplete-gamma ##NaN ##Inf)))
+    (t/is (m/zero? (sut/regularized-gamma-p ##Inf 2.0)))
+    (t/is (m/== 1.0 (sut/regularized-gamma-q ##Inf 2.0)))
+    (t/is (m/== ##Inf (sut/upper-incomplete-gamma ##Inf 2.0)))
+    (t/is (m/zero? (sut/lower-incomplete-gamma ##Inf 0.5)))
+    (t/is (m/zero? (sut/lower-incomplete-gamma ##Inf 1.0)))
+    (t/is (m/== ##Inf (sut/lower-incomplete-gamma ##Inf 2.0))))
+  (t/testing "the series of (Gamma(1+a)-1)/a at its 1e-8 switch (mpmath)"
+    (t/is (m/delta-eq 0.5597735944788579 (sut/upper-incomplete-gamma 1.0e-8 0.5) 0.0 1.0e-13))
+    (t/is (m/delta-eq 0.5597735944491276 (sut/upper-incomplete-gamma 1.1e-8 0.5) 0.0 1.0e-13)))
+  (let [{:keys [a x p q upper]} (:gamma-small @gamma-beta-reference)]
+    (t/testing "P in [0, 1], Q >= 0, P + Q = 1"
+      (doseq [[a x] (map vector a x)]
+        (let [pv (sut/regularized-gamma-p a x) qv (sut/regularized-gamma-q a x)]
+          (t/is (m/<= 0.0 pv 1.0) (str "P " a " " x))
+          (t/is (m/>= qv 0.0) (str "Q " a " " x))
+          (t/is (m/delta-eq 1.0 (m/+ pv qv) 1.0e-15) (str "P + Q " a " " x)))))
+    (t/testing "vs mpmath"
+      ;; observed: P 2.5e-14, Q 2.6e-14, Gamma(a,x) 4.4e-14
+      (doseq [[a x p q u] (map vector a x p q upper)]
+        (t/is (<= (relative-error (sut/regularized-gamma-p a x) p) 1.0e-13) (str "P " a " " x))
+        (t/is (<= (relative-error (sut/regularized-gamma-q a x) q) 1.0e-13) (str "Q " a " " x))
+        (t/is (<= (relative-error (sut/upper-incomplete-gamma a x) u) 1.0e-13) (str "Gamma " a " " x))))))
+
+(t/deftest incomplete-gamma-large-shape
+  (t/testing "no exception or hang near x = a"
+    (t/testing "both sides of the 1.5e4 switch to Temme's expansion (quadrature)"
+      (t/is (<= (relative-error (sut/regularized-gamma-p 99999.99999999999 1.0e5) 0.50042052211038353) 1.0e-12))
+      (t/is (<= (relative-error (sut/regularized-gamma-p 3.0e4 3.0e4) 0.50076776491877105) 1.0e-12)))
+    (doseq [a [1.0e15 1.0e30 1.0e100 1.0e300]]
+      (t/is (completes? #(sut/regularized-gamma-p a a)) (str a))
+      (t/is (m/delta-eq 0.5 (sut/regularized-gamma-p a a) 1.0e-6) (str "P " a))
+      (t/is (m/delta-eq 0.5 (sut/regularized-gamma-q a a) 1.0e-6) (str "Q " a))))
+  (t/testing "vs mpmath quadrature"
+    ;; observed: Commons Math at a = 1e4 1.3e-11; Temme expansion (a >= 1.5e4) 5.5e-12 at 1.5e4, 1.4e-13 from 1e5
+    (let [{:keys [a x p q]} (:gamma-large @gamma-beta-reference)]
+      (doseq [[a x p q] (map vector a x p q)]
+        (let [tol (cond (m/< a 1.5e4) 5.0e-11 (m/< a 1.0e5) 1.0e-11 :else 5.0e-13)]
+          (t/is (<= (relative-error (sut/regularized-gamma-p a x) p) tol) (str "P " a " " x))
+          (t/is (<= (relative-error (sut/regularized-gamma-q a x) q) tol) (str "Q " a " " x)))))))
+
+(t/deftest regularized-beta-extreme-shapes
+  (t/testing "no exception: limits or NaN"
+    (t/is (m/== 1.0 (sut/regularized-beta 1.0 1.0e300 1.5)))
+    (t/is (m/zero? (sut/regularized-beta 0.999 1.0e300 1.5)))
+    (t/is (m/== 1.0 (sut/regularized-beta 0.001 1.5 1.0e300)))
+    (t/is (m/nan? (sut/regularized-beta 0.5 1.0e300 1.0e300)) "two large shapes: NaN (documented)")
+    (t/is (m/nan? (sut/regularized-beta 0.5 1.0e20 1.0e20)))
+    (t/is (completes? #(sut/regularized-beta 0.5 1.0e10 1.0e10))))
+  (t/testing "NaN arguments: NaN; no long overflow of a huge terminating degree"
+    (t/is (m/nan? (sut/incomplete-beta 1.0e-300 0.5 ##NaN)))
+    (t/is (m/nan? (sut/incomplete-beta 4.9e-324 0.001 ##NaN)))
+    (t/is (m/nan? (sut/incomplete-beta 1.0e-300 1.0e4 ##NaN)))
+    (t/is (m/nan? (sut/regularized-beta 0.5 ##NaN 1.0e300)))
+    (t/is (m/nan? (sut/incomplete-beta 0.5 ##NaN ##Inf)))
+    (t/is (m/nan? (sut/regularized-beta 0.5 -0.5 1.0e300)))
+    (t/is (m/nan? (sut/hypergeometric-2F1 -1.0e300 0.5 1.5 0.5)))
+    ;; the terminating sum up to degree 1e7 (mpmath; about n eps lost: 4.6e-10), NaN above (linear time)
+    (t/is (m/delta-eq 0.088622689221925 (sut/hypergeometric-2F1 -1.0e7 0.5 1.5 1.0e-5) 0.0 1.0e-9))
+    (t/is (m/nan? (sut/hypergeometric-2F1 -1.0000001e7 0.5 1.5 1.0e-5)))
+    (t/is (completes? #(sut/regularized-beta 0.5 -0.5 9.0e15))))
+  (t/testing "in [0, 1]"
+    (t/is (m/<= (sut/regularized-beta 0.5 1.0e-300 9.99e-4) 1.0))
+    (t/is (m/<= (sut/regularized-beta 1.0e-10 1.0e-300 9999.0) 1.0))
+    ;; the continued fraction gives 1.0000000000000038
+    (t/is (m/<= (sut/regularized-beta 0.01 1.0e-19 0.01) 1.0)))
+  (t/testing "a tiny b near x = 1: the expansion in 1 - x (mpmath)"
+    ;; observed: 8.1e-12 (a from 0.01 to 9999, y = 1 - x from 1.1e-16 to 1e-2, b below 1e-6)
+    (doseq [[x a b reg inc] [[0.99999999 1000.0 1.0e-300 1.0936219868352387e-299 10.936219868352386]
+                             [0.99999999 3000.0 1.0e-300 9.8372941720771298e-300 9.8372941720771296]
+                             [0.99999 9999.0 1.0e-300 1.8230551705471862e-300 1.8230551705471862]
+                             [0.9999999999999999 9999.0 1.0e-300 2.694939454363483e-299 26.949394543634829]
+                             [0.999999999999 1000.0 1.0e-20 2.014657237834199e-19 20.146572378341992]
+                             [0.9999999999999999 0.5 1.0e-300 3.8123094930796993e-299 38.123094930796992]
+                             [0.999999999999999 0.5 1.0e-300 3.5925870353460773e-299 35.925870353460772]
+                             [0.999999999999 0.5 1.0e-300 2.901733759901275e-299 29.017337599012749]
+                             ;; max(a,1)(1-x) between 0.1 and 1, where the old paths fail for a from 1000
+                             [0.99988 1000.0 1.0e-300 1.6599320741981275e-300 1.6599320741981274]
+                             [0.9995 1000.0 1.0e-300 5.5992524321765156e-301 0.55992524321765155]
+                             [0.99985 1000.0 1.0e-10 1.4648275453422729e-10 1.4648275442459269]
+                             [0.99995 9999.0 1.0e-10 5.5984941963668175e-11 0.55984941908873438]
+                             [0.9999 9999.0 1.0e-300 2.1942072724533503e-301 0.21942072724533503]]]
+      (t/is (m/delta-eq reg (sut/regularized-beta x a b) 0.0 2.0e-11) (str x " " a " " b))
+      (t/is (m/delta-eq inc (sut/incomplete-beta x a b) 0.0 2.0e-11) (str x " " a " " b)))
+    ;; close to b = 1e-6 (documented): the expansion's dropped second order 5.2e-10 below, the old paths 4.7e-9 above
+    (t/is (<= (relative-error (sut/regularized-beta 0.9999399939993999 9999.0 9.9e-7) 4.4984686591971538e-7) 1.0e-9))
+    (t/is (<= (relative-error (sut/regularized-beta 0.9999399939993999 9999.0 1.01e-6) 4.5893468737452999e-7) 5.0e-9))
+    ;; a subnormal b: I_x(a,b) underflows, B(x;a,b) does not
+    (t/is (m/delta-eq 0.21942072724533504 (sut/incomplete-beta 0.9999 9999.0 4.9e-324) 0.0 2.0e-11))
+    (t/is (m/delta-eq 0.2193838730209269 (sut/incomplete-beta 0.999 1000.0 4.9e-324) 0.0 2.0e-11))
+    (t/is (m/== ##Inf (sut/incomplete-beta 1.0 1000.0 4.9e-324))))
+  (t/testing "negligible and subnormal shapes (mpmath)"
+    (t/is (m/delta-eq 0.5 (sut/regularized-beta 0.5 4.9e-324 4.9e-324)))
+    (t/is (m/delta-eq 4.9406564584124653e-24 (sut/regularized-beta 0.5 1.0e-300 4.9e-324) 0.0 1.0e-13))
+    (t/is (m/== 1.0 (sut/regularized-beta 1.0e-10 4.9e-324 9999.0))))
+  (t/testing "infinite shapes: the limits"
+    (t/is (m/zero? (sut/regularized-beta 0.5 ##Inf 2.0)))
+    (t/is (m/== 1.0 (sut/regularized-beta 0.5 2.0 ##Inf)))
+    (t/is (m/== ##-Inf (sut/log-beta ##Inf 2.0)))
+    (t/is (m/zero? (sut/beta 2.0 ##Inf)))
+    (doseq [[a b] [[##Inf 2.0] [2.0 ##Inf] [##Inf ##Inf] [##Inf 1.0e-4]]
+            x [0.0 0.5 1.0]]
+      (t/is (m/zero? (sut/incomplete-beta x a b)) (str x " " a " " b)))
+    (t/is (m/nan? (sut/incomplete-beta 1.5 ##Inf 2.0))))
+  (t/testing "a tiny shape with a large one: the incomplete gamma limit (R pbeta: 1, 0), no slow hypergeometric series"
+    (t/is (completes? #(sut/regularized-beta 0.001 1.0e-300 1.0e7)))
+    (t/is (completes? #(sut/incomplete-beta 0.001 1.0e-300 1.0e7)))
+    (t/is (m/== 1.0 (sut/regularized-beta 0.001 1.0e-300 1.0e7)))
+    (t/is (m/== 1.0 (sut/regularized-beta 0.3 1.0e-4 1.0e5)))
+    (t/is (m/zero? (sut/regularized-beta 0.5 1.0e6 1.0e-20)))
+    (t/is (m/delta-eq 1.0e300 (sut/incomplete-beta 0.001 1.0e-300 1.0e7) 0.0 1.0e-13)))
+  (t/testing "tiny shapes vs mpmath"
+    ;; observed: regularized 9.0e-14, incomplete 3.6e-14
+    (let [{:keys [x a b reg inc]} (:beta-tiny @gamma-beta-reference)]
+      (doseq [[x a b r i] (map vector x a b reg inc)]
+        (t/is (<= (relative-error (sut/regularized-beta x a b) r) 2.0e-13) (str "I " x " " a " " b))
+        (t/is (<= (relative-error (sut/incomplete-beta x a b) i) 1.0e-13) (str "B " x " " a " " b)))))
+  (t/testing "large shapes vs R pbeta"
+    ;; observed: 1.4e-8 (one shape 1e10, the other 1e5: the incomplete gamma limit; the continued fraction gives 2.5e-8)
+    (let [{:keys [x a b ref]} (:beta-large @gamma-beta-large-reference)]
+      (doseq [[x a b r] (map vector x a b ref)]
+        (let [a (double a) b (double b) v (sut/regularized-beta x a b)]
+          (if (and (m/>= (m/min a b) 1.0e7) (m/> (m// (m/min a b) (m/max a b)) 1.0e-10))
+            (t/is (m/nan? v) (str "two large " a " " b))
+            (do (t/is (m/<= 0.0 v 1.0) (str "range " x " " a " " b))
+                (t/is (<= (relative-error v r) 2.0e-8) (str "I " x " " a " " b))))))))
+  (t/testing "upper tail through the symmetry 1 - I_x(a,b) = I_(1-x)(b,a)"
+    ;; mpmath: 1 - I_0.999999999(2,3) = 3.9999996576168371e-27; the naive 1 - I loses it entirely
+    (t/is (m/delta-eq 3.9999996576168371e-27 (sut/regularized-beta (m/- 1.0 0.999999999) 3.0 2.0) 0.0 1.0e-14))
+    (t/is (m/zero? (m/- 1.0 (sut/regularized-beta 0.999999999 2.0 3.0))))))
+
 ;;
 
 ;; `zeta`/`eta`/`dirichlet-beta`/`xi` reference values below were computed
@@ -986,11 +1183,12 @@
 ;; reference data (all independently confirmed against `mpmath`):
 ;;  - `E0`: `exp(-x)` alone overflowed to `##Inf` for `x` roughly in
 ;;    `(-716.35, -709.78)`, even though the true ratio `exp(-x)/x` still fits
-;;    in double range there; fixed via a log-space fallback.
+;;    in double range there; fixed via a log-space fallback (since upstream
+;;    group 3 the exponent split in halves, the log-space form lost 4e-14).
 ;;  - `Ein`: was `##NaN` for every negative `x` (delegated entirely to `E1`,
-;;    which is undefined there); now extended to `x >= -2.15` via its own
-;;    entire power series (still `##NaN` below that, a documented remaining
-;;    limitation).
+;;    which is undefined there); extended to `x >= -2.15` via its own entire
+;;    power series, and since upstream group 3 defined for every real `x`
+;;    (the series for `|x| <= 2.15`, `-Ei(-x) + ln(-x) + gamma` below).
 ;;  - `Ei`: a "near its real zero" branch (`|x - 0.3725| < 0.3`) using a
 ;;    13-term Taylor series was inaccurate by up to ~1% inside its own claimed
 ;;    domain (insufficient terms for that radius); removed entirely in favor
@@ -1004,6 +1202,112 @@
 ;;    instead of the mathematically correct `##Inf` (the defining integral
 ;;    itself diverges there, same as for `n <= 0`).
 
+;; Spherical Bessel functions (upstream group 4): the values at x = +-0 (one-sided limits, the sign of the zero picks the
+;; side for integer orders), NaN and infinite orders, and the accuracy of bessel-K, bessel-I and bessel-Y next to integer
+;; orders. Reference: utils/fastmath/dev/generate_special_spherical_bessel_reference.py (mpmath).
+
+(def ^:private spherical-bessel-reference
+  (delay (edn/read-string (slurp (io/resource "special/spherical_bessel_reference.edn")))))
+
+(def ^:private spherical-bessel-families
+  {"j" sut/spherical-bessel-j "y" sut/spherical-bessel-y "i1" sut/spherical-bessel-1-i "i2" sut/spherical-bessel-2-i
+   "k" sut/spherical-bessel-k})
+
+(defn- same-double?
+  "Equal values with the same sign (also of a zero and an infinity), or both `##NaN`."
+  [^double a ^double b]
+  (or (and (m/nan? a) (m/nan? b))
+      (and (m/== a b) (m/== (m/copy-sign 1.0 a) (m/copy-sign 1.0 b)))))
+
+(t/deftest spherical-bessel-at-zero
+  (t/testing "the one-sided limits vs mpmath (20 orders x 5 families x +-0)"
+    (let [{:keys [family order x ref]} (:zero @spherical-bessel-reference)]
+      (doseq [[fm n x ref] (map vector family order x ref)]
+        (t/is (same-double? ref ((spherical-bessel-families fm) n x)) (str fm " " n " " x)))))
+  (t/testing "the sign of the zero picks the side for an integer order"
+    (t/is (m/pos-inf? (sut/spherical-bessel-j -1.0 0.0)))
+    (t/is (m/neg-inf? (sut/spherical-bessel-j -1.0 -0.0)))
+    (t/is (m/neg-inf? (sut/spherical-bessel-j -3.0 -0.0)))
+    (t/is (same-double? -0.0 (sut/spherical-bessel-y -2.0 0.0)))
+    (t/is (same-double? 0.0 (sut/spherical-bessel-y -2.0 -0.0)))
+    (t/is (same-double? -0.0 (sut/spherical-bessel-j 1.0 -0.0)))
+    (t/is (m/pos-inf? (sut/spherical-bessel-y 0.0 -0.0)))
+    (t/is (m/pos-inf? (sut/spherical-bessel-y 2.0 -0.0)))
+    (t/is (m/neg-inf? (sut/spherical-bessel-2-i 0.0 -0.0)))
+    (t/is (m/neg-inf? (sut/spherical-bessel-2-i 2.0 -0.0)))
+    (t/is (same-double? -0.0 (sut/spherical-bessel-1-i 1.0 -0.0)))
+    (t/is (m/pos-inf? (sut/spherical-bessel-j -0.3 -0.0)) "a non-integer order: the limit from the right"))
+  (t/testing "k at -0.0 is the value at 0"
+    (doseq [n [0.0 1.0 2.0 3.5]]
+      (t/is (m/pos-inf? (sut/spherical-bessel-k n -0.0)) (str n)))))
+
+(t/deftest spherical-bessel-nan-and-infinite-orders
+  (t/testing "NaN in, NaN out (also at x = 0)"
+    (doseq [[fm f] spherical-bessel-families
+            [n x] [[##NaN 0.0] [##NaN 1.0] [1.0 ##NaN] [3.5 ##NaN]]]
+      (t/is (m/nan? (f n x)) (str fm " " n " " x))))
+  (t/testing "infinite and huge orders: the limits at a fixed x, no exception"
+    (doseq [o [##Inf 1.0e300 -1.0e300 1.0e16]]
+      (t/is (m/zero? (sut/bessel-J o 1.0)) (str o))
+      (t/is (m/neg-inf? (sut/bessel-Y o 1.0)) (str o))
+      (t/is (m/zero? (sut/bessel-I o 1.0)) (str o))
+      (t/is (m/pos-inf? (sut/bessel-K o 1.0)) (str o)))
+    (t/is (m/nan? (sut/bessel-J ##-Inf 1.0)) "cos(v pi) J_v - sin(v pi) Y_v oscillates along non-integer orders")
+    (t/is (m/nan? (sut/bessel-Y ##-Inf 1.0)) "(-1)^m Y_m alternates")
+    (t/is (m/nan? (sut/bessel-I ##-Inf 1.0)))
+    (t/is (m/pos-inf? (sut/bessel-K ##-Inf 1.0)))
+    ;; [order j y i1 i2 k] at x = 1 (Bessel order n + 1/2; i2: -n - 1/2); -Inf: no limit for J, Y, I
+    (doseq [[o & expected] [[##Inf 0.0 ##-Inf 0.0 ##NaN ##Inf]
+                            [##-Inf ##NaN ##NaN ##NaN 0.0 ##Inf]
+                            [1.0e300 0.0 ##-Inf 0.0 0.0 ##Inf]
+                            [-1.0e300 0.0 ##-Inf 0.0 0.0 ##Inf]]
+            [fm e] (map vector ["j" "y" "i1" "i2" "k"] expected)]
+      (t/is (same-double? e ((spherical-bessel-families fm) o 1.0)) (str fm " " o))))
+  (t/testing "J, Y, I at an infinite argument (the docstrings' limits)"
+    (doseq [n [2.0 2.5 3.0 -2.5]]
+      (t/is (m/zero? (sut/bessel-J n ##Inf)) (str "J " n))
+      (t/is (m/zero? (sut/bessel-Y n ##Inf)) (str "Y " n))
+      (t/is (m/pos-inf? (sut/bessel-I n ##Inf)) (str "I " n)))
+    (t/is (m/zero? (sut/bessel-J 3.0 ##-Inf)))
+    (t/is (m/nan? (sut/bessel-J 2.5 ##-Inf)) "a non-integer order is not real at a negative x")
+    (t/is (m/pos-inf? (sut/bessel-I 2.0 ##-Inf)))
+    (t/is (m/neg-inf? (sut/bessel-I 3.0 ##-Inf)))
+    (t/is (m/nan? (sut/bessel-I 2.5 ##-Inf)))
+    (t/is (m/nan? (sut/bessel-J ##NaN ##Inf)))
+    (t/is (m/nan? (sut/bessel-I ##NaN ##Inf)))))
+
+(t/deftest bessel-next-to-integer-orders
+  (let [r @spherical-bessel-reference]
+    (t/testing "K: the Temme series within 1.5e-4 of an integer order, the power series (exact sin(pi v)) beyond"
+      ;; observed: 7.3e-12 (was 5.3e-7)
+      (let [{:keys [order x ref]} (:K r)]
+        (doseq [[n x ref] (map vector order x ref)]
+          (t/is (<= (relative-error (sut/bessel-K n x) ref) 1.0e-11) (str n " " x)))))
+    (t/testing "I at negative orders: the reflection with an exact sin(pi a)"
+      ;; observed: 1.4e-15 (was 3.6e-4)
+      (let [{:keys [order x ref]} (:I r)]
+        (doseq [[n x ref] (map vector order x ref)]
+          (t/is (<= (relative-error (sut/bessel-I n x) ref) 3.0e-15) (str n " " x)))))
+    (t/testing "Y: the documented bound, about 400 eps/d for x < 7 (d: distance to the integer order)"
+      ;; observed: 372 eps/d (order 2 - 1e-6, x = 6.9); from x = 7.5 1.9e-14
+      (let [{:keys [order x ref]} (:Y r)]
+        (doseq [[n x ref] (map vector order x ref)
+                :let [d (m/abs (m/- n (m/rint n)))]]
+          (t/is (<= (relative-error (sut/bessel-Y n x) ref) (if (m/< x 7.0) (m/* 1.0e3 (m// m/MACHINE-EPSILON d)) 3.0e-14))
+                (str n " " x)))))
+    (t/testing "Y: the power series also above the order 1.35 x - 4.5 (x > 7)"
+      ;; mpmath: Y_(11 + 3.8e-6)(9.37); observed 9.9e-11 = 1.7 eps/d
+      (t/is (<= (relative-error (sut/bessel-Y 11.0000038 9.37) -0.6893396953665413) (m/* 1.0e3 (m// m/MACHINE-EPSILON 3.8e-6)))))
+    (t/testing "spherical functions next to half-integer orders"
+      ;; observed: j 5.9e-14, i1 8.6e-16, i2 1.4e-15 (was 3.9e-7), k 2.3e-13 (was 4.1e-11); y 6.6 eps/d (Y)
+      (let [{:keys [family order x ref]} (:spherical r)
+            tol {"j" 1.0e-13 "i1" 3.0e-15 "i2" 3.0e-15 "k" 5.0e-13}]
+        (doseq [[fm n x ref] (map vector family order x ref)
+                :let [d (m/abs (m/- (m/+ n 0.5) (m/rint (m/+ n 0.5))))]]
+          (t/is (<= (relative-error ((spherical-bessel-families fm) n x) ref)
+                    (get tol fm (m/* 1.0e3 (m// m/MACHINE-EPSILON d))))
+                (str fm " " n " " x)))))))
+
 (def ^:private ei-reference
   (delay (edn/read-string (slurp (io/resource "special/ei_reference.edn")))))
 
@@ -1011,6 +1315,7 @@
   (t/testing "edge cases"
     (t/is (m/nan? (sut/E0 ##NaN)))
     (t/is (m/pos-inf? (sut/E0 0.0)))
+    (t/is (m/neg-inf? (sut/E0 -0.0)) "the one-sided pole")
     (t/is (m/zero? (sut/E0 ##Inf)))
     (t/is (m/neg-inf? (sut/E0 ##-Inf))))
   (t/testing "relation to En: E0(x) = En(0, x)"
@@ -1023,14 +1328,21 @@
     (t/is (m/neg-inf? (sut/E0 -717.0))))
   (t/testing "vs mpmath, wide domain (all real x)"
     (t/is (check1 sut/E0 {:arg (get-in @ei-reference [:E0 :arg])
-                          :ref (get-in @ei-reference [:E0 :ref])} 1.0e-9))))
+                          :ref (get-in @ei-reference [:E0 :ref])} 1.0e-9)))
+  (t/testing "relative error vs mpmath (no absolute tolerance)"
+    ;; observed: 3.7e-16 (also -709.78 to -716.3, the split exponent; the log-space form lost 4e-14)
+    (doseq [[x ref] (map vector (get-in @ei-reference [:E0 :arg]) (get-in @ei-reference [:E0 :ref]))]
+      (t/is (<= (relative-error (sut/E0 x) ref) 1.0e-15) (str x)))))
 
 (t/deftest E1
   (t/testing "edge cases"
     (t/is (m/nan? (sut/E1 ##NaN)))
     (t/is (m/pos-inf? (sut/E1 0.0)))
     (t/is (m/zero? (sut/E1 ##Inf)))
-    (t/is (m/nan? (sut/E1 -1.0))))
+    (t/is (m/nan? (sut/E1 -1.0)))
+    ;; underflow above 745; the rational branch was NaN (Inf/Inf) from 4.47e61
+    (doseq [x [745.0000000000001 4.47e61 4.48e61 1.0e300 1.7976931348623157e308]]
+      (t/is (m/zero? (sut/E1 x)) (str x))))
   (t/testing "relation to En: E1(x) = En(1, x)"
     (doseq [x (get-in @ei-reference [:E1 :arg])]
       (t/is (m/delta-eq (sut/E1 x) (sut/En 1.0 x) 1.0e-9 1.0e-9))))
@@ -1042,6 +1354,10 @@
   (t/testing "vs mpmath, wide domain (x >= 0)"
     (t/is (check1 sut/E1 {:arg (get-in @ei-reference [:E1 :arg])
                           :ref (get-in @ei-reference [:E1 :ref])} 1.0e-9)))
+  (t/testing "relative error vs mpmath (no absolute tolerance)"
+    ;; observed: 3.3e-15
+    (doseq [[x ref] (map vector (get-in @ei-reference [:E1 :arg]) (get-in @ei-reference [:E1 :ref]))]
+      (t/is (<= (relative-error (sut/E1 x) ref) 5.0e-15) (str x))))
   (t/testing "vs R (expint::expint_E1) and Julia (SpecialFunctions.expint), spot check"
     (let [e1-cross-check {:arg [0.001 0.1 1.0 2.15 4.0 10.0 20.0 200.0 500.0]
                           :ref [6.331539364136149 1.8229239584193906 0.21938393439552029
@@ -1053,16 +1369,30 @@
   (t/testing "edge cases"
     (t/is (m/nan? (sut/Ein ##NaN)))
     (t/is (m/zero? (sut/Ein 0.0)))
+    (t/is (m/== -1.0 (m/copy-sign 1.0 (sut/Ein -0.0))) "the sign of the zero, like Ein(-1e-300) = -1e-300")
     (t/is (m/pos-inf? (sut/Ein ##Inf)))
-    (t/is (m/nan? (sut/Ein ##-Inf)))
-    (t/is (m/nan? (sut/Ein -5.0)))
-    (t/is (m/valid-double? (sut/Ein -2.15))))
+    (t/is (m/neg-inf? (sut/Ein ##-Inf)))
+    ;; mpmath: -1.8794e308, beyond the double range
+    (t/is (m/neg-inf? (sut/Ein -716.4)))
+    ;; ln(x) + gamma, E1 underflows (was NaN from 4.47e61)
+    (t/is (m/delta-eq (m/+ (m/log 1.0e300) m/GAMMA) (sut/Ein 1.0e300)))
+    ;; Ein(x) ~ x for a tiny x (E1 + ln + gamma gave -5.4e-14 at 1e-300, the constant term of the series lost 1e-20)
+    (doseq [x [4.9e-324 1.0e-300 1.0e-20]]
+      (t/is (m/== x (sut/Ein x)) (str x))
+      (t/is (m/== (m/- x) (sut/Ein (m/- x))) (str (m/- x)))))
+  (t/testing "continuity at -2.15 (series to -Ei(-x) + ln(-x) + gamma)"
+    ;; observed: 9.3e-15, the error of Ei(2.15)
+    (t/is (<= (relative-error (sut/Ein -2.1500000000000004) (sut/Ein -2.15)) 1.0e-14)))
   (t/testing "relation to E1: Ein(x) = E1(x) + log(x) + gamma, for x > 0"
     (doseq [x (get-in @ei-reference [:E1 :arg])]
       (t/is (m/delta-eq (sut/Ein x) (m/+ (sut/E1 x) (m/log x) m/GAMMA) 1.0e-9 1.0e-9))))
-  (t/testing "vs mpmath, wide domain (x >= -2.15)"
+  (t/testing "vs mpmath, wide domain"
     (t/is (check1 sut/Ein {:arg (get-in @ei-reference [:Ein :arg])
-                           :ref (get-in @ei-reference [:Ein :ref])} 1.0e-8))))
+                           :ref (get-in @ei-reference [:Ein :ref])} 1.0e-8)))
+  (t/testing "relative error vs mpmath (no absolute tolerance)"
+    ;; observed: series (|x| <= 2.15) 1.8e-16; elsewhere 1.6e-14 (at -200, the error of Ei)
+    (doseq [[x ref] (map vector (get-in @ei-reference [:Ein :arg]) (get-in @ei-reference [:Ein :ref]))]
+      (t/is (<= (relative-error (sut/Ein x) ref) (if (m/<= (m/abs x) 2.15) 3.0e-16 2.0e-14)) (str x)))))
 
 (t/deftest En
   (t/testing "edge cases"
@@ -1080,10 +1410,25 @@
     (t/is (m/valid-double? (sut/En 0.0 -1.0)))
     (t/is (m/valid-double? (sut/En -1.0 -1.0)))
     (t/is (m/valid-double? (sut/En -2.0 -1.0))))
+  (t/testing "negative integer order, x -> -Inf: overflow to -Inf (the continued fraction gave 0 from -1.18e84)"
+    (t/is (m/neg-inf? (sut/En -1.0 -1.0e100)))
+    (t/is (m/neg-inf? (sut/En -2.0 -1.2e84)))
+    (t/is (m/neg-inf? (sut/En -5.0 ##-Inf)))
+    (t/is (m/neg-inf? (sut/En -1.0 -1.0e10))))
   (t/testing "vs mpmath, grid of integer and fractional orders"
     (t/is (check2 sut/En {:order (get-in @ei-reference [:En :order])
                           :arg (get-in @ei-reference [:En :arg])
                           :ref (get-in @ei-reference [:En :ref])} 1.0e-6)))
+  (t/testing "relative error vs mpmath (no absolute tolerance)"
+    ;; observed: 2.5e-13 (order 2 at x = 50, the continued fraction); orders -1, -2, -3 near -716: 2.2e-16
+    (doseq [[n x ref] (map vector (get-in @ei-reference [:En :order]) (get-in @ei-reference [:En :arg])
+                           (get-in @ei-reference [:En :ref]))]
+      ;; at the zero of E_{-1} (x = -1): absolute, observed 1.1e-16
+      ;; near the overflow of exp(-x) (negative orders, x <= -709): 1e-15, the log-space form lost 4e-14
+      (t/is (if (m/zero? ref)
+              (<= (m/abs (sut/En n x)) 1.0e-15)
+              (<= (relative-error (sut/En n x) ref) (if (and (m/neg? n) (m/<= x -709.0)) 1.0e-15 3.0e-13)))
+            (str n " " x))))
   (t/testing "vs R (expint::expint_En) and Julia (SpecialFunctions.expint), spot check for orders 2 and 5"
     (let [xs [0.001 0.1 1.0 2.15 4.0 10.0 20.0 200.0 500.0]
           en2-cross-check {:order (repeat 9 2.0) :arg xs
@@ -1110,7 +1455,9 @@
   (t/testing "no premature overflow for very large x where the true value still fits in double range"
     (t/is (m/valid-double? (sut/Ei 710.0)))
     (t/is (m/valid-double? (sut/Ei 716.0)))
-    (t/is (m/pos-inf? (sut/Ei 717.0))))
+    (t/is (m/pos-inf? (sut/Ei 717.0)))
+    ;; -E1(1e300), was NaN
+    (t/is (m/== -0.0 (sut/Ei -1.0e300))))
   (t/testing "accurate through the whole 'near its real zero' region (a former
               inaccurate special-cased branch, now removed)"
     (doseq [x [0.073 0.083 0.093 0.103 0.3725074107813666 0.5 0.6]]
@@ -1118,6 +1465,10 @@
   (t/testing "vs mpmath, wide domain (all real x != 0)"
     (t/is (check1 sut/Ei {:arg (get-in @ei-reference [:Ei :arg])
                           :ref (get-in @ei-reference [:Ei :ref])} 1.0e-8)))
+  (t/testing "relative error vs mpmath (no absolute tolerance)"
+    ;; observed: 1.6e-14; 709.78 to 716.3 (split exponent) 3e-16, the log-space form lost 1e-13
+    (doseq [[x ref] (map vector (get-in @ei-reference [:Ei :arg]) (get-in @ei-reference [:Ei :ref]))]
+      (t/is (<= (relative-error (sut/Ei x) ref) 2.0e-14) (str x))))
   (t/testing "vs R (expint::expint_Ei) and Julia (SpecialFunctions.expinti), spot check"
     (let [ei-cross-check {:arg [-5.0 -1.0 -0.1 0.1 0.6 1.0 2.15 4.0 10.0 20.0 200.0 500.0]
                           :ref [-0.0011482955912753257 -0.21938393439552029 -1.8229239584193906

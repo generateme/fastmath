@@ -1769,6 +1769,26 @@
   [v ^double exponent]
   (fmap v (fn [^double x] (m/pow x exponent))))
 
+(defn- empty-vector?
+  "True for a vector without elements; the maximum of an empty sequence is undefined (`mx` throws)."
+  [v]
+  (zero? (size v)))
+
+(defn- softmax-infinite-max
+  "Softmax (log-softmax when `log?`) of a non-empty `v` with an infinite maximum `m`: the limit when exactly one element equals `m` (one-hot, or `[1]` for a single element), `NaN` elements otherwise (no limit, or a `NaN` element)."
+  [v ^double m log?]
+  (let [xs (seq v)
+        one-hot? (and (not-any? (fn [^double x] (m/nan? x)) xs)
+                      (== 1 (count (filter (fn [^double x] (m/== x m)) xs))))]
+    (fmap v (if one-hot?
+              (fn ^double [^double x] (if (m/== x m) (if log? 0.0 1.0) (if log? ##-Inf 0.0)))
+              (fn ^double [^double _] ##NaN)))))
+
+(defn- log-sum-exp-infinite-max
+  "Log-sum-exp of a non-empty `v` with an infinite maximum `m`: `m`, or `NaN` when an element is `NaN`."
+  ^double [v ^double m]
+  (if (some (fn [^double x] (m/nan? x)) (seq v)) ##NaN m))
+
 (defn softmax
   "Calculates the softmax function for the given vector `v`.
 
@@ -1778,17 +1798,27 @@
   - `[v]`: Computes the standard softmax: `softmax(v)_i = exp(v_i) / sum_j(exp(v_j))`.
   - `[v t]`: Computes the temperature-scaled softmax: `softmax(v)_i = exp(v_i / t) / sum_j(exp(v_j / t))`. The `t` parameter (temperature, defaults to 1) controls the shape of the output distribution; higher temperatures produce softer, more uniform distributions, while lower temperatures produce sharper distributions closer to a one-hot encoding.
 
-  The implementation uses a numerically stable approach (by shifting values based on the vector's maximum) to prevent overflow when exponentiating large numbers.
+  The implementation uses a numerically stable approach (by shifting values based on the vector's maximum) to prevent overflow when exponentiating large numbers. With infinite elements it returns the limit when one exists: a one-hot vector for exactly one `##Inf` element, `[1.0]` for a single element; otherwise (several `##Inf`, all `##-Inf`, any `##NaN`) the elements are `##NaN`.
 
   Returns a new vector of the same type and dimension as the input."
   ([v]
-   (let [nv (exp (shift v (m/- (mx v))))
-         sm (sum nv)]
-     (div nv sm)))
+   (if (empty-vector? v)
+     v
+     (let [m (mx v)]
+       (if (m/inf? m)
+         (softmax-infinite-max v m false)
+         (let [nv (exp (shift v (m/- m)))
+               sm (sum nv)]
+           (div nv sm))))))
   ([v ^double t]
-   (let [nv (exp (div (shift v (m/- (mx v))) t))
-         sm (sum nv)]
-     (div nv sm))))
+   (if (empty-vector? v)
+     v
+     (let [m (mx v)]
+       (if (m/inf? m)
+         (softmax-infinite-max v m false)
+         (let [nv (exp (div (shift v (m/- m)) t))
+               sm (sum nv)]
+           (div nv sm)))))))
 
 (defn logsoftmax
   "Calculates the element-wise natural logarithm of the softmax function for the given vector `v`.
@@ -1802,15 +1832,27 @@
 
   Log-softmax is frequently used in numerical computations, especially in machine learning (e.g., as part of the cross-entropy loss function) for its superior numerical properties.
 
+  With infinite elements it returns the limit when one exists (`0.0` at the single `##Inf` element and `##-Inf` elsewhere, `[0.0]` for a single element), `##NaN` elements otherwise, as [[softmax]].
+
   Returns a new vector of the same type and dimension as the input."
   ([v]
-   (let [shifted (shift v (m/- (mx v)))
-         lsm (m/- (m/log (sum (exp shifted))))]
-     (shift shifted lsm)))
+   (if (empty-vector? v)
+     v
+     (let [m (mx v)]
+       (if (m/inf? m)
+         (softmax-infinite-max v m true)
+         (let [shifted (shift v (m/- m))
+               lsm (m/- (m/log (sum (exp shifted))))]
+           (shift shifted lsm))))))
   ([v ^double t]
-   (let [shifted (div (shift v (m/- (mx v))) t)
-         lsm (m/- (m/log (sum (exp shifted))))]
-     (shift shifted lsm))))
+   (if (empty-vector? v)
+     v
+     (let [m (mx v)]
+       (if (m/inf? m)
+         (softmax-infinite-max v m true)
+         (let [shifted (div (shift v (m/- m)) t)
+               lsm (m/- (m/log (sum (exp shifted))))]
+           (shift shifted lsm)))))))
 
 (defn logsumexp
   "Calculates the LogSumExp of the vector `v`.
@@ -1818,10 +1860,14 @@
   This is the numerically stable computation of `log(sum(exp(x_i)))` for all elements `x_i` in `v`.
   It is often used to prevent overflow when exponentiating large numbers, especially in machine learning and statistics.
 
-  Returns a double value."
+  Returns a double value: the maximum when it is infinite (`##NaN` if an element is `##NaN`), `##-Inf` for an empty `v` (of any type)."
   ^double [v]
-  (let [m (mx v)]
-    (m/+ m (m/log (sum (exp (shift v (m/- m))))))))
+  (if (empty-vector? v)
+    ##-Inf
+    (let [m (mx v)]
+      (if (m/inf? m)
+        (log-sum-exp-infinite-max v m)
+        (m/+ m (m/log (sum (exp (shift v (m/- m))))))))))
 
 (defn logmeanexp
   "Calculates the numerically stable log of the mean of the exponential of each element in vector `v`.
@@ -1831,10 +1877,14 @@
 
   Often used in machine learning and statistical contexts where dealing with large values inside exponentials is common.
 
-  Returns a double value."
+  Returns a double value: the maximum when it is infinite (`##NaN` if an element is `##NaN`), `##NaN` for an empty `v` (of any type)."
   ^double [v]
-  (let [m (mx v)]
-    (m/+ m (m/log (average (exp (shift v (m/- m))))))))
+  (if (empty-vector? v)
+    ##NaN
+    (let [m (mx v)]
+      (if (m/inf? m)
+        (log-sum-exp-infinite-max v m)
+        (m/+ m (m/log (average (exp (shift v (m/- m))))))))))
 
 ;;
 

@@ -20,11 +20,18 @@
   - piecewise functions: [[abs]], [[min]], [[max]], [[signum]], [[floor]], [[ceil]], [[trunc]], [[rint]], [[round]], [[sgn]], [[frac]], [[sfrac]], [[mod]], [[rem]], [[copy-sign]],
   - powers and convenience functions: [[cb]], [[pow2]], [[pow3]], [[pow10]], [[spow]], [[safe-sqrt]], [[fma]], [[muladd]], [[lerp]], [[smoothstep]], [[norm]],
   - gamma and beta functions: [[gamma]], [[log-gamma]], [[log-gamma-1p]], [[inv-gamma-1pm1]], [[digamma]], [[trigamma]], [[polygamma]], [[beta]], [[log-beta]], [[lower-incomplete-gamma]], [[upper-incomplete-gamma]], [[regularized-gamma-p]], [[regularized-gamma-q]], [[incomplete-beta]], [[regularized-beta]],
+  - error functions and Lambert W: [[erf]], [[erfc]], [[inv-erf]], [[inv-erfc]], [[lambert-W]], [[lambert-W-1]],
+  - exponential, logarithmic and trigonometric integrals: [[E0]], [[E1]], [[En]], [[Ei]], [[Ein]], [[Si]], [[si]], [[Ci]], [[Cin]], [[li]], [[Li]],
+  - Bessel functions: [[bessel-J]], [[bessel-J0]], [[bessel-J1]], [[bessel-Y]], [[bessel-Y0]], [[bessel-Y1]], [[bessel-I]], [[bessel-I0]], [[bessel-I1]], [[bessel-K]], [[bessel-K0]], [[bessel-K1]], [[bessel-K-half-odd]], [[bessel-K-half-odd-scaled]],
+  - spherical Bessel functions: [[spherical-bessel-j]], [[spherical-bessel-j0]], [[spherical-bessel-j1]], [[spherical-bessel-j2]], [[spherical-bessel-y]], [[spherical-bessel-y0]], [[spherical-bessel-y1]], [[spherical-bessel-y2]], [[spherical-bessel-1-i]], [[spherical-bessel-1-i0]], [[spherical-bessel-1-i1]], [[spherical-bessel-1-i2]], [[spherical-bessel-2-i]], [[spherical-bessel-2-i0]], [[spherical-bessel-2-i1]], [[spherical-bessel-2-i2]], [[spherical-bessel-k]], [[spherical-bessel-k0]], [[spherical-bessel-k1]], [[spherical-bessel-k2]],
+  - Airy functions: [[airy-Ai]], [[airy-Ai']], [[airy-Bi]], [[airy-Bi']],
+  - Jacobi elliptic functions and inverses: [[jacobi-sn]], [[jacobi-cn]], [[jacobi-dn]], [[jacobi-sc]], [[jacobi-sd]], [[jacobi-cs]], [[jacobi-cd]], [[jacobi-ds]], [[jacobi-dc]], [[jacobi-ns]], [[jacobi-nc]], [[jacobi-nd]], [[jacobi-am]], [[jacobi-asn]], [[jacobi-acn]], [[jacobi-adn]], [[jacobi-asc]], [[jacobi-asd]], [[jacobi-acs]], [[jacobi-acd]], [[jacobi-ads]], [[jacobi-adc]], [[jacobi-ans]], [[jacobi-anc]], [[jacobi-and]],
+  - incomplete elliptic integrals: [[elliptic-F]], [[elliptic-E]], [[elliptic-D]], [[elliptic-PI]],
   - functions with derivatives given by the user: [[rule]],
   - comparisons: [[<]], [[<=]], [[>]], [[>=]], [[==]],
   - duals: [[dual]], [[primal]], [[scalar]].
 
-  The values of the functions are the values of `fastmath.core` and `fastmath.special`, the derivatives follow DiffRules.jl. Where a function is not defined (its value is `NaN` for arguments which are not `NaN`, for example [[acosh]] below `1`) all its derivatives are `NaN`. At the kinks of the piecewise functions the derivatives are those of ForwardDiff.jl, at the jumps (of [[frac]], [[sfrac]], [[mod]], [[rem]]) they are `NaN`. The shape parameters of the incomplete gamma and beta functions, the order of [[polygamma]] and the sharpness of [[smooth-max]] have no derivative: a dual depending on the variables there throws, a constant (or a dual with zero partials) is accepted.
+  The values of the functions are the values of `fastmath.core` and `fastmath.special`, the derivatives follow DiffRules.jl. Where a function is not defined (its value is `NaN` for arguments which are not `NaN`, for example [[acosh]] below `1`) all its derivatives are `NaN`. At the kinks of the piecewise functions the derivatives are those of ForwardDiff.jl, at the jumps (of [[frac]], [[sfrac]], [[mod]], [[rem]]) they are `NaN`. The shape parameters of the incomplete gamma and beta functions, the orders of [[polygamma]], [[En]] and the Bessel functions, the sharpness of [[smooth-max]] and the elliptic parameter `m` (and characteristic `n`) have no derivative: a dual depending on the variables there throws, a constant (or a dual with zero partials) is accepted.
 
   Limitations: a function returning a function can not be differentiated (it throws). A dual which escapes its derivative call (stored in an atom, a cache or a lazy sequence realized later) is detected only when it flows into the result of an enclosing derivative, which then throws. An escaped dual used only in a comparison (a branch) is not detected and can silently give a wrong derivative, as can a dual left over from a finished, unrelated derivative call, or a dual of an earlier pass of the same [[gradient]], [[jacobian]], [[hessian]] or [[hvp]] call reused in a later pass: such duals have older tags and are treated as constants."
   (:refer-clojure :exclude [+ - * / < > <= >= == abs min max mod rem])
@@ -37,6 +44,9 @@
             [fastmath.calculus.autodiff.logexp :as lx]
             [fastmath.calculus.autodiff.piecewise :as pw]
             [fastmath.calculus.autodiff.arithmetic :as ar]
+            [fastmath.calculus.autodiff.expint :as ei]
+            [fastmath.calculus.autodiff.bessel :as bs]
+            [fastmath.calculus.autodiff.elliptic :as jl]
             [fastmath.calculus.autodiff.rules :as rules]
             [fastmath.calculus.autodiff.derivatives :as der])
   (:import [fastmath.calculus.autodiff.dual Dual]))
@@ -1548,6 +1558,1150 @@
   ([xs] (lx/smooth-max xs 2.0 :lse))
   ([xs alpha] (lx/smooth-max xs alpha :lse))
   ([xs alpha family] (lx/smooth-max xs alpha family)))
+
+;; ## Public API: error functions and Lambert W
+
+(defn erf
+  "Error function of numbers and duals, `(2/sqrt(pi)) integral_0^x exp(-t^2) dt`; with two arguments `erf(x2) - erf(x1)`, accurate for close arguments.
+
+  Parameters:
+
+  - `x` (number or dual); or
+  - `x1`, `x2` (numbers or duals).
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative is `(2/sqrt(pi)) exp(-x^2)`; with two arguments the partial derivatives are `-(2/sqrt(pi)) exp(-x1^2)` and `(2/sqrt(pi)) exp(-x2^2)`.
+
+  See also [[erfc]], [[inv-erf]]."
+  ([x] (sp/erf x))
+  ([x1 x2] (sp/erf x1 x2)))
+
+(defn erfc
+  "Complementary error function of a number or a dual, `1 - erf(x)`, without cancellation for large `x`.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-(2/sqrt(pi)) exp(-x^2)`.
+
+  See also [[erf]], [[inv-erfc]]."
+  [x] (sp/erfc x))
+
+(defn inv-erf
+  "Inverse error function of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `[-1, 1]`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `(sqrt(pi)/2) exp(inv-erf(x)^2)`, infinite at `-1` and `1`; outside `[-1, 1]` the value and all derivatives are `NaN`.
+
+  See also [[erf]], [[inv-erfc]]."
+  [x] (sp/inv-erf x))
+
+(defn inv-erfc
+  "Inverse complementary error function of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `[0, 2]`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-(sqrt(pi)/2) exp(inv-erfc(x)^2)`, infinite at `0` and `2`; outside `[0, 2]` the value and all derivatives are `NaN`.
+
+  See also [[erfc]], [[inv-erf]]."
+  [x] (sp/inv-erfc x))
+
+(defn lambert-W
+  "Principal branch `W_0` of the Lambert W function of a number or a dual, the inverse of `w exp(w)` for `w >= -1`.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= -1/e`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(exp(W) (1 + W)) = W/(x (1 + W))` (the first form for `|W| <= 1`), `1` at `0` and infinite at the branch point `-1/e` and `0` (the limit) at `Inf`; below `-1/e` the value and all derivatives are `NaN`.
+
+  See also [[lambert-W-1]]."
+  [x] (sp/lambert-W x))
+
+(defn lambert-W-1
+  "Lower branch `W_-1` of the Lambert W function of a number or a dual, the inverse of `w exp(w)` for `w <= -1`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in `[-1/e, 0)`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/(exp(W) (1 + W)) = W/(x (1 + W))` (the first form for `|W| <= 1`), infinite at the branch point `-1/e` and `-Inf` at `0` (the limit from the left; the higher derivatives there are not limits); outside `[-1/e, 0]` the value and all derivatives are `NaN`.
+
+  See also [[lambert-W]]."
+  [x] (sp/lambert-W-1 x))
+
+;; ## Public API: exponential, logarithmic and trigonometric integrals
+
+(defn E0
+  "Exponential integral of order zero of a number or a dual, `exp(-x)/x`.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-E0(x) (1 + 1/x)`.
+
+  See also [[E1]], [[En]]."
+  [x] (ei/E0 x))
+
+(defn E1
+  "Exponential integral `E1(x) = integral_1^Inf exp(-x t)/t dt` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `-E0(x) = -exp(-x)/x`, `-Inf` at `0`; for a negative argument the value and all derivatives are `NaN`.
+
+  See also [[E0]], [[En]], [[Ein]], [[Ei]]."
+  [x] (ei/E1 x))
+
+(defn En
+  "Generalized exponential integral `En(x) = integral_1^Inf exp(-x t)/t^n dt` of numbers and duals.
+
+  Parameters:
+
+  - `n` (number): the order; it has no derivative.
+  - `x` (number or dual): a value `>= 0` (any value for a non-positive integer order).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `-E(n-1, x)`. Where the value is `NaN` (a negative `x` for most orders) all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `n` depends on the variables.
+
+  See also [[E0]], [[E1]]."
+  [n x] (ei/En n x))
+
+(defn Ei
+  "Exponential integral `Ei(x)`, the principal value of `-integral_(-x)^Inf exp(-t)/t dt`, of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `exp(x)/x`, infinite at `0`, finite up to `x = 716.4` (beyond the overflow of `exp(x)`).
+
+  See also [[E1]], [[Ein]], [[li]]."
+  [x] (ei/Ei x))
+
+(defn Ein
+  "Entire exponential integral `Ein(x) = integral_0^x (1 - exp(-t))/t dt` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): any real number.
+
+  Returns a double for a number, otherwise a dual. The derivative is `(1 - exp(-x))/x`, computed as [[exprel]] of `-x`, so it is `1` at `0` and accurate for large positive `x`; the value overflows to `-Inf` below about `-716.4`.
+
+  See also [[E1]], [[Ei]], [[exprel]]."
+  [x] (ei/Ein x))
+
+(defn Si
+  "Sine integral `Si(x) = integral_0^x sin(t)/t dt` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `sin(x)/x`, computed as [[sinc]] of `x/pi`, `1` at `0` and `0` (the limit) at an infinite argument.
+
+  See also [[si]], [[Ci]], [[Cin]], [[sinc]]."
+  [x] (ei/Si x))
+
+(defn si
+  "Shifted sine integral `si(x) = Si(x) - pi/2` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `sin(x)/x`, as of [[Si]] (`0` at an infinite argument).
+
+  See also [[Si]]."
+  [x] (ei/si x))
+
+(defn Ci
+  "Cosine integral `Ci(x) = -integral_x^Inf cos(t)/t dt` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `cos(x)/x`, `+Inf` at `0` (also at `-0.0`) and `0` (the limit) at `Inf`. A negative argument throws, as `fastmath.special/Ci`.
+
+  See also [[Cin]], [[Si]]."
+  [x] (ei/Ci x))
+
+(defn Cin
+  "Entire cosine integral `Cin(x) = integral_0^x (1 - cos(t))/t dt` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `(1 - cos(x))/x`, computed as `(x/2) sinc(x/(2 pi))^2`, `0` at `0` and at an infinite argument (the limit).
+
+  See also [[Ci]], [[Si]], [[sinc]]."
+  [x] (ei/Cin x))
+
+(defn li
+  "Logarithmic integral `li(x) = integral_0^x dt/log(t)` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/log(x)`, infinite at `1` and `0` at `0`; for a negative argument the value and all derivatives are `NaN`.
+
+  See also [[Li]], [[Ei]]."
+  [x] (ei/li x))
+
+(defn Li
+  "Offset logarithmic integral `Li(x) = li(x) - li(2)` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0`.
+
+  Returns a double for a number, otherwise a dual. The derivative is `1/log(x)`, as of [[li]].
+
+  See also [[li]]."
+  [x] (ei/Li x))
+
+;; ## Public API: Bessel, spherical Bessel and Airy functions
+
+(defn bessel-J
+  "Bessel function of the first kind of a real order, `J_order(x)`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual) `x`: for `x < 0` only integer orders are defined (`NaN` otherwise).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `(J_(order-1)(x) - J_(order+1)(x))/2`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[bessel-J0]], [[bessel-J1]], [[bessel-Y]]."
+  [order x] (bs/bessel-J order x))
+
+(defn bessel-J0
+  "Bessel function of the first kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-J_1(x)`, as [[bessel-J]] of order 0.
+
+  See also [[bessel-J]]."
+  [x] (bs/bessel-J0 x))
+
+(defn bessel-J1
+  "Bessel function of the first kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `(J_0(x) - J_2(x))/2`, `1/2` at `0`.
+
+  See also [[bessel-J]]."
+  [x] (bs/bessel-J1 x))
+
+(defn bessel-Y
+  "Bessel function of the second kind of a real order, `Y_order(x)`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `(Y_(order-1)(x) - Y_(order+1)(x))/2`, `+Inf` at `0` (the limit; the value there is `-Inf`, the higher derivatives at `0` are not limits).
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[bessel-Y0]], [[bessel-Y1]], [[bessel-J]]."
+  [order x] (bs/bessel-Y order x))
+
+(defn bessel-Y0
+  "Bessel function of the second kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-Y_1(x)`.
+
+  See also [[bessel-Y]]."
+  [x] (bs/bessel-Y0 x))
+
+(defn bessel-Y1
+  "Bessel function of the second kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double for a number, otherwise a dual. The derivative is `(Y_0(x) - Y_2(x))/2`.
+
+  See also [[bessel-Y]]."
+  [x] (bs/bessel-Y1 x))
+
+(defn bessel-I
+  "Modified Bessel function of the first kind of a real order, `I_order(x)`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual) `x`: for `x < 0` only integer orders are defined (`NaN` otherwise).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `(I_(order-1)(x) + I_(order+1)(x))/2`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[bessel-I0]], [[bessel-I1]], [[bessel-K]]."
+  [order x] (bs/bessel-I order x))
+
+(defn bessel-I0
+  "Modified Bessel function of the first kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `I_1(x)`.
+
+  See also [[bessel-I]]."
+  [x] (bs/bessel-I0 x))
+
+(defn bessel-I1
+  "Modified Bessel function of the first kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `(I_0(x) + I_2(x))/2`, `1/2` at `0`.
+
+  See also [[bessel-I]]."
+  [x] (bs/bessel-I1 x))
+
+(defn bessel-K
+  "Modified Bessel function of the second kind of a real order, `K_order(x)`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `-(K_(order-1)(x) + K_(order+1)(x))/2`, `-Inf` at `0`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[bessel-K0]], [[bessel-K1]], [[bessel-K-half-odd]], [[bessel-I]]."
+  [order x] (bs/bessel-K order x))
+
+(defn bessel-K0
+  "Modified Bessel function of the second kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-K_1(x)`.
+
+  See also [[bessel-K]]."
+  [x] (bs/bessel-K0 x))
+
+(defn bessel-K1
+  "Modified Bessel function of the second kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double for a number, otherwise a dual. The derivative is `-(K_0(x) + K_2(x))/2`.
+
+  See also [[bessel-K]]."
+  [x] (bs/bessel-K1 x))
+
+(defn bessel-K-half-odd
+  "Modified Bessel function of the second kind of the order `order/2`, `order` an odd integer, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `-(K_(a-1)(x) + K_(a+1)(x))/2` with `a = order/2` (the odd orders `order - 2` and `order + 2`). An even `order` throws, as `fastmath.special/bessel-K-half-odd`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[bessel-K-half-odd-scaled]], [[bessel-K]]."
+  [order x] (bs/bessel-K-half-odd order x))
+
+(defn bessel-K-half-odd-scaled
+  "Scaled modified Bessel function of the second kind `exp(x) K_(order/2)(x)`, `order` an odd integer, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `exp(x) K_a(x) - exp(x) (K_(a-1)(x) + K_(a+1)(x))/2` with `a = order/2`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[bessel-K-half-odd]]."
+  [order x] (bs/bessel-K-half-odd-scaled order x))
+
+(defn spherical-bessel-j
+  "Spherical Bessel function of the first kind of a real order `n`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual) `x`: for `x < 0` only integer orders are defined (`NaN` otherwise).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `(n j_(n-1)(x) - (n+1) j_(n+1)(x))/(2n+1)`, finite at `0` (`j_1'(0) = 1/3`); for the orders in `(-1, 0)`, where this recurrence cancels (`2n+1 = 0` at `-1/2`), the form `f_(n-1)(x) - ((n+1)/x) f_n(x)`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[spherical-bessel-j0]], [[spherical-bessel-j1]], [[spherical-bessel-j2]]."
+  [order x] (bs/spherical-bessel-j order x))
+
+(defn spherical-bessel-j0
+  "Spherical Bessel function of the first kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-j]] of order 0.
+
+  See also [[spherical-bessel-j]]."
+  [x] (bs/spherical-bessel-j0 x))
+
+(defn spherical-bessel-j1
+  "Spherical Bessel function of the first kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-j]] of order 1.
+
+  See also [[spherical-bessel-j]]."
+  [x] (bs/spherical-bessel-j1 x))
+
+(defn spherical-bessel-j2
+  "Spherical Bessel function of the first kind of order 2 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-j]] of order 2.
+
+  See also [[spherical-bessel-j]]."
+  [x] (bs/spherical-bessel-j2 x))
+
+(defn spherical-bessel-y
+  "Spherical Bessel function of the second kind of a real order `n`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual) `x`: for `x < 0` only integer orders are defined (`NaN` otherwise).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `+Inf` at `0` (the limit; the value there is `-Inf`, the higher derivatives at `0` are not limits), otherwise `(n y_(n-1)(x) - (n+1) y_(n+1)(x))/(2n+1)`; for the orders in `(-1, 0)`, where this recurrence cancels (`2n+1 = 0` at `-1/2`), the form `f_(n-1)(x) - ((n+1)/x) f_n(x)`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[spherical-bessel-y0]], [[spherical-bessel-y1]], [[spherical-bessel-y2]]."
+  [order x] (bs/spherical-bessel-y order x))
+
+(defn spherical-bessel-y0
+  "Spherical Bessel function of the second kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-y]] of order 0.
+
+  See also [[spherical-bessel-y]]."
+  [x] (bs/spherical-bessel-y0 x))
+
+(defn spherical-bessel-y1
+  "Spherical Bessel function of the second kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-y]] of order 1.
+
+  See also [[spherical-bessel-y]]."
+  [x] (bs/spherical-bessel-y1 x))
+
+(defn spherical-bessel-y2
+  "Spherical Bessel function of the second kind of order 2 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-y]] of order 2.
+
+  See also [[spherical-bessel-y]]."
+  [x] (bs/spherical-bessel-y2 x))
+
+(defn spherical-bessel-1-i
+  "First modified spherical Bessel function of the first kind of a real order `n`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual) `x`: for `x < 0` only integer orders are defined (`NaN` otherwise).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `(n i_(n-1)(x) + (n+1) i_(n+1)(x))/(2n+1)`; for the orders in `(-1, 0)`, where this recurrence cancels (`2n+1 = 0` at `-1/2`), the form `f_(n-1)(x) - ((n+1)/x) f_n(x)`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[spherical-bessel-1-i0]], [[spherical-bessel-1-i1]], [[spherical-bessel-1-i2]]."
+  [order x] (bs/spherical-bessel-1-i order x))
+
+(defn spherical-bessel-1-i0
+  "First modified spherical Bessel function of the first kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-1-i]] of order 0.
+
+  See also [[spherical-bessel-1-i]]."
+  [x] (bs/spherical-bessel-1-i0 x))
+
+(defn spherical-bessel-1-i1
+  "First modified spherical Bessel function of the first kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-1-i]] of order 1.
+
+  See also [[spherical-bessel-1-i]]."
+  [x] (bs/spherical-bessel-1-i1 x))
+
+(defn spherical-bessel-1-i2
+  "First modified spherical Bessel function of the first kind of order 2 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-1-i]] of order 2.
+
+  See also [[spherical-bessel-1-i]]."
+  [x] (bs/spherical-bessel-1-i2 x))
+
+(defn spherical-bessel-2-i
+  "Second modified spherical Bessel function of the first kind of a real order `n`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual) `x`: for `x < 0` only integer orders are defined (`NaN` otherwise).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `(n i_(n-1)(x) + (n+1) i_(n+1)(x))/(2n+1)`; for the orders in `(-1, 0)`, where this recurrence cancels (`2n+1 = 0` at `-1/2`), the form `f_(n-1)(x) - ((n+1)/x) f_n(x)`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[spherical-bessel-2-i0]], [[spherical-bessel-2-i1]], [[spherical-bessel-2-i2]]."
+  [order x] (bs/spherical-bessel-2-i order x))
+
+(defn spherical-bessel-2-i0
+  "Second modified spherical Bessel function of the first kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-2-i]] of order 0.
+
+  See also [[spherical-bessel-2-i]]."
+  [x] (bs/spherical-bessel-2-i0 x))
+
+(defn spherical-bessel-2-i1
+  "Second modified spherical Bessel function of the first kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-2-i]] of order 1.
+
+  See also [[spherical-bessel-2-i]]."
+  [x] (bs/spherical-bessel-2-i1 x))
+
+(defn spherical-bessel-2-i2
+  "Second modified spherical Bessel function of the first kind of order 2 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-2-i]] of order 2.
+
+  See also [[spherical-bessel-2-i]]."
+  [x] (bs/spherical-bessel-2-i2 x))
+
+(defn spherical-bessel-k
+  "Modified spherical Bessel function of the second kind of a real order `n`, of numbers and duals.
+
+  Parameters:
+
+  - `order` (number): the order; it has no derivative.
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double when both arguments are numbers, otherwise a dual. The derivative in `x` is `-(n k_(n-1)(x) + (n+1) k_(n+1)(x))/(2n+1)`; for the orders in `(-1, 0)`, where this recurrence cancels (`2n+1 = 0` at `-1/2`), the form `f_(n-1)(x) - ((n+1)/x) f_n(x)` with `-k_(n-1)`.
+
+  Throws `ex-info` with `{:function :argument}` when `order` depends on the variables.
+
+  See also [[spherical-bessel-k0]], [[spherical-bessel-k1]], [[spherical-bessel-k2]]."
+  [order x] (bs/spherical-bessel-k order x))
+
+(defn spherical-bessel-k0
+  "Modified spherical Bessel function of the second kind of order 0 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-k]] of order 0.
+
+  See also [[spherical-bessel-k]]."
+  [x] (bs/spherical-bessel-k0 x))
+
+(defn spherical-bessel-k1
+  "Modified spherical Bessel function of the second kind of order 1 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-k]] of order 1.
+
+  See also [[spherical-bessel-k]]."
+  [x] (bs/spherical-bessel-k1 x))
+
+(defn spherical-bessel-k2
+  "Modified spherical Bessel function of the second kind of order 2 of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual): a value `>= 0` (`NaN` for `x < 0`).
+
+  Returns a double for a number, otherwise a dual. The derivative is the one of [[spherical-bessel-k]] of order 2.
+
+  See also [[spherical-bessel-k]]."
+  [x] (bs/spherical-bessel-k2 x))
+
+(defn airy-Ai
+  "Airy function `Ai(x)` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is [[airy-Ai']].
+
+  See also [[airy-Ai']], [[airy-Bi]]."
+  [x] (bs/airy-Ai x))
+
+(defn airy-Ai'
+  "Derivative `Ai'(x)` of the Airy function of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `x Ai(x)`.
+
+  See also [[airy-Ai]]."
+  [x] (bs/airy-Ai' x))
+
+(defn airy-Bi
+  "Airy function `Bi(x)` of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is [[airy-Bi']].
+
+  See also [[airy-Bi']], [[airy-Ai]]."
+  [x] (bs/airy-Bi x))
+
+(defn airy-Bi'
+  "Derivative `Bi'(x)` of the Airy function of a number or a dual.
+
+  Parameters:
+
+  - `x` (number or dual).
+
+  Returns a double for a number, otherwise a dual. The derivative is `x Bi(x)`.
+
+  See also [[airy-Bi]]."
+  [x] (bs/airy-Bi' x))
+
+;; ## Public API: Jacobi elliptic functions and incomplete elliptic integrals
+
+(defn jacobi-sn
+  "Jacobi elliptic function `sn(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `cn dn`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-asn]], [[jacobi-am]]."
+  [u m] (jl/jacobi-sn u m))
+
+(defn jacobi-cn
+  "Jacobi elliptic function `cn(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `-sn dn`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-acn]], [[jacobi-am]]."
+  [u m] (jl/jacobi-cn u m))
+
+(defn jacobi-dn
+  "Jacobi elliptic function `dn(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `-m sn cn`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-adn]], [[jacobi-am]]."
+  [u m] (jl/jacobi-dn u m))
+
+(defn jacobi-sc
+  "Jacobi elliptic function `sc(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `dn/cn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-asc]], [[jacobi-am]]."
+  [u m] (jl/jacobi-sc u m))
+
+(defn jacobi-sd
+  "Jacobi elliptic function `sd(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `cn/dn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-asd]], [[jacobi-am]]."
+  [u m] (jl/jacobi-sd u m))
+
+(defn jacobi-cs
+  "Jacobi elliptic function `cs(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `-dn/sn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-acs]], [[jacobi-am]]."
+  [u m] (jl/jacobi-cs u m))
+
+(defn jacobi-cd
+  "Jacobi elliptic function `cd(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `-(1-m) sn/dn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-acd]], [[jacobi-am]]."
+  [u m] (jl/jacobi-cd u m))
+
+(defn jacobi-ds
+  "Jacobi elliptic function `ds(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `-cn/sn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-ads]], [[jacobi-am]]."
+  [u m] (jl/jacobi-ds u m))
+
+(defn jacobi-dc
+  "Jacobi elliptic function `dc(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `(1-m) sn/cn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-adc]], [[jacobi-am]]."
+  [u m] (jl/jacobi-dc u m))
+
+(defn jacobi-ns
+  "Jacobi elliptic function `ns(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `-cn dn/sn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-ans]], [[jacobi-am]]."
+  [u m] (jl/jacobi-ns u m))
+
+(defn jacobi-nc
+  "Jacobi elliptic function `nc(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `sn dn/cn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-anc]], [[jacobi-am]]."
+  [u m] (jl/jacobi-nc u m))
+
+(defn jacobi-nd
+  "Jacobi elliptic function `nd(u|m)` of numbers and duals.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `m sn cn/dn^2`, of `sn`, `cn`, `dn` at `(u|m)` (DLMF 22.13).
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-and]], [[jacobi-am]]."
+  [u m] (jl/jacobi-nd u m))
+
+(defn jacobi-am
+  "Jacobi amplitude `am(u|m)` of numbers and duals, the inverse of [[elliptic-F]] in `phi`.
+
+  Parameters:
+
+  - `u` (number or dual): the argument.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `u` is `dn(u|m)`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[elliptic-F]], [[jacobi-sn]]."
+  [u m] (jl/jacobi-am u m))
+
+(defn jacobi-asn
+  "Inverse of the Jacobi elliptic function [[jacobi-sn]] of numbers and duals: `u` in the principal range with `sn(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `sn`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/sn'(u)` at `u = asn(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  For `m > 1` `fastmath.special/jacobi-asn` is `NaN` at the ends of the range (`x = 1/sqrt(m)`), so are the derivatives there.
+
+  See also [[jacobi-sn]]."
+  [x m] (jl/jacobi-asn x m))
+
+(defn jacobi-acn
+  "Inverse of the Jacobi elliptic function [[jacobi-cn]] of numbers and duals: `u` in the principal range with `cn(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `cn`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/cn'(u)` at `u = acn(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-cn]]."
+  [x m] (jl/jacobi-acn x m))
+
+(defn jacobi-adn
+  "Inverse of the Jacobi elliptic function [[jacobi-dn]] of numbers and duals: `u` in the principal range with `dn(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `dn`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/dn'(u)` at `u = adn(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-dn]]."
+  [x m] (jl/jacobi-adn x m))
+
+(defn jacobi-asc
+  "Inverse of the Jacobi elliptic function [[jacobi-sc]] of numbers and duals: `u` in the principal range with `sc(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `sc`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/sc'(u)` at `u = asc(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-sc]]."
+  [x m] (jl/jacobi-asc x m))
+
+(defn jacobi-asd
+  "Inverse of the Jacobi elliptic function [[jacobi-sd]] of numbers and duals: `u` in the principal range with `sd(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `sd`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/sd'(u)` at `u = asd(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-sd]]."
+  [x m] (jl/jacobi-asd x m))
+
+(defn jacobi-acs
+  "Inverse of the Jacobi elliptic function [[jacobi-cs]] of numbers and duals: `u` in the principal range with `cs(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `cs`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/cs'(u)` at `u = acs(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-cs]]."
+  [x m] (jl/jacobi-acs x m))
+
+(defn jacobi-acd
+  "Inverse of the Jacobi elliptic function [[jacobi-cd]] of numbers and duals: `u` in the principal range with `cd(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `cd`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/cd'(u)` at `u = acd(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-cd]]."
+  [x m] (jl/jacobi-acd x m))
+
+(defn jacobi-ads
+  "Inverse of the Jacobi elliptic function [[jacobi-ds]] of numbers and duals: `u` in the principal range with `ds(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `ds`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/ds'(u)` at `u = ads(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-ds]]."
+  [x m] (jl/jacobi-ads x m))
+
+(defn jacobi-adc
+  "Inverse of the Jacobi elliptic function [[jacobi-dc]] of numbers and duals: `u` in the principal range with `dc(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `dc`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/dc'(u)` at `u = adc(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-dc]]."
+  [x m] (jl/jacobi-adc x m))
+
+(defn jacobi-ans
+  "Inverse of the Jacobi elliptic function [[jacobi-ns]] of numbers and duals: `u` in the principal range with `ns(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `ns`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/ns'(u)` at `u = ans(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-ns]]."
+  [x m] (jl/jacobi-ans x m))
+
+(defn jacobi-anc
+  "Inverse of the Jacobi elliptic function [[jacobi-nc]] of numbers and duals: `u` in the principal range with `nc(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `nc`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/nc'(u)` at `u = anc(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-nc]]."
+  [x m] (jl/jacobi-anc x m))
+
+(defn jacobi-and
+  "Inverse of the Jacobi elliptic function [[jacobi-nd]] of numbers and duals: `u` in the principal range with `nd(u|m) = x`.
+
+  Parameters:
+
+  - `x` (number or dual): a value in the range of `nd`.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `x` is the integrand of the principal value (DLMF 22.15, with the sign of the principal branch of `fastmath.special` for every `m`), `1/nd'(u)` at `u = and(x|m)`, infinite at the ends of the range; outside the range the value and all derivatives are `NaN`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[jacobi-nd]]."
+  [x m] (jl/jacobi-and x m))
+
+(defn elliptic-F
+  "Incomplete elliptic integral of the first kind `F(phi|m)` of numbers and duals.
+
+  Parameters:
+
+  - `phi` (number or dual): the amplitude.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `phi` is `1/sqrt(1 - m sin(phi)^2)`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[elliptic-E]], [[jacobi-am]]."
+  [phi m] (jl/elliptic-F phi m))
+
+(defn elliptic-E
+  "Incomplete elliptic integral of the second kind `E(phi|m)` of numbers and duals (only the incomplete integral: the complete one depends only on `m`, which has no derivative).
+
+  Parameters:
+
+  - `phi` (number or dual): the amplitude.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `phi` is `sqrt(1 - m sin(phi)^2)`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[elliptic-F]], [[elliptic-D]]."
+  [phi m] (jl/elliptic-E phi m))
+
+(defn elliptic-D
+  "Incomplete Legendre elliptic integral `D(phi|m) = (F - E)/m` of numbers and duals (only the incomplete integral).
+
+  Parameters:
+
+  - `phi` (number or dual): the amplitude.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `phi` is `sin(phi)^2/sqrt(1 - m sin(phi)^2)`.
+
+  Throws `ex-info` with `{:function :argument}` when `m` depends on the variables.
+
+  See also [[elliptic-F]], [[elliptic-E]]."
+  [phi m] (jl/elliptic-D phi m))
+
+(defn elliptic-PI
+  "Incomplete elliptic integral of the third kind `PI(n; phi|m)` of numbers and duals (only the incomplete integral).
+
+  Parameters:
+
+  - `n` (number): the characteristic; it has no derivative.
+  - `phi` (number or dual): the amplitude.
+  - `m` (number): the parameter `m = k^2`; it has no derivative.
+
+  Returns a double when all arguments are numbers, otherwise a dual. The derivative in `phi` is `1/((1 - n sin(phi)^2) sqrt(1 - m sin(phi)^2))`.
+
+  Throws `ex-info` with `{:function :argument}` when `n` or `m` depends on the variables.
+
+  See also [[elliptic-F]]."
+  [n phi m] (jl/elliptic-PI n phi m))
 
 ;; ## Public API: rules of the user
 

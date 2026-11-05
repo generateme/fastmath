@@ -153,36 +153,72 @@
 (def ^:private differentiable-families #{:lse :boltzmann :mellowmax :p-norm :smu})
 
 (defn- smu-pair-value
+  "The value of a pair, `fastmath.core/smooth-max` of `[a b]` (infinite and far apart arguments included)."
   ^double [^double a ^double b ^double alpha]
-  (let [epsilon (m/abs (m// 1.0 alpha))
-        s (m/sqrt (m/+ (m/sq (m/- a b)) epsilon))]
-    (m/* 0.5 (m/+ a b (if (m/pos? alpha) s (m/- s))))))
+  (m/smooth-max [a b] alpha :smu))
 
 (declare dual-smu-pair)
 
 (defn- smu-pair [a b alpha] (r/dispatch dual-smu-pair smu-pair-value a b alpha))
 
+(defn- smu-slope
+  "`q = (a - b) / sqrt((a - b)^2 + 1/|alpha|)`, the partials of a pair are `(1 +/- q) / 2`. Beyond `|a - b| = 1e150` (and
+  for infinite arguments) as `sign(a - b) / sqrt(1 + (e/|d|)/|d|)`, where `(a - b)^2` would overflow."
+  [a b alpha]
+  (let [d (sub a b)
+        epsilon (el/abs (div 1.0 alpha))
+        sd (d/scalar d)]
+    (if (m/> (m/abs sd) 1.0e150)
+      (let [ad (el/abs d)]
+        (div (if (m/neg? sd) -1.0 1.0) (el/sqrt (add 1.0 (div (div epsilon ad) ad)))))
+      (div d (el/sqrt (add (el/sq d) epsilon))))))
+
 (defn- dual-smu-pair
   [a b alpha]
   (r/chain [a a, b b, alpha alpha, _y (smu-pair a b alpha)] :smooth-max
-    (let [q (div (sub a b) (el/sqrt (add (el/sq (sub a b)) (el/abs (div 1.0 alpha)))))]
+    (let [q (smu-slope a b alpha)]
       (mul 0.5 (if (m/pos? (d/scalar alpha)) (add 1.0 q) (sub 1.0 q))))
-    (let [q (div (sub a b) (el/sqrt (add (el/sq (sub a b)) (el/abs (div 1.0 alpha)))))]
+    (let [q (smu-slope a b alpha)]
       (mul 0.5 (if (m/pos? (d/scalar alpha)) (sub 1.0 q) (add 1.0 q))))
     nil))
 
+(defn- softmax-weight
+  "The softmax weight `exp(alpha v) / sum(exp(alpha vs))` as a function of a value `v`, shifted by the hard extreme `m`
+  of the scalar values (the maximum for positive `alpha`, the minimum otherwise; a constant shift, so derivatives of
+  any order are exact) to avoid the overflow of `alpha v`. For an infinite `m` or `alpha` the limit when exactly one
+  value equals `m`: `1` there and `0` elsewhere; `NaN` otherwise (no limit)."
+  [vs alpha]
+  (let [a (double (d/scalar alpha))
+        ss (map (fn [v] (double (d/scalar v))) vs)
+        m (double (reduce (fn [^double x ^double y] (if (m/pos? a) (m/max x y) (m/min x y))) ss))]
+    (if (or (m/inf? m) (m/inf? a))
+      (if (m/== 1 (count (filter (fn [^double s] (m/== s m)) ss)))
+        (fn [v] (if (m/== (d/scalar v) m) 1.0 0.0))
+        (fn [_] ##NaN))
+      (let [den (reduce add (map (fn [v] (exp (mul alpha (sub v m)))) vs))]
+        (fn [v] (div (exp (mul alpha (sub v m))) den))))))
+
 (defn- smooth-max-derivative
   "The partial derivative in an element as a function of its value `v`, for the values `vs`, the sharpness `alpha` and
-  the smooth maximum `y`. `:smu` comes here with one element only (its value is the element)."
+  the smooth maximum `y`. `:lse` and `:mellowmax` have the softmax as the gradient, `:boltzmann` the softmax times
+  `1 + alpha (v - y)` (a zero weight gives 0, an infinite `y` or `alpha` the softmax limit). `:smu` comes here with one element
+  only (its value is the element)."
   [family vs alpha y]
   (case family
     :smu (fn [_] 1.0)
-    :lse (fn [v] (exp (mul alpha (sub v y))))
-    :mellowmax (let [n (double (count vs))] (fn [v] (div (exp (mul alpha (sub v y))) n)))
-    :boltzmann (let [l (logsumexp (mapv (fn [v] (mul alpha v)) vs))]
-                 (fn [v] (mul (exp (sub (mul alpha v) l)) (add 1.0 (mul alpha (sub v y))))))
-    :p-norm (fn [v] (let [r (ops/pow (div (el/abs v) y) (sub alpha 1.0))]
-                      (if (el/sign-bit? v) (neg r) r)))))
+    (:lse :mellowmax) (softmax-weight vs alpha)
+    :boltzmann (let [w (softmax-weight vs alpha)]
+                 (if (or (m/inf? (d/scalar y)) (m/inf? (d/scalar alpha)))
+                   w
+                   (fn [v] (let [wv (w v)]
+                             (if (m/zero? (d/scalar wv)) 0.0 (mul wv (add 1.0 (mul alpha (sub v y)))))))))
+    :p-norm (let [one-infinite? (and (m/inf? (d/scalar y))
+                                     (m/== 1 (count (filter (fn [v] (m/inf? (d/scalar v))) vs))))]
+              ;; a single infinite magnitude dominates: its partial is its sign, the others vanish
+              (fn [v] (if (and one-infinite? (m/inf? (d/scalar v)))
+                        (if (el/sign-bit? v) -1.0 1.0)
+                        (let [r (ops/pow (div (el/abs v) y) (sub alpha 1.0))]
+                          (if (el/sign-bit? v) (neg r) r)))))))
 
 (defn- dual-smooth-max
   [xs alpha family]

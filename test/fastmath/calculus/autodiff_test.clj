@@ -58,14 +58,18 @@
                "log1psq" "logcosh" "exprel" "expexp" "cexpexp" "cloglog" "loglog"
                "sigmoid" "logit" "logaddexp" "logsubexp" "logsumexp"
                "trunc" "round" "rint" "frac" "sfrac" "mod" "rem" "sgn" "copy-sign"
-               "cb" "pow2" "pow3" "pow10" "spow" "safe-sqrt" "fma" "muladd" "lerp" "smoothstep" "smooth-max" "norm"}
+               "cb" "pow2" "pow3" "pow10" "spow" "safe-sqrt" "fma" "muladd" "lerp" "smoothstep" "smooth-max" "norm"
+               "erf" "erfc" "inv-erf" "inv-erfc" "lambert-W" "lambert-W-1"
+               "E0" "E1" "En" "Ei" "Ein" "Si" "si" "Ci" "Cin" "li" "Li"
+               "bessel-J" "bessel-J0" "bessel-J1" "bessel-Y" "bessel-Y0" "bessel-Y1" "bessel-I" "bessel-I0" "bessel-I1" "bessel-K" "bessel-K0" "bessel-K1" "bessel-K-half-odd" "bessel-K-half-odd-scaled" "spherical-bessel-j" "spherical-bessel-j0" "spherical-bessel-j1" "spherical-bessel-j2" "spherical-bessel-y" "spherical-bessel-y0" "spherical-bessel-y1" "spherical-bessel-y2" "spherical-bessel-1-i" "spherical-bessel-1-i0" "spherical-bessel-1-i1" "spherical-bessel-1-i2" "spherical-bessel-2-i" "spherical-bessel-2-i0" "spherical-bessel-2-i1" "spherical-bessel-2-i2" "spherical-bessel-k" "spherical-bessel-k0" "spherical-bessel-k1" "spherical-bessel-k2" "airy-Ai" "airy-Ai'" "airy-Bi" "airy-Bi'"
+               "jacobi-sn" "jacobi-cn" "jacobi-dn" "jacobi-sc" "jacobi-sd" "jacobi-cs" "jacobi-cd" "jacobi-ds" "jacobi-dc" "jacobi-ns" "jacobi-nc" "jacobi-nd" "jacobi-am" "jacobi-asn" "jacobi-acn" "jacobi-adn" "jacobi-asc" "jacobi-asd" "jacobi-acs" "jacobi-acd" "jacobi-ads" "jacobi-adc" "jacobi-ans" "jacobi-anc" "jacobi-and" "elliptic-F" "elliptic-E" "elliptic-D" "elliptic-PI"}
              (set (map str (keys (ns-publics 'fastmath.calculus.autodiff))))))
     (t/is (= '([f]) (:arglists (meta #'ad/jvp))) "jvp has no options")
     (t/is (every? #(:no-doc (meta (find-ns %)))
                   ['fastmath.calculus.autodiff.dual 'fastmath.calculus.autodiff.ops 'fastmath.calculus.autodiff.rules
                    'fastmath.calculus.autodiff.elementary 'fastmath.calculus.autodiff.special
                    'fastmath.calculus.autodiff.logexp 'fastmath.calculus.autodiff.piecewise
-                   'fastmath.calculus.autodiff.arithmetic
+                   'fastmath.calculus.autodiff.arithmetic 'fastmath.calculus.autodiff.expint 'fastmath.calculus.autodiff.bessel 'fastmath.calculus.autodiff.elliptic
                    'fastmath.calculus.autodiff.derivatives])
           "internal namespaces are excluded from the documentation"))
   (t/testing "invalid input throws (caller error, the exception type is not specified)"
@@ -1198,8 +1202,25 @@
     (t/is (= (m/logsumexp [1 2 3]) (ad/logsumexp [1 2 3]) (ad/logsumexp '(1.0 2.0 3.0))))
     (t/is (= [1.0 0.0] ((ad/gradient ad/logsumexp) [##Inf 1.0])) "one +Inf: the limit, as LogExpFunctions")
     (t/is (= [0.0 1.0 0.0] ((ad/gradient ad/logsumexp) [1.0 ##Inf ##-Inf])))
+    (t/is (= 1.0 (ad/logsumexp [##-Inf 1.0])) "a leading -Inf (fastmath.core/logsumexp fixed upstream)")
+    (t/is (= [0.0 1.0] ((ad/gradient ad/logsumexp) [##-Inf 1.0])))
+    (t/is (= [0.0 1.0 0.0] ((ad/gradient ad/logsumexp) [##-Inf ##Inf 1.0])))
     (t/is (= [[0.0 0.0] [0.0 0.0]] ((ad/hessian ad/logsumexp) [##Inf 1.0])))
     (t/is (every? nan? ((ad/gradient ad/logsumexp) [##Inf ##Inf 1.0])) "more than one +Inf: NaN, as LogExpFunctions"))
+  (t/testing "smooth-max gradients where the values overflow or are infinite: the limits"
+    (doseq [[xs alpha expected] [[[1.0e200 1.0] 2.0 [1.0 0.0]] [[1.0e308 5.0e307] 2.0 [1.0 0.0]] [[-1.0e308 -2.0e307] 2.0 [0.0 1.0]]
+                                 [[##-Inf 1.0] 2.0 [0.0 1.0]] [[1.0 ##-Inf] 2.0 [1.0 0.0]] [[##Inf 1.0] 2.0 [1.0 0.0]]
+                                 [[##Inf 1.0] -2.0 [0.0 1.0]] [[1.0e308 1.0] 50.0 [1.0 0.0]] [[1.0 2.0 3.0] ##Inf [0.0 0.0 1.0]]]
+            family [:lse :boltzmann :mellowmax :smu]]
+      (t/is (= expected ((ad/gradient (fn [v] (ad/smooth-max v alpha family))) xs)) (str family " " alpha " " xs)))
+    (t/is (= [-1.0 0.0] ((ad/gradient (fn [v] (ad/smooth-max v 2.0 :p-norm))) [##-Inf 1.0])) "one infinite magnitude: its sign")
+    (t/is (= [1.0 0.0] ((ad/gradient (fn [v] (ad/smooth-max v 2.0 :p-norm))) [##Inf 1.0])))
+    (t/is (= [0.5 0.5] ((ad/gradient (fn [v] (ad/smooth-max v 2.0 :mellowmax))) [1.0e200 1.0e200])) "softmax of a tie")
+    (t/is (every? nan? ((ad/gradient (fn [v] (ad/smooth-max v 2.0 :lse))) [##Inf ##Inf 1.0])) "two +Inf: no limit")
+    (doseq [[a b] [[1.0e308 5.0e307] [##-Inf 1.0] [1.0e153 0.0]]
+            alpha [2.0 -2.0 1.0e-305]]
+      (t/is (= (m/smooth-max [a b] alpha :smu) (ad/primal (ad/smooth-max [(ad/dual 1 a [1.0]) b] alpha :smu)))
+            (str "smu pair value of a dual " a " " b " " alpha))))
   (t/testing "smooth-max"
     (t/is (invalid? #(ad/smooth-max []) :xs []))
     (t/is (= (m/smooth-max [1.0 2.0]) (ad/smooth-max [1 2])) "alpha 2 and :lse by default")
@@ -1253,3 +1274,310 @@
       (t/is (= [0.0] (partials (rules/chain-seq :test [1.0] [[:p (ad/dual 1 2.0 [0.0])]] (fn [vs _] (first vs))
                                                 (fn [_ _ _] (swap! calls conj :factory))))))
       (t/is (= [] @calls) "no element has partials"))))
+
+;; error functions, Lambert W, exponential and trigonometric integrals (phase 5b)
+
+(def ^:private erf-expint-reference
+  (delay (edn/read-string (slurp (io/resource "calculus/autodiff_erf_expint_reference.edn")))))
+
+(def ^:private erf-expint-mpmath-reference
+  (delay (edn/read-string (slurp (io/resource "calculus/autodiff_erf_expint_mpmath_reference.edn")))))
+
+(def ^:private erf-expint-unary
+  "id -> [function of the facade, function of fastmath.special]"
+  {:erf [ad/erf special/erf] :erfc [ad/erfc special/erfc] :inv-erf [ad/inv-erf special/inv-erf]
+   :inv-erfc [ad/inv-erfc special/inv-erfc] :lambert-W [ad/lambert-W special/lambert-W]
+   :lambert-W-1 [ad/lambert-W-1 special/lambert-W-1] :E0 [ad/E0 special/E0] :E1 [ad/E1 special/E1]
+   :Ei [ad/Ei special/Ei] :Ein [ad/Ein special/Ein] :Si [ad/Si special/Si] :si [ad/si special/si]
+   :Ci [ad/Ci special/Ci] :Cin [ad/Cin special/Cin] :li [ad/li special/li] :Li [ad/Li special/Li]})
+
+(t/deftest erf-expint-reference-test
+  ;; measured: max error relative to max(1, |expected|) 3.4e-14 (inv-erf, inv-erfc next to the ends of the domain,
+  ;; where the derivative exp(y^2) amplifies the relative error of the value about 2 y^2 = 19 times), 2.2e-15 (Lambert
+  ;; W next to the branch point), 2.6e-15 (En), below 4.5e-16 elsewhere (also En of a non-positive integer order at a negative x)
+  (t/testing "ForwardDiff and mpmath references, first and second derivatives"
+    (t/is (= (set (keys erf-expint-unary))
+             (into (set (keys (:unary @erf-expint-reference))) (keys (dissoc @erf-expint-mpmath-reference :En-real-branch))))
+          "every function is in a reference")
+    (doseq [[id rows] (concat (:unary @erf-expint-reference) (dissoc @erf-expint-mpmath-reference :En-real-branch))
+            :let [f (first (erf-expint-unary id))
+                  tolerance (if (#{:inv-erf :inv-erfc} id) 1.0e-13 1.0e-14)]
+            [x d1 d2] rows]
+      (t/is (rule-close? d1 ((D f) x) tolerance) (str id " d1 at " x))
+      (t/is (rule-close? d2 ((D f 2) x) tolerance) (str id " d2 at " x)))
+    (doseq [[n x d1 d2] (concat (:En @erf-expint-reference) (:En-real-branch @erf-expint-mpmath-reference))
+            :let [f (fn [y] (ad/En n y))]]
+      (t/is (rule-close? d1 ((D f) x) 1.0e-14) (str "En " n " d1 at " x))
+      (t/is (rule-close? d2 ((D f 2) x) 1.0e-14) (str "En " n " d2 at " x)))
+    (doseq [{:keys [x gradient hessian]} (:erf2 @erf-expint-reference)
+            :let [g (fn [[a b]] (ad/erf a b))]]
+      (t/is (all-close? gradient ((ad/gradient g) x)) (str "erf2 gradient at " x))
+      (t/is (all-close? hessian ((ad/hessian g) x)) (str "erf2 hessian at " x))))
+  (t/testing "the values are the values of fastmath.special, for numbers and for duals"
+    (doseq [[id rows] (concat (:unary @erf-expint-reference) (dissoc @erf-expint-mpmath-reference :En-real-branch))
+            :let [[f g] (erf-expint-unary id)]
+            [x] rows]
+      (t/is (= (g x) (f x) (ad/primal (f (ad/dual 1 x [1.0])))) (str id " at " x)))
+    (t/is (= (special/erf 0.1 0.3) (ad/erf 0.1 0.3) (ad/primal (ad/erf (ad/dual 1 0.1 [1.0]) 0.3))))
+    (t/is (= (special/En 2.5 1.0) (ad/En 2.5 1.0) (ad/primal (ad/En 2.5 (ad/dual 1 1.0 [1.0])))))))
+
+(t/deftest erf-expint-edges-test
+  (t/testing "removable singularities and limits"
+    (t/is (= [1.0 1.0 0.0] [((D ad/lambert-W) 0.0) ((D ad/Ein) 0.0) ((D ad/Cin) 0.0)]))
+    (t/is (= [1.0 1.0] [((D ad/Si) 0.0) ((D ad/si) 0.0)]))
+    (t/is (= -2.0 ((D ad/lambert-W 2) 0.0)))
+    (t/is (= [-0.5 0.5] [((D ad/Ein 2) 0.0) ((D ad/Cin 2) 0.0)]))
+    (t/is (m/delta-eq 0.00125 ((D ad/Ein) 800.0)) "exprel(-x): finite where exp(-x) exprel(x) is 0 * Inf")
+    (doseq [f [ad/Si ad/si ad/Ci ad/Cin] k [1 2]]
+      (t/is (= 0.0 ((D f k) ##Inf)) (str f " order " k " at Inf: the limit")))
+    (t/is (= [0.0 0.0] [((D ad/Si) ##-Inf) ((D ad/Cin) ##-Inf)])))
+  (t/testing "singularities and branch points"
+    (let [b (m// -1.0 m/E)]
+      (t/is (= [##Inf ##Inf] [((D ad/lambert-W) b) ((D ad/lambert-W-1) b)])))
+    (t/is (= [##-Inf ##-Inf] [((D ad/lambert-W-1) -0.0) ((D ad/lambert-W-1) 0.0)]) "the limit from the left at 0")
+    (let [x -1.0e-300 w (special/lambert-W-1 x)]
+      (t/is (rule-close? (m// w (m/* x (m/inc w))) ((D ad/lambert-W-1) x) 1.0e-14) "W/(x (1 + W)) next to 0"))
+    (t/is (= [##Inf ##-Inf] [((D ad/li) 1.0) ((D ad/E1) 0.0)]))
+    (t/is (= ##Inf ((D ad/Ci) 0.0)) "Ci rises from -Inf")
+    (t/is (= ##Inf ((D ad/Ci) -0.0)) "-0.0 is the value at 0: the right-hand derivative")
+    (t/is (and (nan? ((D ad/Ci 2) 0.0)) (nan? ((D ad/Ci 2) -0.0))) "the same at both zeros (0/0 - Inf, not a limit)")
+    (t/is (= [0.0 ##-Inf] [((D ad/lambert-W) ##Inf) ((D ad/lambert-W-1) -0.0)]) "the limits at the infinite values of W")
+    (t/is (= [##Inf ##-Inf] [((D ad/inv-erf) 1.0) ((D ad/inv-erfc) 0.0)])))
+  (t/testing "outside the domain the derivatives are NaN"
+    (doseq [[f x] [[ad/lambert-W -0.5] [ad/lambert-W-1 0.5] [ad/lambert-W-1 -0.5] [ad/inv-erf 1.5] [ad/inv-erfc -0.5]
+                   [ad/E1 -1.0] [ad/li -1.0]]]
+      (t/is (nan? ((D f) x)) (str f " at " x))
+      (t/is (nan? ((D f 2) x)) (str f " second at " x)))
+    ;; Ein is defined for every real x (upstream group 3, U16): Ein' = (1 - exp(-x))/x, Ein'' = (x exp(-x) - 1 + exp(-x))/x^2
+    (let [x -2.5 e (m/exp (m/- x))]
+      (t/is (rule-close? (m// (m/- 1.0 e) x) ((D ad/Ein) x) 1.0e-14) "Ein' below -2.15")
+      (t/is (rule-close? (m// (m/+ (m/* x e) (m/- e 1.0)) (m/* x x)) ((D ad/Ein 2) x) 1.0e-14) "Ein'' below -2.15"))
+    (t/is (every? nan? [((D (fn [x] (ad/En 2.5 x))) -1.0) ((D (fn [x] (ad/En 1.0 x))) -1.0)])
+          "a fractional or positive integer order at a negative x: complex, NaN")
+    (t/is (thrown? AssertionError ((D ad/Ci) -1.0)) "fastmath.special/Ci asserts a non-negative argument"))
+  (t/testing "the order of En has no derivative"
+    (t/is (= {:function :En :argument :n} (thrown-data #((D (fn [n] (ad/En n 1.0))) 2.0))))
+    (t/is (= ((D (fn [x] (ad/En 2.0 x))) 1.0) (ad/scalar ((D (fn [x] (ad/En (ad/dual 1 2.0 [0.0]) x))) 1.0)))
+          "a dual order with zero partials is a constant")
+    (t/is (= (m/- (special/E0 1.0)) ((D (fn [x] (ad/En 1.0 x))) 1.0)) "E1' = -E0, through the order n - 1")
+    (t/is (= ((D ad/E1) 0.7) ((D (fn [x] (ad/En 1.0 x))) 0.7)))
+    (t/is (= [-2.0 ##-Inf ##-Inf] (mapv (fn [n] ((D (fn [x] (ad/En n x))) 0.0)) [2.5 1.0 0.5])) "-E(n-1, 0): -1/(n-2) or -Inf")
+    (t/is (nan? ((D (fn [x] (ad/En ##NaN x))) 0.7))))
+  (t/testing "erf with two arguments"
+    (t/is (= [-0.8787825789354448 0.8787825789354448] ((ad/gradient (fn [[a b]] (ad/erf a b))) [0.5 0.5])) "a tie")
+    (t/is (= [[0.0 0.0] 2.0] [((ad/gradient (fn [[a b]] (ad/erf a b))) [##-Inf ##Inf]) (ad/erf ##-Inf ##Inf)]))
+    (t/is (= ((D ad/erf) 0.5) ((D (fn [x] (ad/erf 0.3 x))) 0.5)) "only the second argument"))
+  (t/testing "nesting: no perturbation confusion"
+    (t/is (= ((D (fn [x] (ad/erf (ad/* x x)))) 0.5)
+             ((D (fn [x] (ad/erf (ad/* x ((D (fn [y] (ad/* x y))) 1.0))))) 0.5)))
+    (t/is (= ((D (fn [x] (ad/lambert-W (ad/* x x)))) 3.0)
+             ((D (fn [x] (ad/lambert-W (ad/* x ((D (fn [y] (ad/* x y))) 1.0))))) 3.0)))
+    (t/is (= [[0.0 1.0] [1.0 0.0]] ((ad/hessian (fn [[x y]] (ad/Si (ad/* x y)))) [0.0 0.0])) "Si(xy) = xy + O(x^3 y^3)"))
+  (t/testing "Lambert W: the derivative is continuous across the switch of its forms at |W| = 1 (x = e)"
+    (t/is (rule-close? (m// 1.0 (m/* 2.0 m/E)) ((D ad/lambert-W) m/E) 1.0e-15))
+    (t/is (rule-close? ((D ad/lambert-W) (m/- m/E 1.0e-12)) ((D ad/lambert-W) (m/+ m/E 1.0e-12)) 1.0e-11))))
+
+;; Bessel, spherical Bessel and Airy functions (phase 5c)
+
+(def ^:private bessel-reference
+  (delay (edn/read-string (slurp (io/resource "calculus/autodiff_bessel_mpmath_reference.edn")))))
+
+(def ^:private bessel-functions
+  "id -> [function of order and x of the facade, function of fastmath.special]"
+  {:bessel-J [ad/bessel-J special/bessel-J] :bessel-Y [ad/bessel-Y special/bessel-Y] :bessel-I [ad/bessel-I special/bessel-I]
+   :bessel-K [ad/bessel-K special/bessel-K] :bessel-K-half-odd [ad/bessel-K-half-odd special/bessel-K-half-odd]
+   :bessel-K-half-odd-scaled [ad/bessel-K-half-odd-scaled special/bessel-K-half-odd-scaled]
+   :spherical-bessel-j [ad/spherical-bessel-j special/spherical-bessel-j]
+   :spherical-bessel-y [ad/spherical-bessel-y special/spherical-bessel-y]
+   :spherical-bessel-1-i [ad/spherical-bessel-1-i special/spherical-bessel-1-i]
+   :spherical-bessel-2-i [ad/spherical-bessel-2-i special/spherical-bessel-2-i]
+   :spherical-bessel-k [ad/spherical-bessel-k special/spherical-bessel-k]
+   :airy-Ai [(fn [_ x] (ad/airy-Ai x)) (fn [_ x] (special/airy-Ai x))]
+   :airy-Ai' [(fn [_ x] (ad/airy-Ai' x)) (fn [_ x] (special/airy-Ai' x))]
+   :airy-Bi [(fn [_ x] (ad/airy-Bi x)) (fn [_ x] (special/airy-Bi x))]
+   :airy-Bi' [(fn [_ x] (ad/airy-Bi' x)) (fn [_ x] (special/airy-Bi' x))]})
+
+(def ^:private bessel-fixed-order
+  "[general id, order, function of the facade, function of fastmath.special]"
+  [[:bessel-J 0.0 ad/bessel-J0 special/bessel-J0]
+   [:bessel-J 1.0 ad/bessel-J1 special/bessel-J1]
+   [:bessel-Y 0.0 ad/bessel-Y0 special/bessel-Y0]
+   [:bessel-Y 1.0 ad/bessel-Y1 special/bessel-Y1]
+   [:bessel-I 0.0 ad/bessel-I0 special/bessel-I0]
+   [:bessel-I 1.0 ad/bessel-I1 special/bessel-I1]
+   [:bessel-K 0.0 ad/bessel-K0 special/bessel-K0]
+   [:bessel-K 1.0 ad/bessel-K1 special/bessel-K1]
+   [:spherical-bessel-j 0.0 ad/spherical-bessel-j0 special/spherical-bessel-j0]
+   [:spherical-bessel-j 1.0 ad/spherical-bessel-j1 special/spherical-bessel-j1]
+   [:spherical-bessel-j 2.0 ad/spherical-bessel-j2 special/spherical-bessel-j2]
+   [:spherical-bessel-y 0.0 ad/spherical-bessel-y0 special/spherical-bessel-y0]
+   [:spherical-bessel-y 1.0 ad/spherical-bessel-y1 special/spherical-bessel-y1]
+   [:spherical-bessel-y 2.0 ad/spherical-bessel-y2 special/spherical-bessel-y2]
+   [:spherical-bessel-1-i 0.0 ad/spherical-bessel-1-i0 special/spherical-bessel-1-i0]
+   [:spherical-bessel-1-i 1.0 ad/spherical-bessel-1-i1 special/spherical-bessel-1-i1]
+   [:spherical-bessel-1-i 2.0 ad/spherical-bessel-1-i2 special/spherical-bessel-1-i2]
+   [:spherical-bessel-2-i 0.0 ad/spherical-bessel-2-i0 special/spherical-bessel-2-i0]
+   [:spherical-bessel-2-i 1.0 ad/spherical-bessel-2-i1 special/spherical-bessel-2-i1]
+   [:spherical-bessel-2-i 2.0 ad/spherical-bessel-2-i2 special/spherical-bessel-2-i2]
+   [:spherical-bessel-k 0.0 ad/spherical-bessel-k0 special/spherical-bessel-k0]
+   [:spherical-bessel-k 1.0 ad/spherical-bessel-k1 special/spherical-bessel-k1]
+   [:spherical-bessel-k 2.0 ad/spherical-bessel-k2 special/spherical-bessel-k2]])
+
+(t/deftest bessel-reference-test
+  ;; measured: max error relative to max(1, |expected|) 2.3e-15 (spherical-bessel-j at the order -0.53), 1.6e-15 (airy-Bi,
+  ;; airy-Bi' at 12), below 8e-16 elsewhere
+  (t/testing "mpmath reference, first and second derivatives in x"
+    (t/is (= (set (keys bessel-functions)) (set (keys @bessel-reference))) "every function is in the reference")
+    (doseq [[id rows] @bessel-reference
+            :let [f (first (bessel-functions id))]
+            [n x d1 d2] rows]
+      (t/is (rule-close? d1 ((D (fn [v] (f n v))) x) 1.0e-14) (str id " " n " d1 at " x))
+      (t/is (rule-close? d2 ((D (fn [v] (f n v)) 2) x) 1.0e-14) (str id " " n " d2 at " x))))
+  (t/testing "the fixed orders, against the rows of their order"
+    (doseq [[id order f] bessel-fixed-order
+            [n x d1 d2] (id @bessel-reference)
+            :when (== order n)]
+      (t/is (rule-close? d1 ((D f) x) 1.0e-14) (str id " " n " fixed d1 at " x))
+      (t/is (rule-close? d2 ((D f 2) x) 1.0e-14) (str id " " n " fixed d2 at " x))))
+  (t/testing "the values are the values of fastmath.special, for numbers and for duals"
+    (doseq [[id rows] @bessel-reference
+            :let [[f g] (bessel-functions id)]
+            [n x] rows]
+      (t/is (= (g n x) (f n x) (ad/primal (f n (ad/dual 1 x [1.0])))) (str id " " n " at " x)))
+    (doseq [[_ _ f g] bessel-fixed-order
+            x [0.3 1.0 5.0]]
+      (t/is (= (g x) (f x) (ad/primal (f (ad/dual 1 x [1.0])))) (str f " at " x)))))
+
+(t/deftest bessel-edges-test
+  (t/testing "at zero"
+    (t/is (= [-0.0 0.5 0.0 0.5] (mapv #((D %) 0.0) [ad/bessel-J0 ad/bessel-J1 ad/bessel-I0 ad/bessel-I1])))
+    (t/is (= [##Inf ##-Inf] (mapv #((D %) 0.0) [ad/bessel-Y0 ad/bessel-K0])))
+    (t/is (= [0.0 (m// 1.0 3.0) 0.0] (mapv #((D %) 0.0) [ad/spherical-bessel-j0 ad/spherical-bessel-j1 ad/spherical-bessel-j2]))
+          "j_1'(0) = 1/3: the recurrence without a division by x")
+    (t/is (= [(m// -1.0 3.0) 0.0] (mapv #((D % 2) 0.0) [ad/spherical-bessel-j0 ad/spherical-bessel-j1])))
+    (t/is (= [0.0 (m// 1.0 3.0)] (mapv #((D %) 0.0) [ad/spherical-bessel-1-i0 ad/spherical-bessel-1-i1])))
+    (t/is (= [##-Inf ##Inf] (mapv #((D %) 0.0) [ad/spherical-bessel-k0 ad/spherical-bessel-y0])) "n f_(n-1) is dropped at n = 0")
+    (t/is (= [0.0 0.0] (mapv #((D % 2) 0.0) [ad/airy-Ai ad/airy-Bi])) "Ai'' = x Ai")
+    (t/is (= [[0.0 (m// 1.0 3.0)] [(m// 1.0 3.0) 0.0]] ((ad/hessian (fn [[x y]] (ad/spherical-bessel-j1 (ad/* x y)))) [0.0 0.0]))))
+  (t/testing "the orders"
+    (t/is (= {:function :bessel-J :argument :order} (thrown-data #((D (fn [n] (ad/bessel-J n 1.0))) 2.0))))
+    (t/is (= {:function :spherical-bessel-k :argument :order} (thrown-data #((D (fn [n] (ad/spherical-bessel-k n 1.0))) 2.0))))
+    (t/is (= ((D (fn [x] (ad/bessel-J 2.0 x))) 1.0) (ad/scalar ((D (fn [x] (ad/bessel-J (ad/dual 1 2.0 [0.0]) x))) 1.0))))
+    (t/is (thrown? IllegalArgumentException ((D (fn [x] (ad/bessel-K-half-odd 2 x))) 1.0)) "an even order, as fastmath.special")
+    (t/is (= ((D (fn [x] (ad/bessel-K-half-odd 1 x))) 1.0) ((D (fn [x] (ad/bessel-K-half-odd -1 x))) 1.0)) "K is even in the order")
+    (t/is (= ((D ad/bessel-J0) 1.0) ((D (fn [x] (ad/bessel-J 0 x))) 1.0)) "a fixed order is the general order"))
+  (t/testing "outside the domain the derivatives are NaN"
+    (doseq [[f x] [[(fn [x] (ad/bessel-J 2.5 x)) -1.0] [ad/bessel-K0 -1.0] [ad/bessel-Y1 -1.0] [ad/spherical-bessel-k1 -1.0]
+                   [ad/airy-Ai ##-Inf]]]
+      (t/is (nan? ((D f) x)) (str f " at " x))))
+  (t/testing "nesting: no perturbation confusion"
+    (t/is (= ((D (fn [x] (ad/bessel-J0 (ad/* x x)))) 0.5)
+             ((D (fn [x] (ad/bessel-J0 (ad/* x ((D (fn [y] (ad/* x y))) 1.0))))) 0.5)))
+    (t/is (= ((D ad/bessel-J0 3) 1.0) (m/- (double ((D ad/bessel-J1 2) 1.0)))) "J0' = -J1 at every order"))
+  (t/testing "higher orders at zero, parity at negative x, the fixed orders against the general order"
+    (t/is (= [-0.5 -0.0 0.25 0.0] (mapv (fn [n] ((D (fn [x] (ad/bessel-J n x)) 2) 0.0)) [0.0 1.0 2.0 3.0])))
+    (t/is (m/delta-eq -0.2 ((D ad/spherical-bessel-j1 3) 0.0)) "the third derivative of j_1 at 0 is -1/5")
+    (t/is (= [##Inf ##-Inf] [((D (fn [x] (ad/bessel-J 0.5 x))) 0.0) ((D (fn [x] (ad/bessel-J -0.3 x))) 0.0)]))
+    (t/is (= ((D (fn [x] (ad/bessel-J 2.0 x))) 1.5) (m/- (double ((D (fn [x] (ad/bessel-J 2.0 x))) -1.5)))) "J_2' is odd")
+    (t/is (= ((D (fn [x] (ad/bessel-I 3.0 x))) 1.5) ((D (fn [x] (ad/bessel-I 3.0 x))) -1.5)) "I_3' is even")
+    (t/is (= ((D ad/spherical-bessel-j1) 1.5) ((D ad/spherical-bessel-j1) -1.5)) "j_1' is even")
+    (t/is (= ((D ad/bessel-Y1 2) 2.0) ((D (fn [x] (ad/bessel-Y 1.0 x)) 2) 2.0)))
+    (t/is (= ((D ad/spherical-bessel-k2 2) 2.0) ((D (fn [x] (ad/spherical-bessel-k 2.0 x)) 2) 2.0))))
+  (t/testing "the second kind at 0: the value is -Inf, the derivative the limit +Inf (the recurrence is -Inf - (-Inf))"
+    (t/is (= [##Inf ##Inf ##Inf] [((D ad/bessel-Y0) 0.0) ((D ad/bessel-Y1) 0.0) ((D (fn [x] (ad/bessel-Y 2.5 x))) 0.0)]))
+    (t/is (= [##Inf ##Inf ##Inf ##Inf] [((D ad/spherical-bessel-y0) 0.0) ((D ad/spherical-bessel-y1) 0.0) ((D ad/spherical-bessel-y2) 0.0)
+                                        ((D (fn [x] (ad/spherical-bessel-y 3.5 x))) 0.0)]))
+    ;; the order -1: the term (n + 1) f_0 is 0 (was 0 * Inf = NaN); y_(-1) = j_0, i2_(-1) = sinh(x)/x, j_(-1) = cos(x)/x
+    (t/is (m/zero? ((D (fn [x] (ad/spherical-bessel-y -1.0 x))) 0.0)) "y_(-1)'(0) = j_0'(0) = 0")
+    (t/is (m/zero? ((D (fn [x] (ad/spherical-bessel-2-i -1.0 x))) 0.0)) "(sinh(x)/x)'(0) = 0")
+    (t/is (m/neg-inf? ((D (fn [x] (ad/spherical-bessel-j -1.0 x))) 0.0)) "(cos(x)/x)' = -Inf at 0+")
+    (t/is (m/neg-inf? ((D (fn [x] (ad/spherical-bessel-k -1.0 x))) 0.0)) "k_(-1) = k_0, -Inf at 0")
+    (t/is (rule-close? (m// (m/- (m/* 0.7 (m/cos 0.7)) (m/sin 0.7)) 0.49) ((D (fn [x] (ad/spherical-bessel-y -1.0 x))) 0.7) 1.0e-14)
+          "away from 0 the term is 0 anyway: y_(-1)' = j_0' = (x cos x - sin x)/x^2")))
+
+;; Jacobi elliptic functions, inverses, amplitude, incomplete elliptic integrals (phase 5d)
+
+(def ^:private elliptic-reference
+  (delay (edn/read-string (slurp (io/resource "calculus/autodiff_elliptic_mpmath_reference.edn")))))
+
+(def ^:private elliptic-functions
+  "id -> [function of the facade, function of fastmath.special], both of [a m]"
+  {:jacobi-sn [ad/jacobi-sn special/jacobi-sn] :jacobi-cn [ad/jacobi-cn special/jacobi-cn] :jacobi-dn [ad/jacobi-dn special/jacobi-dn] :jacobi-sc [ad/jacobi-sc special/jacobi-sc] :jacobi-sd [ad/jacobi-sd special/jacobi-sd] :jacobi-cs [ad/jacobi-cs special/jacobi-cs] :jacobi-cd [ad/jacobi-cd special/jacobi-cd] :jacobi-ds [ad/jacobi-ds special/jacobi-ds] :jacobi-dc [ad/jacobi-dc special/jacobi-dc] :jacobi-ns [ad/jacobi-ns special/jacobi-ns] :jacobi-nc [ad/jacobi-nc special/jacobi-nc] :jacobi-nd [ad/jacobi-nd special/jacobi-nd] :jacobi-am [ad/jacobi-am special/jacobi-am] :jacobi-asn [ad/jacobi-asn special/jacobi-asn] :jacobi-acn [ad/jacobi-acn special/jacobi-acn] :jacobi-adn [ad/jacobi-adn special/jacobi-adn] :jacobi-asc [ad/jacobi-asc special/jacobi-asc] :jacobi-asd [ad/jacobi-asd special/jacobi-asd] :jacobi-acs [ad/jacobi-acs special/jacobi-acs] :jacobi-acd [ad/jacobi-acd special/jacobi-acd] :jacobi-ads [ad/jacobi-ads special/jacobi-ads] :jacobi-adc [ad/jacobi-adc special/jacobi-adc] :jacobi-ans [ad/jacobi-ans special/jacobi-ans] :jacobi-anc [ad/jacobi-anc special/jacobi-anc] :jacobi-and [ad/jacobi-and special/jacobi-and] :elliptic-F [ad/elliptic-F special/elliptic-F] :elliptic-E [ad/elliptic-E special/elliptic-E] :elliptic-D [ad/elliptic-D special/elliptic-D]})
+
+(t/deftest elliptic-reference-test
+  ;; measured: max error relative to max(1, |expected|) 5.4e-15 (cs, ds, ns at u = 3, m = -0.5), 3.3e-15 (inverses),
+  ;; below 1e-15 elsewhere
+  (t/testing "mpmath reference, first and second derivatives in u, x or phi"
+    (t/is (= (conj (set (keys elliptic-functions)) :elliptic-PI) (set (keys @elliptic-reference))) "every function is in the reference")
+    (doseq [[id rows] (dissoc @elliptic-reference :elliptic-PI)
+            :let [f (first (elliptic-functions id))]
+            [a mm d1 d2] rows]
+      (t/is (rule-close? d1 ((D (fn [v] (f v mm))) a) 1.0e-14) (str id " d1 at " [a mm]))
+      (t/is (rule-close? d2 ((D (fn [v] (f v mm)) 2) a) 1.0e-14) (str id " d2 at " [a mm])))
+    (doseq [[n phi mm d1 d2] (:elliptic-PI @elliptic-reference)]
+      (t/is (rule-close? d1 ((D (fn [v] (ad/elliptic-PI n v mm))) phi) 1.0e-14) (str "PI d1 at " [n phi mm]))
+      (t/is (rule-close? d2 ((D (fn [v] (ad/elliptic-PI n v mm)) 2) phi) 1.0e-14) (str "PI d2 at " [n phi mm]))))
+  (t/testing "the values are the values of fastmath.special, for numbers and for duals"
+    (doseq [[id rows] (dissoc @elliptic-reference :elliptic-PI)
+            :let [[f g] (elliptic-functions id)]
+            [a mm] rows]
+      (t/is (= (g a mm) (f a mm) (ad/primal (f (ad/dual 1 a [1.0]) mm))) (str id " at " [a mm])))
+    (t/is (= (special/elliptic-PI 0.4 1.0 0.3) (ad/elliptic-PI 0.4 1.0 0.3) (ad/primal (ad/elliptic-PI 0.4 (ad/dual 1 1.0 [1.0]) 0.3))))))
+
+(t/deftest elliptic-edges-test
+  (t/testing "at zero"
+    (t/is (= [1.0 -0.0 -0.0] (mapv (fn [f] ((D (fn [u] (f u 0.5))) 0.0)) [ad/jacobi-sn ad/jacobi-cn ad/jacobi-dn])))
+    (t/is (= [1.0 1.0 1.0 0.0 1.0] [((D (fn [u] (ad/jacobi-am u 0.5))) 0.0) ((D (fn [x] (ad/jacobi-asn x 0.5))) 0.0)
+                                    ((D (fn [phi] (ad/elliptic-F phi 0.5))) 0.0) ((D (fn [phi] (ad/elliptic-D phi 0.5))) 0.0)
+                                    ((D (fn [phi] (ad/elliptic-E phi 0.5))) 0.0)])))
+  (t/testing "the circular limit m = 0: sn = sin, am = identity, F = E = phi"
+    (t/is (m/delta-eq (m/cos 0.7) ((D (fn [u] (ad/jacobi-sn u 0.0))) 0.7)))
+    (t/is (= [1.0 1.0 1.0] [((D (fn [u] (ad/jacobi-am u 0.0))) 0.7) ((D (fn [phi] (ad/elliptic-F phi 0.0))) 0.7)
+                            ((D (fn [phi] (ad/elliptic-E phi 0.0))) 0.7)])))
+  (t/testing "the ends of the range of the inverses and m = 1 at phi = pi/2"
+    (t/is (= [##Inf ##Inf] [((D (fn [x] (ad/jacobi-asn x 0.5))) 1.0) ((D (fn [x] (ad/jacobi-asn x 0.5))) -1.0)]))
+    (t/is (= ##Inf ((D (fn [phi] (ad/elliptic-F phi 1.0))) m/HALF_PI)) "1/Delta, Delta = 0"))
+  (t/testing "outside the range the value and the derivatives are NaN"
+    (t/is (nan? ((D (fn [x] (ad/jacobi-asn x 0.5))) 1.5)))
+    (t/is (nan? ((D (fn [x] (ad/jacobi-acn x 0.5))) -1.5))))
+  (t/testing "the parameter and the characteristic have no derivative"
+    (t/is (= {:function :jacobi-sn :argument :m} (thrown-data #((D (fn [mm] (ad/jacobi-sn 0.5 mm))) 0.5))))
+    (t/is (= {:function :jacobi-asn :argument :m} (thrown-data #((D (fn [mm] (ad/jacobi-asn 0.3 mm))) 0.5))))
+    (t/is (= {:function :elliptic-F :argument :m} (thrown-data #((D (fn [mm] (ad/elliptic-F 0.3 mm))) 0.5))))
+    (t/is (= {:function :elliptic-PI :argument :n} (thrown-data #((D (fn [n] (ad/elliptic-PI n 0.3 0.5))) 0.5))))
+    (t/is (= ((D (fn [u] (ad/jacobi-sn u 0.5))) 0.3) (ad/scalar ((D (fn [u] (ad/jacobi-sn u (ad/dual 1 0.5 [0.0])))) 0.3)))))
+  (t/testing "identities: am' = dn, the inverse of sn, F is the inverse of am, nesting"
+    (t/is (= ((D (fn [u] (ad/jacobi-am u 0.5))) 0.8) (special/jacobi-dn 0.8 0.5)))
+    (t/is (rule-close? 1.0 ((D (fn [u] (ad/jacobi-asn (ad/jacobi-sn u 0.5) 0.5))) 0.4) 1.0e-14) "asn(sn(u)) = u")
+    (t/is (rule-close? 1.0 ((D (fn [u] (ad/elliptic-F (ad/jacobi-am u 0.5) 0.5))) 0.4) 1.0e-14) "F(am(u)) = u")
+    (t/is (= ((D (fn [u] (ad/jacobi-cn (ad/* u u) 0.5))) 0.7)
+             ((D (fn [u] (ad/jacobi-cn (ad/* u ((D (fn [v] (ad/* u v))) 1.0)) 0.5))) 0.7)) "no perturbation confusion")
+    (t/is (rule-close? (m/- (m/* 0.5 (special/jacobi-sn 0.7 0.5) (special/jacobi-cn 0.7 0.5)))
+                       ((D (fn [u] (ad/jacobi-dn u 0.5))) 0.7) 1.0e-15) "dn' = -m sn cn, the parameter is m = k^2 (U6)"))
+  (t/testing "the hyperbolic limit m = 1: sn = tanh, cn = dn = sech, am = gd, F' = sec"
+    (t/is (rule-close? (m/sq (m/sech 0.7)) ((D (fn [u] (ad/jacobi-sn u 1.0))) 0.7) 1.0e-15))
+    (t/is (rule-close? (m/- (m/* (m/sech 0.7) (m/tanh 0.7))) ((D (fn [u] (ad/jacobi-cn u 1.0))) 0.7) 1.0e-15))
+    (t/is (rule-close? (m/sech 0.7) ((D (fn [u] (ad/jacobi-am u 1.0))) 0.7) 1.0e-15))
+    (t/is (rule-close? (m// 1.0 0.75) ((D (fn [x] (ad/jacobi-asn x 1.0))) 0.5) 1.0e-15))
+    (t/is (rule-close? (m// 1.0 (m/cos 1.0)) ((D (fn [phi] (ad/elliptic-F phi 1.0))) 1.0) 1.0e-15)))
+  (t/testing "the inverses at 0, at the ends of the range, and their parity"
+    (t/is (= [1.0 1.0 1.0] (mapv (fn [f] ((D (fn [x] (f x 0.5))) 0.0)) [ad/jacobi-asn ad/jacobi-asc ad/jacobi-asd])))
+    (t/is (= [##-Inf ##-Inf ##-Inf ##-Inf] [((D (fn [x] (ad/jacobi-acn x 0.5))) 1.0) ((D (fn [x] (ad/jacobi-acn x 0.5))) -1.0)
+                                            ((D (fn [x] (ad/jacobi-acd x 0.5))) 1.0) ((D (fn [x] (ad/jacobi-acd x 0.5))) -1.0)]))
+    (t/is (= [##-Inf ##Inf ##Inf] (mapv (fn [f] ((D (fn [x] (f x 0.5))) 1.0)) [ad/jacobi-ans ad/jacobi-anc ad/jacobi-and])))
+    (doseq [[f x] [[ad/jacobi-asn 0.4] [ad/jacobi-asc 2.0] [ad/jacobi-acs 2.0] [ad/jacobi-ans 2.0]]]
+      (t/is (= ((D (fn [v] (f v 0.5))) x) ((D (fn [v] (f v 0.5))) (m/- (double x)))) (str f " even derivative"))))
+  (t/testing "the branch signs outside 0 <= m <= 1 (adn, and for m < 0; acd for m > 1) against 1/f'(u)"
+    (doseq [[f g u0 mm] [[ad/jacobi-adn special/jacobi-dn 0.6 -0.5] [ad/jacobi-and special/jacobi-nd 0.6 -0.5]
+                         [ad/jacobi-acd special/jacobi-cd 0.6 1.5] [ad/jacobi-adc special/jacobi-dc 0.6 1.5]]
+            :let [x (double (g u0 mm))
+                  u (double (ad/primal (f (ad/dual 1 x [1.0]) mm)))
+                  fd (m// (m/- (double (g (m/+ u 1.0e-6) mm)) (double (g (m/- u 1.0e-6) mm))) 2.0e-6)]]
+      (t/is (rule-close? (m// 1.0 fd) ((D (fn [v] (f v mm))) x) 1.0e-8) (str f " at " [x mm]))))
+  (t/testing "poles, periods and the domain of the integrals"
+    (t/is (= [##-Inf ##-Inf ##-Inf] (mapv (fn [f] ((D (fn [u] (f u 0.5))) 0.0)) [ad/jacobi-cs ad/jacobi-ds ad/jacobi-ns])))
+    (t/is (rule-close? ((D (fn [phi] (ad/elliptic-F phi 0.5))) 0.3) ((D (fn [phi] (ad/elliptic-F phi 0.5))) (m/+ 0.3 m/PI)) 1.0e-15)
+          "F' is periodic in phi")
+    (t/is (rule-close? (m// 1.0 (m/sqrt (m/- 1.0 (m/* 2.0 (m/sq (m/sin 0.5)))))) ((D (fn [phi] (ad/elliptic-F phi 2.0))) 0.5) 1.0e-15)
+          "m > 1 inside the domain")
+    (t/is (nan? ((D (fn [phi] (ad/elliptic-F phi 2.0))) 1.0)) "m > 1 beyond asin(1/sqrt(m)): NaN")))
