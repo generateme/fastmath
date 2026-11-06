@@ -1,6 +1,7 @@
 (ns ^:no-doc fastmath.calculus.autodiff.arithmetic
-  "Internal: the polynomial and linear functions of `fastmath.core` (powers, fused multiply-add, linear interpolation and range mapping) for numbers and duals of [[fastmath.calculus.autodiff]], dispatched by `instance?`, and their derivative rules."
+  "Internal: the polynomial and linear functions of `fastmath.core` (powers, fused multiply-add, linear interpolation, range mapping, sum and product of a sequence) for numbers and duals of [[fastmath.calculus.autodiff]], dispatched by `instance?`, and their derivative rules."
   (:require [fastmath.core :as m]
+            [fastmath.calculus.common :as cc]
             [fastmath.calculus.autodiff.dual :as d]
             [fastmath.calculus.autodiff.ops :refer [add sub mul div neg]]
             [fastmath.calculus.autodiff.rules :as r]))
@@ -17,6 +18,19 @@
 (defn pow10 "`x^10`." [x] (r/dispatch dual-pow10 m/pow10 x))
 (defn fma "`x y + z`, fused." [x y z] (r/dispatch dual-fma m/fma x y z))
 (defn lerp "Linear interpolation `start + t (stop - start)`." [start stop t] (r/dispatch dual-lerp m/lerp start stop t))
+
+(defn- fold-from-first
+  "Left fold of `op` over `xs` starting from its first element (a number coerced to a double), `identity-value` for
+  an empty or `nil` `xs`; the same as `(apply op' xs)` of the variadic facade operation. Throws `ex-info` when `xs`
+  is not seqable."
+  [op identity-value xs]
+  (when-not (seqable? xs) (cc/invalid-option! :xs xs "a sequence of numbers and duals"))
+  (if-let [s (seq xs)]
+    (reduce op (d/leaf (first s)) (rest s))
+    identity-value))
+
+(defn sum "Sum of a sequence of numbers and duals, `0.0` when empty." [xs] (fold-from-first add 0.0 xs))
+(defn prod "Product of a sequence of numbers and duals, `1.0` when empty." [xs] (fold-from-first mul 1.0 xs))
 
 (defn- norm5-double [v start1 stop1 start2 stop2] (m/norm v start1 stop1 start2 stop2))
 

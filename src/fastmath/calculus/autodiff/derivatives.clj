@@ -10,42 +10,29 @@
 
 ;; ## Extraction
 
+(defn- unsupported-result!
+  "Throws `ex-info` for a result `r` of the differentiated function which `operation` does not accept; `accepted`
+  completes the message `neither ...` with the accepted results."
+  [operation ^long t r accepted]
+  (throw (ex-info (if (fn? r)
+                    (str operation " of a function returning a function is not supported.")
+                    (str operation " of a function returning neither " accepted " is not supported."))
+                  {:tag t :result-type (type r)})))
+
 (defn- result-partials
-  "The `k` partials (an array) of the layer `t` of one element of the result of a differentiated function.
+  "The `k` partials (an array) of the layer `t` of one element of the result of a differentiated function, a number
+  or a dual (the callers validate the result).
 
   A number or a dual with an older tag does not depend on the inputs of the layer: `k` zeros. A dual with a newer tag escaped from a finished derivative call."
   ^objects [^long t ^long k result]
-  (cond
-    (instance? Dual result) (let [rt (.tag ^Dual result)]
-                              (cond
-                                (m/== rt t) (.partials ^Dual result)
-                                (m/< rt t) (d/zero-partials k)
-                                :else (throw (ex-info "A dual escaped from its derivative call into the result."
-                                                      {:tag t :result-tag rt}))))
-    (number? result) (d/zero-partials k)
-    (fn? result) (throw (ex-info "Derivative of a function returning a function is not supported."
-                                 {:tag t :result-type (type result)}))
-    :else (throw (ex-info "Derivative of a function returning neither a number nor a dual is not supported."
-                          {:tag t :result-type (type result)}))))
-
-;; ## Derivative
-
-(defn- first-derivative
-  [f]
-  (fn [x]
-    (let [t (d/fresh-tag)]
-      (aget ^objects (result-partials t 1 (f (d/new-dual t (d/leaf x) (d/basis-partials 1 0)))) 0))))
-
-(defn derivative
-  "The `n`-th derivative of `f` as `n` nested first derivatives, see [[fastmath.calculus.autodiff/derivative]]."
-  ([f] (derivative f 1))
-  ([f ^long n]
-   (when (m/neg? n) (cc/invalid-option! :n n "an integer >= 0"))
-   (loop [g f
-          k n]
-     (if (m/zero? k)
-       g
-       (recur (first-derivative g) (m/long-dec k))))))
+  (if (instance? Dual result)
+    (let [rt (.tag ^Dual result)]
+      (cond
+        (m/== rt t) (.partials ^Dual result)
+        (m/< rt t) (d/zero-partials k)
+        :else (throw (ex-info "A dual escaped from its derivative call into the result."
+                              {:tag t :result-tag rt}))))
+    (d/zero-partials k)))
 
 ;; ## Gradient, Jacobian, Hessian
 
@@ -93,27 +80,32 @@
       (persistent! xs))))
 
 (defn- gradient-at
-  [f x ^long chunk]
+  "The gradient of a scalar `f` at the point `x` in passes of `chunk` inputs; `operation` names the caller in the
+  message for a result which is neither a number nor a dual."
+  [operation f x ^long chunk]
   (let [n (count x)]
     (loop [start (long 0)
            acc (transient [])]
       (if (m/< start n)
         (let [k (m/long-min chunk (m/long-sub n start))
               t (d/fresh-tag)
-              ps (result-partials t k (f (seed-chunk x t start k)))]
+              r (f (seed-chunk x t start k))
+              _ (when-not (or (instance? Dual r) (number? r))
+                  (unsupported-result! operation t r "a number nor a dual"))
+              ps (result-partials t k r)]
           (recur (m/long-add start k) (reduce conj! acc ps)))
         (persistent! acc)))))
 
 (defn- result-values
-  "The values of a vector valued function as a vector (a lazy result is realized here, inside the pass); throws when the result is not sequential or an element is neither a number nor a dual."
-  [r]
+  "The values of a vector valued function as a vector (a lazy result is realized here, inside the pass); throws when the result is not sequential or an element is neither a number nor a dual. `operation` names the caller in the messages."
+  [operation r]
   (when-not (sequential? r)
-    (throw (ex-info "Jacobian of a function returning something else than a sequential of numbers or duals is not supported."
+    (throw (ex-info (str operation " of a function returning something else than a sequential of numbers or duals is not supported.")
                     {:result-type (type r)})))
   (let [ys (vec r)]
     (doseq [y ys]
       (when-not (or (number? y) (instance? Dual y))
-        (throw (ex-info "Jacobian of a function returning a sequential with an element which is neither a number nor a dual is not supported."
+        (throw (ex-info (str operation " of a function returning a sequential with an element which is neither a number nor a dual is not supported.")
                         {:element-type (type y)}))))
     ys))
 
@@ -127,7 +119,7 @@
       (if (or (m/< start n) (nil? rows))
         (let [k (m/long-min chunk (m/long-sub n start))
               t (d/fresh-tag)
-              ys (result-values (f (seed-chunk x t start k)))
+              ys (result-values "Jacobian" (f (seed-chunk x t start k)))
               block (mapv (fn [y] (vec (result-partials t k y))) ys)]
           (when (and rows (not (m/== (count rows) (count block))))
             (throw (ex-info "The function returned a different number of values."
@@ -135,14 +127,19 @@
           (recur (m/long-add start k) (if rows (mapv into rows block) block)))
         rows))))
 
+(defn- gradient-function
+  "The gradient function of `f`; `operation` names the public caller ([[gradient]], [[hessian]], [[hvp]]) in the
+  error messages."
+  [operation f options]
+  (let [chunk-size (validated-chunk-size options)]
+    (fn local-gradient [v]
+      (let [x (point v)]
+        (gradient-at operation f x (chunk-length chunk-size (count x)))))))
+
 (defn gradient
   "The gradient function of `f`, see [[fastmath.calculus.autodiff/gradient]]."
   ([f] (gradient f nil))
-  ([f options]
-   (let [chunk-size (validated-chunk-size options)]
-     (fn local-gradient [v]
-       (let [x (point v)]
-         (gradient-at f x (chunk-length chunk-size (count x))))))))
+  ([f options] (gradient-function "Gradient" f options)))
 
 (defn jacobian
   "The Jacobian function of `f`, see [[fastmath.calculus.autodiff/jacobian]]."
@@ -157,9 +154,9 @@
   "The Hessian function of `f` as the Jacobian of the gradient, see [[fastmath.calculus.autodiff/hessian]]."
   ([f] (hessian f nil))
   ([f options]
-   (jacobian (gradient f options) options)))
+   (jacobian (gradient-function "Hessian" f options) options)))
 
-;; ## Derivative products
+;; ## Directional derivative: one pass with a single partial
 
 (defn- seed-direction
   "The point `x` with every input replaced by a dual of tag `t` with the single partial `v_i` (the direction); both
@@ -175,11 +172,34 @@
         (persistent! xs)))))
 
 (defn- directional-derivative
-  "The partial of the layer `t` of the result `r` of one pass: a number for a number or a dual, a vector for a sequential."
-  [^long t r]
-  (if (sequential? r)
-    (mapv (fn [y] (aget ^objects (result-partials t 1 y) 0)) (result-values r))
-    (aget ^objects (result-partials t 1 r) 0)))
+  "The single partial of the layer `t` of the result `r` of one pass: a number or a dual for a number or a dual, a
+  vector of them for a sequential. Any other result throws, `operation` names the caller in the message."
+  [operation ^long t r]
+  (cond
+    (or (instance? Dual r) (number? r)) (aget ^objects (result-partials t 1 r) 0)
+    (sequential? r) (mapv (fn [y] (aget ^objects (result-partials t 1 y) 0)) (result-values operation r))
+    :else (unsupported-result! operation t r "a number, a dual nor a sequential of them")))
+
+;; ## Derivative
+
+(defn- first-derivative
+  [f]
+  (fn [x]
+    (let [t (d/fresh-tag)]
+      (directional-derivative "Derivative" t (f (d/new-dual t (d/leaf x) (d/basis-partials 1 0)))))))
+
+(defn derivative
+  "The `n`-th derivative of `f` as `n` nested first derivatives, see [[fastmath.calculus.autodiff/derivative]]."
+  ([f] (derivative f 1))
+  ([f ^long n]
+   (when (m/neg? n) (cc/invalid-option! :n n "an integer >= 0"))
+   (loop [g f
+          k n]
+     (if (m/zero? k)
+       g
+       (recur (first-derivative g) (m/long-dec k))))))
+
+;; ## Derivative products
 
 (defn jvp
   "The Jacobian-vector product function of `f`, one pass, see [[fastmath.calculus.autodiff/jvp]]."
@@ -191,10 +211,10 @@
         (throw (ex-info "The point and the direction have different lengths."
                         {:count-x (count x) :count-v (count v)})))
       (let [t (d/fresh-tag)]
-        (directional-derivative t (f (seed-direction x v t)))))))
+        (directional-derivative "Jacobian-vector product" t (f (seed-direction x v t)))))))
 
 (defn hvp
   "The Hessian-vector product function of `f` as the Jacobian-vector product of the gradient, see [[fastmath.calculus.autodiff/hvp]]."
   ([f] (hvp f nil))
   ([f options]
-   (jvp (gradient f options))))
+   (jvp (gradient-function "Hessian-vector product" f options))))

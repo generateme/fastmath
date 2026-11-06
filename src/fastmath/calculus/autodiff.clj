@@ -11,7 +11,7 @@
 
   - derivatives: [[derivative]], [[gradient]], [[jacobian]], [[hessian]],
   - derivative products: [[jvp]], [[hvp]],
-  - arithmetic: [[+]], [[-]], [[*]], [[/]],
+  - arithmetic: [[+]], [[-]], [[*]], [[/]], [[sum]], [[prod]],
   - elementary functions: [[sin]], [[cos]], [[tan]], [[asin]], [[acos]], [[atan]], [[atan2]], [[sinh]], [[cosh]], [[tanh]], [[asinh]], [[acosh]], [[atanh]], [[exp]], [[expm1]], [[log]], [[log1p]], [[log2]], [[log10]], [[pow]], [[sqrt]], [[cbrt]], [[sq]], [[hypot]],
   - reciprocal and inverse trigonometric and hyperbolic functions: [[sec]], [[csc]], [[cot]], [[sech]], [[csch]], [[coth]], [[asec]], [[acsc]], [[acot]], [[asech]], [[acsch]], [[acoth]],
   - pi-scaled functions: [[sinpi]], [[cospi]], [[tanpi]], [[cotpi]], [[secpi]], [[cscpi]], [[sinc]],
@@ -175,6 +175,38 @@
   ([x] (ops/div 1.0 x))
   ([x y] (ops/div x y))
   ([x y & more] (reduce ops/div (ops/div x y) more)))
+
+(defn sum
+  "Sum of a sequence of numbers and duals.
+
+  The elements are added from left to right, the same as `(apply + xs)`, so the value and the derivatives match the sum written with [[+]]. They match ForwardDiff.jl `sum` for up to 15 elements; from 16 elements Julia adds in a different order, which can differ in the last bits.
+
+  Parameters:
+
+  - `xs` (sequence of numbers and duals, a `double[]` or `nil`).
+
+  Returns `0.0` for an empty sequence or `nil`, the element for one element (a number coerced to a double, `-0.0` is kept), otherwise the sum. The result is a double when all elements are numbers, otherwise a dual. The partial derivative in every element is `1`.
+
+  Throws `ex-info` with `{:option :value :expected}` when `xs` is not a sequence (for example a number).
+
+  See also [[prod]], [[+]], [[logsumexp]]."
+  [xs] (ar/sum xs))
+
+(defn prod
+  "Product of a sequence of numbers and duals.
+
+  The elements are multiplied from left to right, the same as `(apply * xs)`, so the value and the derivatives match the product written with [[*]]. They match ForwardDiff.jl `prod` for up to 15 elements; from 16 elements Julia multiplies in a different order, which can differ in the last bits. The derivatives are finite where elements are zero: the partial derivative in an element is the product of the other elements (at `[0 2 3]` the gradient is `[6 0 0]`). An infinite element times a zero gives the value `NaN`; the derivatives there depend on the chunk of [[gradient]]: with the default chunk size all are `NaN` (at `[Inf 2 0]` the gradient is `[NaN NaN NaN]`), with `:chunk-size` `1` only some (`[0 NaN Inf]`), see the infinite partial derivatives in [[gradient]].
+
+  Parameters:
+
+  - `xs` (sequence of numbers and duals, a `double[]` or `nil`).
+
+  Returns `1.0` for an empty sequence or `nil`, the element for one element (a number coerced to a double), otherwise the product. The result is a double when all elements are numbers, otherwise a dual.
+
+  Throws `ex-info` with `{:option :value :expected}` when `xs` is not a sequence (for example a number).
+
+  See also [[sum]], [[*]]."
+  [xs] (ar/prod xs))
 
 (defn sin
   "Sine of a number or a dual.
@@ -2830,22 +2862,22 @@
 ;; ## Derivatives
 
 (defn derivative
-  "Creates the `n`-th derivative of a univariate function `f` with forward-mode automatic differentiation.
+  "Creates the `n`-th derivative of a univariate function `f`, scalar or vector valued, with forward-mode automatic differentiation.
 
   The function `f` has to be built from the operations of this namespace ([[+]], [[*]], [[sin]], [[pow]], ...), which accept numbers and duals; the derivative is exact up to the floating point rounding. Derivatives can be nested: `f` can call a derivative itself, every call of the returned function uses a fresh tag, so the perturbations of different derivative calls are not confused.
 
   Parameters:
 
-  - `f` (function): number or dual -> number or dual.
+  - `f` (function): number or dual -> number or dual, or a sequential (vector, list, lazy sequence) of numbers or duals.
   - `n` (integer >= 0): the order of the derivative (default: `1`). For `0` the function `f` itself is returned. A fractional `n` is truncated.
 
-  Returns a function of `x` (a number or a dual) returning the derivative: a double, or a dual when `x` is a dual of an enclosing derivative. The derivative of a function which does not depend on `x` is `0.0`.
+  Returns a function of `x` (a number or a dual) returning the derivative: a double, or a dual when `x` is a dual of an enclosing derivative. For a vector valued `f` the derivative is a vector of the derivatives of the elements (`[]` for an empty result), of every order `n`. The derivative of a function which does not depend on `x` is `0.0`. The vector types of `fastmath.vector` hold doubles only and can not carry duals, a vector valued `f` returns a Clojure sequential instead (a vector, a list or a lazy sequence).
 
-  Throws `ex-info` with `{:option :value :expected}` when `n` is negative. The returned function throws `ex-info` when `f` returns a function (derivatives of functions returning functions are not supported), when it returns something else than a number or a dual (for example a vector), and when a dual of a finished derivative call (stored in an atom, a cache or a lazy sequence) leaks into the result. An escaped dual which only takes part in a comparison is not detected.
+  Throws `ex-info` with `{:option :value :expected}` when `n` is negative. The returned function throws `ex-info` when `f` returns a function (derivatives of functions returning functions are not supported), when it returns something else than a number, a dual or a sequential of them (for example a `double[]` or a map), when an element of a sequential result is not a number or a dual, and when a dual of a finished derivative call (stored in an atom, a cache or a lazy sequence) leaks into the result. An escaped dual which only takes part in a comparison is not detected.
 
   The order `n` is computed by `n` nested derivatives, every level multiplies the number of terms carried by the duals, so the cost grows geometrically with `n` (about three times per order for a typical expression).
 
-  See also [[fastmath.calculus/derivative]] (finite differences), [[dual]]."
+  See also [[fastmath.calculus/derivative]] (finite differences), [[jacobian]], [[jvp]], [[dual]]."
   ([f] (der/derivative f 1))
   ([f n] (der/derivative f n)))
 
@@ -2883,7 +2915,7 @@
   - `options` (map, optional): as in [[gradient]]
     - `:chunk-size` - the number of inputs differentiated in one pass, an integer >= 1 (default: balanced chunks of at most 8).
 
-  Returns a function of a point `v` (any sequence of numbers or duals, or a `double[]`) returning the matrix as a vector of `m` rows, each a vector of `n` partial derivatives `d f_j / d x_i`: doubles, or duals when `v` contains duals of an enclosing derivative. For the empty point `f` is called once and the result is a vector of `m` empty rows.
+  Returns a function of a point `v` (any sequence of numbers or duals, or a `double[]`) returning the matrix as a vector of `m` rows, each a vector of `n` partial derivatives `d f_j / d x_i`: doubles, or duals when `v` contains duals of an enclosing derivative. For the empty point `f` is called once and the result is a vector of `m` empty rows. The vector types of `fastmath.vector` hold doubles only and can not carry duals, `f` returns a Clojure sequential instead (a vector, a list or a lazy sequence).
 
   Throws `ex-info` with `{:option :value :expected}` when `:chunk-size` is less than 1. The returned function throws `ex-info` when `f` returns something else than a sequential (a number, a `double[]`, a function), when an element of the result is not a number or a dual, when the number of values changes between the passes, and when a dual of a finished derivative call leaks into the result of an enclosing derivative. A dual of an earlier pass of the same call, reused in a later pass, is not detected and is treated as a constant.
 
@@ -2921,7 +2953,7 @@
 
   - `f` (function): vector of `n` numbers or duals -> number or dual, or a sequential of `m` numbers or duals.
 
-  Returns a function of a point `x` and a direction `v` (both any sequence of `n` numbers or duals, or a `double[]`) returning the product: a double for a scalar `f`, a vector of `m` elements for a vector valued `f`; duals when `x` or `v` contain duals of an enclosing derivative. For the empty point `f` is called once and the product is `0.0` (or a vector of zeros).
+  Returns a function of a point `x` and a direction `v` (both any sequence of `n` numbers or duals, or a `double[]`) returning the product: a double for a scalar `f`, a vector of `m` elements for a vector valued `f`; duals when `x` or `v` contain duals of an enclosing derivative. For the empty point `f` is called once and the product is `0.0` (or a vector of zeros). The vector types of `fastmath.vector` hold doubles only and can not carry duals, a vector valued `f` returns a Clojure sequential instead (a vector, a list or a lazy sequence).
 
   The returned function throws `ex-info` with `{:count-x :count-v}` when `x` and `v` have different lengths, and `ex-info` when `f` returns something else than a number, a dual or a sequential of them (a function, a `double[]`), and when a dual of a finished derivative call leaks into the result of an enclosing derivative.
 

@@ -4,6 +4,7 @@
             [clojure.java.io :as io]
             [fastmath.core :as m]
             [fastmath.special :as special]
+            [fastmath.vector :as v]
             [fastmath.calculus.autodiff :as ad]
             [fastmath.calculus.autodiff.dual :as dual]
             [fastmath.calculus.autodiff.ops :as ops]
@@ -58,6 +59,7 @@
                "log1psq" "logcosh" "exprel" "expexp" "cexpexp" "cloglog" "loglog"
                "sigmoid" "logit" "logaddexp" "logsubexp" "logsumexp"
                "trunc" "round" "rint" "frac" "sfrac" "mod" "rem" "sgn" "copy-sign"
+               "sum" "prod"
                "cb" "pow2" "pow3" "pow10" "spow" "safe-sqrt" "fma" "muladd" "lerp" "smoothstep" "smooth-max" "norm"
                "erf" "erfc" "inv-erf" "inv-erfc" "lambert-W" "lambert-W-1"
                "E0" "E1" "En" "Ei" "Ein" "Si" "si" "Ci" "Cin" "li" "Li"
@@ -411,9 +413,11 @@
   (t/testing "a function returning a function"
     (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"returning a function"
                             ((D (fn [x] (fn [y] (ad/* x y)))) 1.0))))
-  (t/testing "a function returning a vector"
-    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"neither a number nor a dual"
-                            ((D (fn [x] [x x])) 1.0))))
+  (t/testing "a function returning a vector is differentiated elementwise"
+    (t/is (= [1.0 1.0] ((D (fn [x] [x x])) 1.0))))
+  (t/testing "a function returning a double[]"
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"neither a number, a dual nor a sequential"
+                            ((D (fn [_x] (double-array [1.0]))) 1.0))))
   (t/testing "a dual escaping through an atom"
     (let [a (atom nil)
           g (D (fn [y] (reset! a y) y))
@@ -556,9 +560,9 @@
     (t/is (= [0.0 0.0] ((ad/gradient (constantly 5)) [1 2])))
     (t/is (= [1.0 0.0 0.0] ((ad/gradient (fn [v] (v 0)) {:chunk-size 1}) [1 2 3]))))
   (t/testing "errors"
-    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"neither a number nor a dual"
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Gradient of a function returning neither a number nor a dual"
                             ((ad/gradient (fn [v] v)) [1 2])))
-    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"returning a function"
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Gradient of a function returning a function"
                             ((ad/gradient (fn [_] identity)) [1 2])))))
 
 (t/deftest jacobian-test
@@ -613,8 +617,10 @@
   (t/testing "empty point"
     (t/is (= [] ((ad/hessian (fn [_] (throw (Exception. "f must not be called")))) []))))
   (t/testing "errors"
-    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"neither a number nor a dual"
-                            ((ad/hessian (fn [v] v)) [1 2])))))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Hessian of a function returning neither a number nor a dual"
+                            ((ad/hessian (fn [v] v)) [1 2])))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Hessian of a function returning a function"
+                            ((ad/hessian (fn [_] identity)) [1 2])))))
 
 (t/deftest multivariate-nesting-test
   (t/testing "gradient inside derivative: d/dx of dg/dx (x, 2) for g = x^2 y^3 is 2 y^3"
@@ -647,6 +653,184 @@
           f (fn [v] (when-not @first-seen (reset! first-seen (v 0))) (ad/+ (v 1) @first-seen))]
       ;; second pass: v1 + (stale dual of v0, a constant of the newer layer)
       (t/is (= [1.0 1.0] ((ad/gradient f {:chunk-size 1}) [1.0 2.0]))))))
+
+;; vector valued derivative, sum and prod
+
+(def ^:private univariate-vector-functions
+  "R -> R^m functions of the multivariate reference file, written as in utils/fastmath/dev/generate_autodiff_multivariate_reference.jl."
+  {:uvtrig (fn [y] [(ad/sin y) (ad/cos y) (ad/tan y)])
+   :uvmixed (fn [y] [1.0 (ad/pow y 2.0) (ad/* (ad/exp y) y)])
+   :uvspecial (fn [y] [(ad/gamma y) (ad/log y) (ad/sqrt y)])
+   :uvrational (fn [y] [(ad// y (ad/+ 1.0 (ad/pow y 2.0))) (ad/atan y)])})
+
+(t/deftest vector-derivative-test
+  (t/testing "ForwardDiff reference, orders 1-3"
+    (doseq [[id f] univariate-vector-functions
+            {:keys [x value d1 d2 d3]} (get-in @multivariate-reference [:univariate-vector id])]
+      (t/is (close-to-reference? value (f x)) (str id " value at " x))
+      (t/is (close-to-reference? d1 ((D f) x)) (str id " d1 at " x))
+      (t/is (close-to-reference? d2 ((D f 2) x)) (str id " d2 at " x))
+      (t/is (close-to-reference? d3 ((D f 3) x)) (str id " d3 at " x))))
+  (t/testing "the ForwardDiff.jl documentation example, exact"
+    (let [g (:uvtrig univariate-vector-functions)]
+      (t/is (= [0.7071067811865476 -0.7071067811865475 1.9999999999999998] ((D g) (/ m/PI 4.0))))
+      (t/is (= [-0.7071067811865475 -0.7071067811865476 3.999999999999999] ((D g 2) (/ m/PI 4.0))))
+      (t/is (= ((D (D g)) 0.3) ((D g 2) 0.3)) "order 2 is the derivative of the derivative")
+      (t/is (identical? g (D g 0)) "order 0 is the function")))
+  (t/testing "shapes of the result"
+    (t/is (= [] ((D (constantly [])) 1.0)) "empty")
+    (t/is (= [0.0 0.0] ((D (constantly [1 2.0])) 1.0)) "constants")
+    (t/is (= [0.0 6.0] ((D (fn [y] [1.0 (ad/pow y 2.0)])) 3.0)) "constants mixed with duals")
+    (t/is (= [1.0 2.0] ((D (fn [y] (map #(ad/* y %) [1 2]))) 1.0)) "lazy sequence, realized inside the pass")
+    (t/is (= [1.0 0.0] ((D (fn [y] (list y 1))) 1.0)) "list")
+    (t/is (vector? ((D (fn [y] (list y 1))) 1.0)) "the derivative is a vector"))
+  (t/testing "nesting"
+    (let [seen (atom nil)]
+      ((D (fn [x] (let [r ((D (fn [y] [(ad/* x y) y])) 2.0)] (reset! seen r) (r 0)))) 1.0)
+      (t/is (instance? Dual (first @seen)) "a vector of duals inside an enclosing derivative"))
+    (t/is (= [4.0 1.0] ((ad/gradient (fn [[a b]] (ad/sum ((D (fn [y] [(ad/* a y y) (ad/* b y)])) 2.0)))) [1.0 1.0]))
+          "gradient of the sum of the derivative: d/dy (a y^2 + b y) = 2ay + b at y = 2")
+    (t/is (= 1.0 ((D (fn [x] (first ((D (fn [y] [(ad/* x y)])) 1.0)))) 5.0))
+          "Siskind-Pearlmutter: d/dx (d/dy x y) = 1"))
+  (t/testing "errors"
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Derivative of a function returning a function"
+                            ((D (fn [x] (fn [y] (ad/* x y)))) 1.0)))
+    (doseq [[r msg] [[(double-array [1.0]) "double[]"] [{:a 1} "map"] [:a "keyword"] [nil "nil"]]]
+      (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Derivative of a function returning neither a number, a dual nor a sequential of them"
+                              ((D (constantly r)) 1.0)) msg))
+    (t/is (= (type {:a 1}) (:result-type (thrown-data #((D (constantly {:a 1})) 1.0)))))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Derivative of a function returning a sequential with an element which is neither"
+                            ((D (fn [y] [y :a])) 1.0)))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Derivative of a function returning a sequential with an element which is neither"
+                            ((D (fn [y] [y identity])) 1.0)) "a function element")
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Gradient of a function returning neither a number nor a dual"
+                            ((ad/gradient (fn [v] v)) [1 2])) "the gradient still rejects a vector"))
+  (t/testing "a dual escaping into any element of a vector result throws"
+    (let [a (atom nil)
+          g (D (fn [y] (reset! a y) y))
+          data (thrown-data #((D (fn [x] (g x) [x (ad/* x @a)])) 1.0))]
+      (t/is (contains? data :tag))
+      (t/is (< (:tag data) (:result-tag data))))))
+
+(t/deftest sum-prod-test
+  (t/testing "ForwardDiff reference"
+    (doseq [[id f] {:sum ad/sum :prod ad/prod}
+            {:keys [x value gradient hessian]} (get-in @multivariate-reference [:reduction id])]
+      (t/is (close-to-reference? value (f x)) (str id " value at " x))
+      (t/is (close-to-reference? gradient ((ad/gradient f) x)) (str id " gradient at " x))
+      (t/is (close-to-reference? hessian ((ad/hessian f) x)) (str id " hessian at " x))))
+  (t/testing "the same as the variadic operations, values and duals"
+    (doseq [xs [[1.0] [2 3] [0.5 -1.2 2.0 0.7] [(ad/dual 1 2.0 [1.0 0.0]) 3 (ad/dual 1 -1.5 [0.0 1.0])]
+                [(ad/dual 2 (ad/dual 1 0.5 [1.0]) [1.0]) 2.0 (ad/dual 1 3.0 [2.0])]]]
+      (t/is (= (apply ad/+ xs) (ad/sum xs)) (str xs))
+      (t/is (= (apply ad/* xs) (ad/prod xs)) (str xs))))
+  (t/testing "empty, nil, single element and input types"
+    (t/is (= 0.0 (ad/sum []) (ad/sum nil)))
+    (t/is (= 1.0 (ad/prod []) (ad/prod nil)))
+    (t/is (instance? Double (ad/sum [1])) "a number is coerced to a double")
+    (t/is (instance? Double (ad/prod [1])))
+    (t/is (m/negative-zero? (ad/sum [-0.0])) "the sign of a single zero is kept")
+    (t/is (m/negative-zero? (ad/sum [-0.0 -0.0])))
+    (t/is (m/negative-zero? (:sum-negative-zero @multivariate-reference)) "as Julia sum([-0.0])")
+    (t/is (= 6.0 (ad/sum (double-array [1 2 3])) (ad/sum (map inc [0 1 2])) (ad/sum (list 1 2 3))))
+    (t/is (= 6.0 (ad/prod (double-array [1 2 3])) (ad/prod (map inc [0 1 2])) (ad/prod (list 1 2 3))))
+    (doseq [f [ad/sum ad/prod]]
+      (t/is (invalid? #(f 5) :xs 5) "not a sequence")))
+  (t/testing "derivatives at zeros and infinities (ForwardDiff values)"
+    (t/is (= [6.0 0.0 0.0] ((ad/gradient ad/prod) [0 2 3])) "finite at a single zero")
+    (t/is (= [0.0 0.0 0.0] ((ad/gradient ad/prod) [0 0 3])))
+    (t/is (every? nan? ((ad/gradient ad/prod) [##Inf 2 0])) "Inf times zero, default chunk")
+    (let [g ((ad/gradient ad/prod {:chunk-size 1}) [##Inf 2 0])]
+      (t/is (and (= 0.0 (g 0)) (nan? (g 1)) (= ##Inf (g 2))) "Inf times zero, one input per pass"))
+    (t/is (= [1.0 1.0 1.0] ((ad/gradient ad/sum) [1 2 3]))))
+  (t/testing "the ForwardDiff.jl jacobian documentation example"
+    (t/is (= [[0.7071067811865476 0.0 0.0 0.0] [0.0 12.0 8.0 6.0]]
+             ((ad/jacobian (fn [x] [(ad/sin (x 0)) (ad/prod (rest x))])) [(/ m/PI 4.0) 2 3 4])))))
+
+;; boundaries of the vector valued derivative, sum and prod; expected values from ForwardDiff.jl 1.3.3 (REPL probes)
+
+(t/deftest vector-derivative-boundary-test
+  (let [g (fn [y] [(ad/sin y) (ad/* y y) (ad/exp y)])]
+    (t/testing "special points"
+      (t/is (every? nan? ((D g) ##NaN)))
+      (let [[a b c] ((D g) ##Inf)] (t/is (and (nan? a) (= ##Inf b c))))
+      (let [[a b c] ((D g) ##-Inf)] (t/is (and (nan? a) (= ##-Inf b) (= 0.0 c))) "Julia throws DomainError for sin(-Inf)")
+      (let [[_ b] ((D g) -0.0)] (t/is (m/negative-zero? b) "2y at -0.0"))
+      (t/is (= ##Inf (second ((D g) 1.0e308))) "overflow of 2y"))
+    (t/testing "the type of x"
+      (t/is (= ((D g) 2.0) ((D g) 2) ((D g) 2N)))
+      (t/is (= ((D g) 0.5) ((D g) 1/2) ((D g) 0.5M))))
+    (t/testing "orders"
+      (t/is (= [0.8775825618903728 0.0 1.6487212707001282] ((D g 5) 0.5)) "ForwardDiff, five nested derivatives")
+      (t/is (= ((D g 1) 0.5) ((D g 1.7) 0.5)) "a fractional order is truncated")
+      (t/is (invalid? #(D g -1) :n -1))))
+  (t/testing "elements"
+    (t/is (= [1.0] ((D (fn [y] [y])) 1.0)) "one element")
+    (t/is (= 1000 (count ((D (fn [y] (mapv #(ad/* y %) (range 1000)))) 1.0))) "many elements")
+    (t/is (= [1.0 0.0 0.0 0.0] ((D (fn [y] [y 1/3 2N 0.5M])) 1.0)) "other number types are constants")
+    (let [[a b c] ((D (fn [y] [y ##NaN (ad/* y ##NaN)])) 1.0)] (t/is (and (= 1.0 a) (= 0.0 b) (nan? c))) "ForwardDiff [1 0 NaN]")
+    (let [[a b] ((D (fn [y] [-0.0 (ad/* y -0.0)])) 1.0)] (t/is (and (= 0.0 a) (m/negative-zero? b))) "ForwardDiff [0.0 -0.0]")
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"element which is neither" ((D (fn [y] [y nil])) 1.0)) "nil element")
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"element which is neither" ((D (fn [y] [[y]])) 1.0)) "nested results are not supported"))
+  (t/testing "sequential types"
+    (t/is (= [1.0 2.0] ((D (fn [y] (seq [y (ad/* 2 y)]))) 1.0)) "seq")
+    (t/is (= [1.0 1.0] ((D (fn [y] (subvec [y y y] 1))) 1.0)) "subvec")
+    (t/is (= [1.0 2.0] ((D (fn [y] (eduction (map #(ad/* y %)) [1 2]))) 1.0)) "eduction")
+    (t/is (= [0.0 0.0] ((D (fn [_] (v/vec2 1 2))) 1.0)) "a constant fastmath.vector")
+    (t/is (thrown? ClassCastException ((D (fn [y] (v/vec2 y 2))) 1.0)) "fastmath.vector can not carry a dual")
+    (doseq [[r msg] [[#{1.0} "set"] ["ab" "string"] [(java.util.ArrayList. [1.0]) "java.util.List"] [(object-array [1.0]) "Object[]"]]]
+      (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"neither a number, a dual nor a sequential" ((D (constantly r)) 1.0)) msg)))
+  (t/testing "an exception of a lazy result is propagated"
+    (t/is (= {:boom true} (thrown-data #((D (fn [y] (map (fn [k] (if (== k 2) (throw (ex-info "boom" {:boom true})) (ad/* y k))) [1 2]))) 1.0)))))
+  (t/testing "nesting"
+    (t/is (= 12.0 ((D (fn [s] (ad/sum ((D (fn [y] [(ad/* s y y) y])) s)))) 3.0)) "d/ds (2 s^2 + 1) = 4s")
+    (t/is (= 0.0 ((D (fn [x] (first ((D (fn [y] [(ad/+ x y)])) 1.0)))) 1.0)) "d/dx (d/dy (x + y)) = 0"))
+  (t/testing "thread safety"
+    (let [d2 (D (fn [y] [(ad/sin y) (ad/* y y)]) 2)
+          xs (range 0.0 2.0 0.01)]
+      (t/is (= (mapv d2 xs) (vec (pmap d2 xs)))))))
+
+(t/deftest sum-prod-boundary-test
+  (t/testing "signed zeros"
+    (t/is (let [z (double (ad/sum [0.0 -0.0]))] (and (m/zero? z) (not (m/negative-zero? z)))))
+    (t/is (let [z (double (ad/sum [-0.0 0.0]))] (and (m/zero? z) (not (m/negative-zero? z)))))
+    (t/is (m/negative-zero? (ad/prod [-0.0])))
+    (t/is (m/negative-zero? (ad/prod [-1 0])) "ForwardDiff -0.0"))
+  (t/testing "special values"
+    (t/is (nan? (ad/sum [##NaN])))
+    (t/is (nan? (ad/sum [##Inf ##-Inf])))
+    (t/is (= [1.0 1.0] ((ad/gradient ad/sum) [##Inf ##-Inf])) "ForwardDiff")
+    (t/is (= ##Inf (ad/sum [Double/MAX_VALUE Double/MAX_VALUE (- Double/MAX_VALUE)])) "left to right overflows")
+    (t/is (= ##Inf (ad/prod [1.0e200 1.0e200 1.0e-200])) "left to right overflows, as ForwardDiff")
+    (let [[a b c] ((ad/gradient ad/prod) [1.0e200 1.0e200 1.0e-200])] (t/is (and (nan? a) (nan? b) (= ##Inf c))) "ForwardDiff [NaN NaN Inf]")
+    (t/is (= [[0.0 3.0 0.0] [3.0 0.0 0.0] [0.0 0.0 0.0]] ((ad/hessian ad/prod) [0.0 0.0 3.0])) "ForwardDiff"))
+  (t/testing "number types"
+    (t/is (= 9.223372036854776E18 (ad/sum [Long/MAX_VALUE])))
+    (t/is (= 5.0 (ad/sum [2N 3N])))
+    (t/is (= (/ 1.0 3.0) (ad/sum [1/3]))))
+  (t/testing "input types"
+    (t/is (= 3.0 (ad/sum (long-array [1 2]))))
+    (t/is (= 6.0 (ad/prod (int-array [2 3]))))
+    (t/is (= 6.0 (ad/prod (java.util.ArrayList. [2 3]))))
+    (t/is (= 3.0 (ad/sum #{1 2})))
+    (t/is (= 5.0 (ad/sum (eduction (map inc) [1 2]))))
+    (t/is (= (ad/dual 1 3.0 [1.0]) (ad/sum (object-array [1 (ad/dual 1 2.0 [1.0])])))))
+  (t/testing "long sequences"
+    (t/is (= 1000000.0 (ad/sum (repeat 1000000 1.0))))
+    (t/is (= (vec (repeat 200 1.0)) ((ad/gradient ad/sum) (vec (repeat 200 1.0))))))
+  (t/testing "a lazy sequence is realized once"
+    (let [c (atom 0)]
+      (ad/sum (map (fn [x] (swap! c inc) x) [1 2 3]))
+      (t/is (= 3 @c))))
+  (t/testing "derivatives"
+    (t/is (= 2.0 ((D (fn [x] (ad/sum [x (ad/* x x)])) 2) 3.0)))
+    (t/is (= 1.0 ((D (fn [x] (ad/prod [x]))) 3.0)))
+    (t/is (= 0.0 ((D (fn [_] (ad/sum []))) 3.0))))
+  (t/testing "elements which are not numbers or duals (not ex-info, as the variadic + and *)"
+    (t/is (thrown? ClassCastException (ad/sum "ab")))
+    (t/is (thrown? ClassCastException (ad/sum {:a 1})))
+    (t/is (thrown? NullPointerException (ad/sum [nil])))
+    (t/is (thrown? ClassCastException (ad/sum [1 :a])))))
 
 ;; derivative products
 
@@ -718,8 +902,11 @@
     (t/is (= {:count-x 1 :count-v 2} (thrown-data #((ad/jvp identity) [1] [1 2]))))
     (t/is (= {:count-x 1 :count-v 0} (thrown-data #((ad/jvp identity) [1] nil))))
     (t/is (thrown? ClassCastException ((ad/jvp identity) [1] [:a])) "a direction element is not a number")
-    (doseq [[r msg] [[identity "function"] [(double-array [1.0]) "double[]"] [:a "keyword"] [nil "nil"]]]
-      (t/is (thrown? clojure.lang.ExceptionInfo ((ad/jvp (constantly r)) [1 2] [1 1])) msg))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Jacobian-vector product of a function returning a function"
+                            ((ad/jvp (constantly identity)) [1 2] [1 1])))
+    (doseq [[r msg] [[(double-array [1.0]) "double[]"] [{:a 1} "map"] [:a "keyword"] [nil "nil"]]]
+      (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Jacobian-vector product of a function returning neither a number, a dual nor a sequential of them"
+                              ((ad/jvp (constantly r)) [1 2] [1 1])) msg))
     (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"element which is neither"
                             ((ad/jvp (constantly [1.0 :a])) [1 2] [1 1])))
     (let [leak (atom nil)
@@ -746,8 +933,10 @@
     (t/is (invalid? #(ad/hvp identity {:chunk-size 0}) :chunk-size 0) "validated when created")
     (t/is (= ((ad/hvp (:rosen scalar-functions)) [1 2] [1 1]) ((ad/hvp (:rosen scalar-functions) nil) [1 2] [1 1])))
     (t/is (= {:count-x 2 :count-v 1} (thrown-data #((ad/hvp (:rosen scalar-functions)) [1 2] [1]))))
-    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"neither a number nor a dual"
-                            ((ad/hvp (fn [v] v)) [1 2] [1 1])))))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Hessian-vector product of a function returning neither a number nor a dual"
+                            ((ad/hvp (fn [v] v)) [1 2] [1 1])))
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Hessian-vector product of a function returning a function"
+                            ((ad/hvp (fn [_] identity)) [1 2] [1 1])))))
 
 ;; derivative rules: elementary and special functions
 
