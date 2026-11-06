@@ -117,9 +117,9 @@
   "Newton iteration on `log(erfc(t)) = log(x)` for small `x`, where `1-x` in [[inv-erf]] has lost the information."
   ^double [^double x]
   (let [lx (m/log x)
-        l (m/- lx)
-        t0 (m/sqrt (m/- l (m/* 0.5 (m/log (m/* m/PI l)))))]
-    (loop [i (long 0) t t0]
+        l (m/- lx)]
+    (loop [i (long 0)
+           t (m/sqrt (m/- l (m/* 0.5 (m/log (m/* m/PI l)))))]
       (let [f (m/- (ln-erfc t) lx)
             df (m/- (m/* m/M_2_SQRTPI (m/exp (m/- (m/- (m/* t t)) (ln-erfc t)))))
             nt (m/- t (m// f df))]
@@ -141,8 +141,7 @@
   See also [[erfc]], [[inv-erf]]."
   ^double [^double x]
   (cond
-    (m/nan? x) ##NaN
-    (or (m/neg? x) (m/> x 2.0)) ##NaN
+    (or (m/nan? x) (m/neg? x) (m/> x 2.0)) ##NaN
     (m/zero? x) ##Inf
     (m/== x 2.0) ##-Inf
     (m/> x 1.0) (m/- (inv-erfc (m/- 2.0 x)))
@@ -227,8 +226,8 @@
   (if (m/not-pos? x)
     (cond
       (m/neg-inf? x) ##NaN
-      (m/== x (m/rint x)) ##Inf
-      :else (m/- (m/sq (m// m/PI (gam/sin-pi x))) (trigamma (m/- 1.0 x))))
+      (m/integer? x) ##Inf
+      :else (m/- (m/sq (m// m/PI (m/sinpi x))) (trigamma (m/- 1.0 x))))
     (let [^Vec2 psix (if (m/< x 10.0)
                        (let [n (unchecked-long (m/- 10.0 (m/floor x)))]
                          (loop [v (long 1)
@@ -326,8 +325,6 @@
 ;; 9.5e-10 for min(a,b) below 1e7, 1e-8 at 1e7, 1e-4 at 1e11, 0.6 at 1e15, garbage beyond (with one larger shape up to
 ;; 2e-8 below 1e7, see regularized-beta)
 (def ^{:private true :const true :tag 'double} BETA-TWO-LARGE-SHAPES 1.0e7)
-;; no call over 0.3 ms on the R grids; the default (Integer/MAX_VALUE) hangs for large shapes
-(def ^{:private true :const true :tag 'long} BETA-MAX-ITERATIONS 10000)
 ;; shapes below 1e-20: I_x(a,b) = b/(a+b) (1 + O(max(a,b) 745)); a below 1e-18 b: 1 - I_x(a,b) <= a (1/b + 745) < 6e-17
 ;; (rounds to 1); B(a,b) overflows for subnormal shapes
 (def ^{:private true :const true :tag 'double} BETA-NEGLIGIBLE-SHAPE 1.0e-20)
@@ -341,6 +338,7 @@
 ;; a from 1000, 0.1 < a y < 1 (1e286 relative at b = 1e-300) and are within 1e-10 from a y = 1 (I above 1e-13); also
 ;; y at most 0.5 (1 - x exact; for a below 10 the expansion is within 3e-15 up to y = 0.8, the series slows down near 1)
 (def ^{:private true :const true :tag 'double} BETA-TINY-SHAPE-NEAR-ONE-SPAN 1.0)
+(def ^{:private true :const true :tag 'double} BETA-PI2-OVER-6 (m// m/PI2 6.0))
 
 (declare regularized-gamma-p regularized-gamma-q)
 
@@ -357,7 +355,7 @@
   (let [y (m/- 1.0 x)]
     (when (and (m/< b BETA-TINY-SHAPE-NEAR-ONE) (m/<= y 0.5) (m/<= (m/* (m/max a 1.0) y) BETA-TINY-SHAPE-NEAR-ONE-SPAN))
       (let [l1 (m/- (m/- m/GAMMA) (digamma a))
-            l2 (m/* 0.5 (m/- (m// (m/* m/PI m/PI) 6.0) (trigamma a)))]
+            l2 (m/* 0.5 (m/- BETA-PI2-OVER-6 (trigamma a)))]
         ;; the dropped term is O(b^2); the bound on b (l1^2 + |l2|), the size of the kept first order relative to l1,
         ;; is measured (1e-6: 5.2e-8 off at b = 3e-8; 1e-4: 2.7e-10, see BETA-TINY-SHAPE-NEAR-ONE)
         (when (m/< (m/* b (m/+ (m/* l1 l1) (m/abs l2))) 1.0e-4)
@@ -370,30 +368,32 @@
                                 (if (or (m/zero? term) (m/< (m/abs summand) (m/* 1.0e-17 (m/abs sum))) (m/> k 200))
                                   sum
                                   (recur (m/inc k) (m// (m/* term (m/- (m/inc k) a) y) (m/inc k)) sum)))))]
-            (Vec2. (m/- d (m/* ly (double (m/exprel (m/* b ly)))) (m/* (m/pow y b) sum)) d)))))))
+            (Vec2. (m/- d (m/* ly (m/exprel (m/* b ly))) (m/* (m/pow y b) sum)) d)))))))
 
 (defn- regularized-beta-continued-fraction
   "Apache Commons Math with an iteration cap; `##NaN` when it does not converge."
   ^double [^double x ^double a ^double b]
   (try
-    (. Beta (regularizedBeta x a b 1.0e-14 (int BETA-MAX-ITERATIONS)))
+    (. Beta (regularizedBeta x a b 1.0e-14 10000))
     (catch MathIllegalStateException _ ##NaN)))
 
 (defn- regularized-beta-positive
   "$I_x(a,b)$ for `a,b>0` and `x` in $(0,1)$."
   ^double [^double x ^double a ^double b]
-  (let [ratio (m// (m/min a b) (m/max a b))
-        one-large? (or (and (m/< (m/min a b) BETA-TINY-SHAPE) (m/>= (m/max a b) BETA-TINY-SHAPE-LARGE-PARTNER))
-                       (and (m/>= (m/max a b) BETA-LARGE-SHAPE)
+  (let [mnab (m/min a b)
+        mxab (m/max a b)
+        ratio (m// mnab mxab)
+        one-large? (or (and (m/< mnab BETA-TINY-SHAPE) (m/>= mxab BETA-TINY-SHAPE-LARGE-PARTNER))
+                       (and (m/>= mxab BETA-LARGE-SHAPE)
                             ;; a large smaller shape is fine only at a tiny ratio (ratio 1e-8, smaller shape 1e12: 4e-10)
                             (or (m/<= ratio BETA-EXTREME-SHAPE-RATIO)
-                                (and (m/<= ratio BETA-LARGE-SHAPE-RATIO) (m/< (m/min a b) BETA-TWO-LARGE-SHAPES)))))]
+                                (and (m/<= ratio BETA-LARGE-SHAPE-RATIO) (m/< mnab BETA-TWO-LARGE-SHAPES)))))]
     (cond
       ;; one large shape: the limit through the incomplete gamma function (DLMF 8.18)
       (and one-large? (m/>= a b)) (regularized-gamma-q b (m/* (m/- (m/+ a (m/* 0.5 (m/dec b)))) (m/log x)))
       one-large? (regularized-gamma-p a (m/* (m/- (m/+ b (m/* 0.5 (m/dec a)))) (m/log1p (m/- x))))
-      (m/>= (m/min a b) BETA-TWO-LARGE-SHAPES) ##NaN
-      (m/< (m/max a b) BETA-NEGLIGIBLE-SHAPE) (m// b (m/+ a b))
+      (m/>= mnab BETA-TWO-LARGE-SHAPES) ##NaN
+      (m/< mxab BETA-NEGLIGIBLE-SHAPE) (m// b (m/+ a b))
       (and (m/< a BETA-NEGLIGIBLE-SHAPE) (m/< a (m/* BETA-NEGLIGIBLE-SHAPE-RATIO b))) 1.0
       ;; a tiny b (also both tiny): the continued fraction fails; a tiny a alone it handles (5e-14)
       (m/< b BETA-TINY-SHAPE) (if-let [^Vec2 near-one (incomplete-beta-tiny-b-near-one x a b)]
@@ -453,7 +453,9 @@
     (and (m/pos? a) (m/pos? b))
     ;; directly, without the underflow of the regularized value (B(x;a,b) normal, I_x(a,b) below 1e-308); the series
     ;; of 2F1 needs a moderate other shape (it does not converge for a large b x)
-    (let [direct (if (and (m/< (m/min a b) BETA-TINY-SHAPE) (m/< (m/max a b) BETA-TINY-SHAPE-LARGE-PARTNER) (m/< 0.0 x 1.0))
+    (let [direct (if (and (m/< (m/min a b) BETA-TINY-SHAPE)
+                          (m/< (m/max a b) BETA-TINY-SHAPE-LARGE-PARTNER)
+                          (m/< 0.0 x 1.0))
                    (if-let [^Vec2 near-one (incomplete-beta-tiny-b-near-one x a b)]
                      (.x near-one)
                      (incomplete-beta-hypergeometric x a b))
@@ -547,6 +549,8 @@
                  (v/sum (map (fn [^long n] (m/pow (m/+ z n) -s)) (range m))))
     :else 0.0))
 
+(def ^{:const true :private true :tag 'double} LOG_INV_PI (m/log m/INV_PI))
+
 (defn zeta
   "Computes the Riemann zeta function of `s`, or the Hurwitz (generalized)
   zeta function of `s` and `z`.
@@ -601,8 +605,8 @@
                           (m/exp (m/+ (m/log (m/abs zoms))
                                       (log-gamma oms)
                                       (m/log (m/abs sinv))
-                                      (m/* s (m/log m/TWO_PI))
-                                      (m/log m/INV_PI))))))
+                                      (m/* s m/LOG_TWO_PI)
+                                      LOG_INV_PI)))))
      :else (let [m (m/dec s)
                  zt (m/inc (m/+ (m/pow 0.5 s)
                                 (m/pow m/THIRD s)
@@ -739,7 +743,7 @@
               (m/* (m/sgn sm1) (m/sgn z)
                    (m/exp (m/+ (m/log hs)
                                (m/log (m/abs sm1))
-                               (m/* hs (m/log m/INV_PI))
+                               (m/* hs LOG_INV_PI)
                                (log-gamma hs)
                                (m/log (m/abs z)))))))))
 
@@ -777,10 +781,10 @@
   ^double [^long m ^double z]
   (cond
     (m/neg? m) ##NaN
-    (m/zero? m) (m/* m/PI (m// (gam/cos-pi z) (gam/sin-pi z)))
+    (m/zero? m) (m/* m/PI (m/cotpi z))
     (m/< m 100) (let [^doubles q (Array/arrayget2d cotderiv-q m)
                       lq (alength q)
-                      x (m// (gam/cos-pi z) (gam/sin-pi z))
+                      x (m/cotpi z)
                       y (m/* x x)]
                   (loop [i (long 2)
                          s (m/+ (Array/aget q 0)
@@ -825,30 +829,30 @@
   See also [[digamma]], [[trigamma]], [[zeta]]."
   ^double [^double m ^double x]
   (cond
-    (or (m/nan? m) (m/neg? m) (m/not== m (m/rint m)) (m/> m 2.147483647E9)) ##NaN
+    (or (m/nan? m) (m/neg? m) (not (m/integer? m)) (m/> m 2.147483647E9)) ##NaN
     (m/neg-inf? x) ##NaN
-    (and (m/neg? x) (m/== x (m/rint x)) (m/>= m 2.0)) (if (m/odd? (long m)) ##Inf ##NaN)
+    (and (m/neg? x) (m/integer? x) (m/>= m 2.0)) (if (m/odd? (long m)) ##Inf ##NaN)
     :else
     (let [m (long m)]
-    (case (int m)
-      0 (digamma x)
-      1 (trigamma x)
-      (let [s (m/inc m)
-            lgs (log-gamma s)]
-        (if (m/not-pos? x)
-          ;; parity already folded into `inner` (added to zeta before
-          ;; multiplying by -Gamma(s)); no further sign flip needed
-          (let [v (cotderiv m x)
-                inner (m/+ (zeta s (m/- 1.0 x)) (if (m/even? m) v (m/- v)))]
-            (if (m/zero? inner)
-              0.0
-              (m/* (m/- (m/sgn inner)) (m/exp (m/+ (m/log (m/abs inner)) lgs)))))
-          ;; zeta(s,x) is always positive here (s>1, x>0); parity applied
-          ;; as a separate sign flip on the zeta*Gamma(s) product
-          (let [zs (zeta s x)]
-            (if (m/zero? zs)
-              0.0
-              (m/* (if (m/even? m) -1.0 1.0) (m/exp (m/+ (m/log zs) lgs)))))))))))
+      (case (int m)
+        0 (digamma x)
+        1 (trigamma x)
+        (let [s (m/inc m)
+              lgs (log-gamma s)]
+          (if (m/not-pos? x)
+            ;; parity already folded into `inner` (added to zeta before
+            ;; multiplying by -Gamma(s)); no further sign flip needed
+            (let [v (cotderiv m x)
+                  inner (m/+ (zeta s (m/- 1.0 x)) (if (m/even? m) v (m/- v)))]
+              (if (m/zero? inner)
+                0.0
+                (m/* (m/- (m/sgn inner)) (m/exp (m/+ (m/log (m/abs inner)) lgs)))))
+            ;; zeta(s,x) is always positive here (s>1, x>0); parity applied
+            ;; as a separate sign flip on the zeta*Gamma(s) product
+            (let [zs (zeta s x)]
+              (if (m/zero? zs)
+                0.0
+                (m/* (if (m/even? m) -1.0 1.0) (m/exp (m/+ (m/log zs) lgs)))))))))))
 
 ;; https://github.com/JuliaMath/Bessels.jl/blob/master/src/BesselFunctions/besselk.jl
 
@@ -1132,8 +1136,8 @@
                 ax (m/abs x)
                 j (bessel-j-positive-args ao ax)
                 y (double (bessel-y-positive-args ao ax))
-                so (gam/sin-pi ao)
-                co (gam/cos-pi ao)]
+                so (m/sinpi ao)
+                co (m/cospi ao)]
             (m/- (m/* j co) (m/* y so)))))
 
 ;; Bessel Y
@@ -1360,8 +1364,8 @@
     :else (let [ao (m/abs order)
                 y (bessel-y-positive-args ao x)
                 j (bessel-j-positive-args ao x)]
-            (m/+ (m/* y (gam/cos-pi ao))
-                 (m/* j (gam/sin-pi ao))))))
+            (m/+ (m/* y (m/cospi ao))
+                 (m/* j (m/sinpi ao))))))
 
 ;; Bessel K
 
@@ -1547,7 +1551,6 @@
   (m// (Array/aget s 0)
        (Array/aget w 0)))
 
-
 (defn- bessel-k-levin
   ^double [^long N ^double v ^double x]
   (let [v2 (m/* 4.0 v v)
@@ -1650,7 +1653,7 @@
   ^double [^double v ^double x]
   (let [gam (gamma v)
         ;; sin(pi v) exactly: the plain sin(pi v) loses eps v / |v - round(v)| near an integer order
-        ngam (m// m/PI (m/* (m/- (gam/sin-pi (m/abs v))) gam v))
+        ngam (m// m/PI (m/* (m/- (m/sinpi (m/abs v))) gam v))
         x2 (m/* x x)]
     (loop [k (long 1)
            s1 0.0
@@ -1885,7 +1888,7 @@
     :else (let [a (m/abs order)]
             ;; sin(pi a) exactly: the plain sin(pi a) lost 3.9e-7 at the order -3 - 1e-9
             (m/+ (bessel-i-positive-args a x)
-                 (m/* m/M_2_PI (gam/sin-pi a) (bessel-K a x))))))
+                 (m/* m/M_2_PI (m/sinpi a) (bessel-K a x))))))
 
 ;; spherical
 
@@ -1946,7 +1949,7 @@
       (m/integer? n) (let [r (spherical-j-right-limit (m/- -1.0 n) false)]
                        (if (even-order? n) (m/- r) r))
       ;; Y_v ~ cot(v pi) J_v
-      :else (m/* (gam/sin-pi v) (gam/cos-pi v) (gam/gamma-sign (m/inc v)) ##Inf))))
+      :else (m/* (m/sinpi v) (m/cospi v) (gam/gamma-sign (m/inc v)) ##Inf))))
 
 (defn- spherical-2-i-right-limit
   "Limit of `i^(2)_n(x) = sqrt(pi/(2x)) I_{-n-1/2}(x)` as `x -> 0+`."
@@ -2281,8 +2284,8 @@
     (let [ax (m/- x)
           j (bessel-J order ax)
           y (bessel-Y order ax)
-          sn (gam/sin-pi order)
-          cs (gam/cos-pi order)]
+          sn (m/sinpi order)
+          cs (m/cospi order)]
       (Vec2. (m/- (m/* sn y) (m/* cs j))
              (m/+ (m/* sn j) (m/* cs y))))
     (Vec2. (bessel-J order x) (bessel-Y order x))))
@@ -2302,8 +2305,8 @@
     (let [ax (m/- x)
           j (bessel-J order ax)
           y (bessel-Y order ax)
-          sn (gam/sin-pi order)
-          cs (gam/cos-pi order)]
+          sn (m/sinpi order)
+          cs (m/cospi order)]
       (Vec2. (m/- (m/* 3.0 cs j) (m/* sn y))
              (m/- (m/* sn j) (m/* cs y))))
     (Vec2. (bessel-J order x) (m/- (bessel-Y order x)))))
@@ -2501,7 +2504,7 @@
   See also [[Cin]] (the closely related entire cosine integral, defined for
   all real `x`), [[Si]], [[si]] (the sine integral)."
   ^double [^double x]
-  (assert (not (m/neg? x)) "x must be non-negative")
+  (when (m/neg? x) (throw (ex-info "x must be non-negative" {:x x})))
   (if (m/nan? x)
     ##NaN
     (let [t (m/* x x)]
@@ -3114,7 +3117,7 @@
                    (m/- (double (if (m/< a INCOMPLETE-GAMMA-TINY-SHAPE)
                                   (m/+ (m/- m/GAMMA) (m/* 0.9890559953279725 a))
                                   (m// (m/expm1 (log-gamma-1p a)) a)))
-                        (let [lx (m/log x)] (m/* lx (double (m/exprel (m/* a lx)))))
+                        (let [lx (m/log x)] (m/* lx (m/exprel (m/* a lx))))
                         (m/* (m/pow x a) sum)))
     ;; Gamma(a,x) < x^(a-1) e^(-x) underflows (below 4.9e-324 from x = 745.2); En(1, x) is NaN above 4.5e61
     (m/> x 750.0) 0.0
@@ -3130,8 +3133,8 @@
         eta (m/* (m/sgn t) (m/sqrt (m/* -2.0 (m/log1pmx t))))
         small? (m/< (m/abs eta) 0.01)
         c0 (if small?
-             (m/+ (m// -1.0 3.0) (m/* eta (poly/mevalpoly eta 0.08333333333333333 -0.014814814814814815
-                                                          0.0011574074074074073 3.527336860670194E-4)))
+             (m/- (m/* eta (poly/mevalpoly eta 0.08333333333333333 -0.014814814814814815
+                                           0.0011574074074074073 3.527336860670194E-4)) m/THIRD)
              (m/- (m// t) (m// eta)))
         c1 (if small?
              (poly/mevalpoly eta -0.001851851851851852 -0.003472222222222222 0.0026455026455026454)
@@ -3214,37 +3217,10 @@
                  ;; all terms are positive: no cancellation, and no underflow of P(s,x) * Gamma(s)
                  (m/<= x (m/inc s)) (lower-incomplete-gamma-positive-series s x)
                  :else (m/exp (m/+ (m/log (regularized-gamma-p s x)) (. Gamma (logGamma s)))))
-    (m/== s (m/rint s)) ##NaN
+    (m/integer? s) ##NaN
     (m/zero? x) ##NaN
     (m/<= x 1.0) (lower-incomplete-gamma-series s x)
     :else (m/- (gamma s) (upper-incomplete-gamma s x))))
-
-(defn regularized-gamma-p
-  "Regularized lower incomplete gamma function $P(a,x)=\\gamma(a,x)/\\Gamma(a)$.
-
-  Parameters:
-
-  - `a` (double): the shape, any real. For `a <= 0` a non-positive integer gives `P = 1` (the limit), other values are defined by the analytic continuation.
-  - `x` (double): the argument, `x >= 0`.
-
-  Returns `##NaN` for `x < 0`; `P(a,0)=0` and `P(a,Inf)=1` for `a > 0`; `P(Inf,x)=0` for a finite `x`.
-
-  Accuracy: relative error about 1e-13 for `a > 0`: Apache Commons Math for `0.1 <= a < 1.5e4` (up to 3e-11 near `x = a` close to `1.5e4`), a series for `a < 0.1` (through `1 - Q` where `Q <= 0.5`), Temme's uniform asymptotic expansion for `a >= 1.5e4` (up to 6e-12 at `1.5e4`, 3e-14 from `1e5`).
-
-  See also [[regularized-gamma-q]], [[lower-incomplete-gamma]]."
-  ^double [^double a ^double x]
-  (cond
-    (or (m/nan? a) (m/nan? x) (m/neg? x)) ##NaN
-    (m/pos? a) (cond
-                 (m/pos-inf? x) 1.0
-                 (m/pos-inf? a) 0.0
-                 (m/< a INCOMPLETE-GAMMA-SMALL-SHAPE) (let [q (double (regularized-gamma-q a x))]
-                                                        ;; 1 - Q only where P is not small
-                                                        (if (m/<= q 0.5) (m/- 1.0 q) (. Gamma (regularizedGammaP a x))))
-                 (and (m/>= a INCOMPLETE-GAMMA-LARGE-SHAPE) (m/pos? x)) (.x ^Vec2 (incomplete-gamma-temme a x))
-                 :else (. Gamma (regularizedGammaP a x)))
-    (m/== a (m/rint a)) 1.0
-    :else (m// (lower-incomplete-gamma a x) (gamma a))))
 
 (defn regularized-gamma-q
   "Regularized upper incomplete gamma function $Q(a,x)=\\Gamma(a,x)/\\Gamma(a)=1-P(a,x)$.
@@ -3271,8 +3247,36 @@
                                                                   (gamma (m/inc a))))
                  (and (m/>= a INCOMPLETE-GAMMA-LARGE-SHAPE) (m/pos? x)) (.y ^Vec2 (incomplete-gamma-temme a x))
                  :else (. Gamma (regularizedGammaQ a x)))
-    (m/== a (m/rint a)) 0.0
+    (m/integer? a) 0.0
     :else (m// (upper-incomplete-gamma a x) (gamma a))))
+
+(defn regularized-gamma-p
+  "Regularized lower incomplete gamma function $P(a,x)=\\gamma(a,x)/\\Gamma(a)$.
+
+  Parameters:
+
+  - `a` (double): the shape, any real. For `a <= 0` a non-positive integer gives `P = 1` (the limit), other values are defined by the analytic continuation.
+  - `x` (double): the argument, `x >= 0`.
+
+  Returns `##NaN` for `x < 0`; `P(a,0)=0` and `P(a,Inf)=1` for `a > 0`; `P(Inf,x)=0` for a finite `x`.
+
+  Accuracy: relative error about 1e-13 for `a > 0`: Apache Commons Math for `0.1 <= a < 1.5e4` (up to 3e-11 near `x = a` close to `1.5e4`), a series for `a < 0.1` (through `1 - Q` where `Q <= 0.5`), Temme's uniform asymptotic expansion for `a >= 1.5e4` (up to 6e-12 at `1.5e4`, 3e-14 from `1e5`).
+
+  See also [[regularized-gamma-q]], [[lower-incomplete-gamma]]."
+  ^double [^double a ^double x]
+  (cond
+    (or (m/nan? a) (m/nan? x) (m/neg? x)) ##NaN
+    (m/pos? a) (cond
+                 (m/pos-inf? x) 1.0
+                 (m/pos-inf? a) 0.0
+                 (m/< a INCOMPLETE-GAMMA-SMALL-SHAPE) (let [q (regularized-gamma-q a x)]
+                                                        ;; 1 - Q only where P is not small
+                                                        (if (m/<= q 0.5) (m/- 1.0 q) (. Gamma (regularizedGammaP a x))))
+                 (and (m/>= a INCOMPLETE-GAMMA-LARGE-SHAPE) (m/pos? x)) (.x ^Vec2 (incomplete-gamma-temme a x))
+                 :else (. Gamma (regularizedGammaP a x)))
+    (m/integer? a) 1.0
+    :else (m// (lower-incomplete-gamma a x) (gamma a))))
+
 
 ;; Airy
 
@@ -3370,7 +3374,7 @@
   (^double [^double n]
    (cond
      (m/zero? n) 0.0
-     (and (m/neg? n) (m/== n (m/rint n))) ##NaN
+     (and (m/neg? n) (m/integer? n)) ##NaN
      :else (m/+ (digamma (m/inc n)) m/GAMMA)))
   (^double [^double n ^double m]
    (cond
@@ -3414,7 +3418,7 @@
     (m/== x -INVE) -1.0
     (m/zero? x) 0.0
     (m/one? x) 0.567143290409783873
-    (m/== m/E x ) 1.0
+    (m/== m/E x) 1.0
     (m/neg? x) (let [ex (m/* m/E x)
                      f (m/inc (m/sqrt (m/inc ex)))]
                  (lambert-W-recursive (m// (m/* ex (m/log f)) (m/+ ex f)) x))
@@ -3437,7 +3441,7 @@
   ^double [^double x]
   (cond
     (or (m/< x -INVE) (m/pos? x)) ##NaN
-    (m/== -INVE x ) -1.0
+    (m/== -INVE x) -1.0
     (m/zero? x) ##-Inf
     (m/< x -0.25) (lambert-W-recursive (m/- -1.0 (m/* m/SQRT2 (m/sqrt (m/inc (m/* m/E x))))) x)
     :else (let [lx (m/log (m/- x))]
@@ -4020,33 +4024,20 @@
                   (m/- (m/* 0.5 (m/+ q1 q2))
                        (m/* q1 q2)
                        (owens-t (m/* a h) (m// a))))
-    (m/< a 0.999999) (let [hh2 (m/* -0.5 h h)
-                           t2 (map (fn [^double x]
-                                     (let [ax2+1 (m/inc (m/* a a x x))]
+    (m/< a 0.999999) (let [a2 (m/* a a)
+                           hh2 (m/* -0.5 h h)
+                           t2 (map (fn [^double x2]
+                                     (let [ax2+1 (m/inc (m/* a2 x2))]
                                        (m/* m/INV_FOUR_PI a
                                             (m// (m/exp (m/* hh2 ax2+1))
                                                  ax2+1))))
-                                   [-0.9987710072524261, -0.9935301722663508, -0.9841245837228269, -0.9705915925462473, -0.9529877031604309, -0.9313866907065543, -0.9058791367155696
-                                    , -0.8765720202742479, -0.8435882616243935, -0.8070662040294426, -0.7671590325157404, -0.7240341309238146, -0.6778723796326639, -0.6288673967765136
-                                    , -0.5772247260839727, -0.5231609747222331, -0.4669029047509584, -0.4086864819907167, -0.34875588629216075, -0.28736248735545555, -0.22476379039468905
-                                    , -0.1612223560688917, -0.0970046992094627, -0.03238017096286937, 0.03238017096286937, 0.0970046992094627, 0.1612223560688917, 0.22476379039468905
-                                    , 0.28736248735545555, 0.34875588629216075, 0.4086864819907167, 0.4669029047509584, 0.5231609747222331, 0.5772247260839727, 0.6288673967765136
-                                    , 0.6778723796326639, 0.7240341309238146, 0.7671590325157404, 0.8070662040294426, 0.8435882616243935, 0.8765720202742479, 0.9058791367155696
-                                    , 0.9313866907065543, 0.9529877031604309, 0.9705915925462473, 0.9841245837228269, 0.9935301722663508, 0.9987710072524261])]
-                       (v/dot t2 [0.0031533460523059122, 0.0073275539012762885, 0.011477234579234613, 0.015579315722943824, 0.01961616045735561, 0.023570760839324363
-                                  , 0.027426509708356944, 0.031167227832798003, 0.03477722256477052, 0.038241351065830737, 0.04154508294346467, 0.0446745608566943, 0.04761665849249045
-                                  , 0.05035903555385445, 0.05289018948519363, 0.055199503699984116, 0.05727729210040322, 0.05911483969839564, 0.06070443916589387, 0.06203942315989268
-                                  , 0.06311419228625402, 0.06392423858464813, 0.06446616443594998, 0.06473769681268386, 0.06473769681268386, 0.06446616443594998, 0.06392423858464813
-                                  , 0.06311419228625402, 0.06203942315989268, 0.06070443916589387, 0.05911483969839564, 0.05727729210040322, 0.055199503699984116
-                                  , 0.05289018948519363, 0.05035903555385445, 0.04761665849249045, 0.0446745608566943, 0.04154508294346467, 0.038241351065830737, 0.03477722256477052
-                                  , 0.031167227832798003, 0.027426509708356944, 0.023570760839324363, 0.01961616045735561, 0.015579315722943824, 0.011477234579234613, 0.0073275539012762885
-                                  , 0.0031533460523059122]))
+                                   [0.9975435249280257 0.9871022032036046 0.9685011962876272 0.9420480395214604 0.9081855623749936 0.8674811676253067 0.8206170103365457 0.7683785067276764 0.7116411551504661 0.651355857686494 0.5885329811704868 0.5242254227426035 0.4595109630688504 0.395474202728469 0.3331883844027173 0.273697405472317 0.21799832246488254 0.16702464056194843 0.12163066822343056 0.08257719913911435 0.050518761472587714 0.025992648096404503 0.009409911668718332 0.0010484754715846486 0.0010484754715846486 0.009409911668718332 0.025992648096404503 0.050518761472587714 0.08257719913911435 0.12163066822343056 0.16702464056194843 0.21799832246488254 0.273697405472317 0.3331883844027173 0.395474202728469 0.4595109630688504 0.5242254227426035 0.5885329811704868 0.651355857686494 0.7116411551504661 0.7683785067276764 0.8206170103365457 0.8674811676253067 0.9081855623749936 0.9420480395214604 0.9685011962876272 0.9871022032036046 0.9975435249280257])]
+                       (v/dot t2 [0.0031533460523059122 0.0073275539012762885 0.011477234579234613 0.015579315722943824 0.01961616045735561 0.023570760839324363 0.027426509708356944 0.031167227832798003 0.03477722256477052 0.038241351065830737 0.04154508294346467 0.0446745608566943 0.04761665849249045 0.05035903555385445 0.05289018948519363 0.055199503699984116 0.05727729210040322 0.05911483969839564 0.06070443916589387 0.06203942315989268 0.06311419228625402 0.06392423858464813 0.06446616443594998 0.06473769681268386 0.06473769681268386 0.06446616443594998 0.06392423858464813 0.06311419228625402 0.06203942315989268 0.06070443916589387 0.05911483969839564 0.05727729210040322 0.055199503699984116 0.05289018948519363 0.05035903555385445 0.04761665849249045 0.0446745608566943 0.04154508294346467 0.038241351065830737 0.03477722256477052 0.031167227832798003 0.027426509708356944 0.023570760839324363 0.01961616045735561 0.015579315722943824 0.011477234579234613 0.0073275539012762885 0.0031533460523059122]))
     :else (let [j (m/* 0.5 (erfc (m/* -1.0 h m/INV_SQRT_2)))
                 a- (m/- 1.0 a)
                 k (m/atan (m// a- (m/inc a)))]
             (m/- (m/* 0.5 j (m/- 1.0 j))
                  (m/* m/INV_TWO_PI k (m/exp (m// (m/* -0.5 a- h h) k)))))))
-
 
 ;;;;;
 
@@ -4256,8 +4247,8 @@
                    (cplx/sub (Vec2. m/LOG_PI (m/* (m/copy-sign m/TWO_PI y) (m/floor (m/+ 0.25 (m/* 0.5 x)))))
                              ;; sin(pi z) with the exact reduction: at a half-integer real part its imaginary part is
                              ;; a signed zero that selects the branch of the logarithm
-                             (cplx/log (Vec2. (m/* (gam/sin-pi x) (m/cosh (m/* m/PI y)))
-                                              (m/* (gam/cos-pi x) (m/sinh (m/* m/PI y))))))
+                             (cplx/log (Vec2. (m/* (m/sinpi x) (m/cosh (m/* m/PI y)))
+                                              (m/* (m/cospi x) (m/sinh (m/* m/PI y))))))
                    (log-gamma-complex (cplx/sub cplx/ONE z)))
 
       (m/< (m/+ (m/abs (m/dec x)) yabs) 0.1)
@@ -4664,7 +4655,7 @@
 
   For `m<=1` returns an increasing function of `u` with $\\operatorname{am}(u+2K(m))=\\operatorname{am}(u)+\\pi$ (the imaginary-modulus transformation for `m<0`), `am(u|1)` is the Gudermannian function. For `m>1` returns `asin(sn(u|m))`: bounded by `asin(1/sqrt(m))` and periodic (the convention of `mpmath`, `atan2(sn, cn)` with `cn>0`).
 
-  Returns `±Inf` for `u=±Inf` and `m<1`, `±π/2` for `m=1`, `NaN` for `m>1` (no limit) and for a `NaN` argument.
+  Returns `±Inf` for `u=±Inf` and `m<1`, `±π/2` for `m=1`, `NaN` for `m>1` (no limit) and for a `NaN` argument. For `m=Inf` and a finite `u` returns the limit `0`, for `m=-Inf` and `u≠0` the limit `±Inf`. For large negative `m` the value grows like `π u/(2K(m))` and is `±Inf` only when that overflows.
 
   Accuracy: relative error about 1e-16 for $|u|\\le50$, up to 4e-15 next to `m=1`; about 1e-13 near the zeros of `am` for `m>1`.
 
@@ -4682,7 +4673,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. For `m=Inf` and a finite `u` other than 0 returns the limit `0`.
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period. For large negative `m` it grows with the phase `u*sqrt(-m)` (4e-9 at `m=-1e10`, `u=3`; no digits left beyond about `m=-1e17`, `u=3`). Next to `m=1` the absolute error near the zeros of `cn` is up to about 1e-14 (also the absolute error of `dn` near its minimum `sqrt(1-m)` for `m<1` and of `cn` near its minimum `sqrt(1-1/m)` for `m>1`).
 
@@ -4696,7 +4687,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. For `m=Inf` and a finite `u` other than 0 returns the limit `1`.
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period. For large negative `m` it grows with the phase `u*sqrt(-m)` (4e-9 at `m=-1e10`, `u=3`; no digits left beyond about `m=-1e17`, `u=3`). Next to `m=1` the absolute error near the zeros of `cn` is up to about 1e-14 (also the absolute error of `dn` near its minimum `sqrt(1-m)` for `m<1` and of `cn` near its minimum `sqrt(1-1/m)` for `m>1`).
 
@@ -4710,7 +4701,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. For `m=Inf` and a finite `u` other than 0 returns `NaN` (no limit).
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period. For large negative `m` it grows with the phase `u*sqrt(-m)` (4e-9 at `m=-1e10`, `u=3`; no digits left beyond about `m=-1e17`, `u=3`). Next to `m=1` the absolute error near the zeros of `cn` is up to about 1e-14 (also the absolute error of `dn` near its minimum `sqrt(1-m)` for `m<1` and of `cn` near its minimum `sqrt(1-1/m)` for `m>1`).
 
@@ -4724,7 +4715,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero.
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero. For `m=Inf` and a finite `u` other than 0 returns the limit `0`.
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 
@@ -4738,7 +4729,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`).
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`). For `m=Inf` and a finite `u` other than 0 returns `NaN` (no limit).
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 
@@ -4752,7 +4743,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`cs(0)=Inf`).
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`cs(0)=Inf`). For `m=Inf` and a finite `u` other than 0 returns `NaN` (no limit, `sn` tends to 0 through both signs).
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 
@@ -4766,7 +4757,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`).
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`). For `m=Inf` and a finite `u` other than 0 returns `NaN` (no limit).
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 
@@ -4780,7 +4771,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`ds(0)=Inf`).
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`ds(0)=Inf`). For `m=Inf` and a finite `u` other than 0 returns `NaN` (no limit).
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 
@@ -4794,7 +4785,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero.
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero. For `m=Inf` and a finite `u` other than 0 returns `NaN` (no limit).
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 
@@ -4808,7 +4799,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`ns(0)=Inf`).
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Pole at `u=0` (`ns(0)=Inf`). For `m=Inf` and a finite `u` other than 0 returns `NaN` (no limit, `sn` tends to 0 through both signs).
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 
@@ -4822,7 +4813,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero.
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `cn` is zero. For `m=Inf` and a finite `u` other than 0 returns the limit `1`.
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 
@@ -4836,7 +4827,7 @@
   - `u` (double): the argument.
   - `m` (double): the parameter ($m=k^2$, the square of the modulus). Values outside [0,1] are defined by the real analytic continuation (checked against `mpmath` for `m` in [-2, 3]).
 
-  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`).
+  Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$. Poles where `dn` is zero (possible only for `m>1`). For `m=Inf` and a finite `u` other than 0 returns `NaN` (no limit).
 
   Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
 

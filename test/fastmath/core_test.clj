@@ -304,24 +304,27 @@
   (t/is (= 1.0 (m/sgn -0.0)))
   (t/is (= -1.0 (m/sgn -3.0))))
 
-;; Reference: Python math.sin/cos/tan(math.pi*x). The *pi variants multiply
-;; by the double `PI` first, so their argument carries a rounding error that
-;; is amplified near tan's poles (where the intermediate magnitude blows up);
-;; a relative tolerance is used rather than exact equality; empirically
-;; observed agreement is better than 1e-9 relative even at the poles.
+;; Reference: mpmath sinpi, cospi and their quotient at 200 bits. The argument
+;; is reduced exactly, so the values are close to 1 ulp also next to the zeros
+;; and for large `x`; relative tolerance 1e-15 (observed at most 2 ulp).
 (t/deftest trig-pi-variants
   (doseq [[x sin-ref cos-ref tan-ref]
-          [[0.5    1.0                  6.123233995736766e-17  1.633123935319537e+16]
-           [1.0    1.2246467991473532e-16 -1.0                 -1.2246467991473532e-16]
-           [2.0    -2.4492935982947064e-16 1.0                 -2.4492935982947064e-16]
-           [0.25   0.7071067811865475  0.7071067811865476     0.9999999999999999]
-           [1.5    -1.0                 -1.8369701987210297e-16 5443746451065123.0]
-           [-0.5   -1.0                 6.123233995736766e-17  -1.633123935319537e+16]
-           [0.1    0.3090169943749474  0.9510565162951535     0.3249196962329063]
-           [3.7    -0.8090169943749477 0.5877852522924728     -1.376381920471175]]]
-    (t/is (m/delta-eq sin-ref (m/sinpi x) 1.0e-9 1.0e-9) (str "sinpi " x))
-    (t/is (m/delta-eq cos-ref (m/cospi x) 1.0e-9 1.0e-9) (str "cospi " x))
-    (t/is (m/delta-eq tan-ref (m/tanpi x) 1.0e-9 1.0e-9) (str "tanpi " x))))
+          [[0.1 0.30901699437494745 0.9510565162951535 0.32491969623290634]
+           [0.25 0.7071067811865476 0.7071067811865476 1.0]
+           [0.3 0.8090169943749475 0.5877852522924731 1.3763819204711734]
+           [3.7 -0.8090169943749471 0.5877852522924736 -1.376381920471172]
+           [-0.7 -0.8090169943749475 -0.587785252292473 1.376381920471174]
+           [-2.3 -0.8090169943749471 0.5877852522924736 -1.376381920471172]
+           [0.49999999999999983 1.0 5.231802747012948e-16 1911387046407553.0]
+           [0.9999999999990905 2.857261873568671e-12 -1.0 -2.857261873568671e-12]
+           [1e-300 3.1415926535897936e-300 1.0 3.1415926535897936e-300]
+           [1.0e10 0.0 1.0 0.0]
+           [10000000000.3 0.8090155855424916 0.5877871913791073 1.3763749830007743]
+           [123456.75 0.7071067811865476 -0.7071067811865476 -1.0]
+           [4503599627370497.0 0.0 -1.0 -0.0]]]
+    (t/is (m/delta-eq sin-ref (m/sinpi x) 0.0 1.0e-15) (str "sinpi " x))
+    (t/is (m/delta-eq cos-ref (m/cospi x) 0.0 1.0e-15) (str "cospi " x))
+    (t/is (m/delta-eq tan-ref (m/tanpi x) 0.0 1.0e-15) (str "tanpi " x))))
 
 ;; Reference: Python math (1/tan, 1/cos, 1/sin and their arc-function
 ;; compositions), same reference discipline as trig-pi-variants: relative
@@ -339,7 +342,7 @@
     (t/is (m/delta-eq csc-ref (m/csc x) 1.0e-9 1.0e-9) (str "csc " x)))
   (doseq [[x cot-ref sec-ref csc-ref]
           [[0.3 0.726542528005361 1.7013016167040798 1.2360679774997896]
-           [2.5 3.061616997868383e-16 3266247870639073.5 1.0]
+           [2.5 0.0 ##Inf 1.0] ;; exact: cos(2.5 pi) = 0
            [-0.7 0.7265425280053608 -1.7013016167040802 -1.2360679774997896]
            [0.1 3.077683537175254 1.0514622242382672 3.23606797749979]]]
     (t/is (m/delta-eq cot-ref (m/cotpi x) 1.0e-9 1.0e-9) (str "cotpi " x))
@@ -1472,7 +1475,7 @@
    [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
     m/exp m/expm1 m/log m/ln m/log10 m/log1p m/sqrt m/cbrt
     m/fsin m/fcos m/ftan m/flog1p
-    m/sinpi m/cospi m/tanpi m/cot m/cotpi m/sec m/secpi m/csc m/cscpi m/acot m/asec m/acsc
+    m/cot m/sec m/csc m/acot m/asec m/acsc
     m/coth m/sech m/csch m/acoth m/asech m/acsch
     m/crd m/acrd m/versin m/coversin m/vercos m/covercos m/aversin m/acoversin m/avercos m/acovercos
     m/haversin m/hacoversin m/havercos m/hacovercos m/ahaversin m/ahacoversin m/ahavercos m/ahacovercos
@@ -1483,11 +1486,30 @@
     (t/is (same-double? (m/atan2 x y) ((deref (var m/atan2)) x y)) (str "atan2 " x " " y))
     (t/is (same-double? (m/fatan2 x y) ((deref (var m/fatan2)) x y)) (str "fatan2 " x " " y))))
 
-(t/deftest pi-variants-follow-the-base-functions
-  (doseq [x [-2.5 -0.5 -1e-3 0.0 0.25 0.5 1.0 1.5 3.7]]
-    (t/is (same-double? (m/sinpi x) (m/sin (* m/PI x))) (str "sinpi " x))
-    (t/is (same-double? (m/cospi x) (m/cos (* m/PI x))) (str "cospi " x))
-    (t/is (same-double? (m/tanpi x) (m/tan (* m/PI x))) (str "tanpi " x))))
+(t/deftest pi-variants-exact-values
+  (t/testing "zeros and units are exact, signs follow Julia's sinpi, cospi and tanpi"
+    (doseq [k (range -5 6) :let [x (double k) h (+ x 0.5)]]
+      (t/is (same-double? (m/copy-sign 0.0 x) (m/sinpi x)) (str "sinpi " x))
+      (t/is (same-double? (if (even? k) 1.0 -1.0) (m/cospi x)) (str "cospi " x))
+      (t/is (same-double? (if (even? k) (m/copy-sign 0.0 x) (- (m/copy-sign 0.0 x))) (m/tanpi x)) (str "tanpi " x))
+      (t/is (same-double? (if (even? k) 1.0 -1.0) (m/sinpi h)) (str "sinpi " h))
+      (t/is (same-double? 0.0 (m/cospi h)) (str "cospi " h))
+      (t/is (same-double? (if (even? k) ##Inf ##-Inf) (m/tanpi h)) (str "tanpi " h))
+      (t/is (same-double? (m// 1.0 (m/tanpi x)) (m/cotpi x)) (str "cotpi " x))
+      (t/is (same-double? ##Inf (m/secpi h)) (str "secpi " h))
+      (t/is (same-double? (m// 1.0 (m/copy-sign 0.0 x)) (m/cscpi x)) (str "cscpi " x))))
+  (t/testing "negative zero"
+    (t/is (same-double? -0.0 (m/sinpi -0.0)))
+    (t/is (same-double? -0.0 (m/tanpi -0.0)))
+    (t/is (same-double? 1.0 (m/cospi -0.0))))
+  (t/testing "huge arguments are integers"
+    (doseq [x [1.0e300 -1.0e300 (m/pow 2.0 63) Double/MAX_VALUE]]
+      (t/is (same-double? (m/copy-sign 0.0 x) (m/sinpi x)) (str "sinpi " x))
+      (t/is (same-double? 1.0 (m/cospi x)) (str "cospi " x))))
+  (t/testing "infinite and NaN arguments"
+    (doseq [x [##Inf ##-Inf ##NaN]
+            f [m/sinpi m/cospi m/tanpi m/cotpi m/secpi m/cscpi]]
+      (t/is (m/nan? (f x)) (str f " " x)))))
 
 ;; Points found by scanning 3M random arguments for the largest Jafama-vs-Math difference (reference: mpmath).
 ;; Jafama is off by 353 (asin), 54 (atan), 37 (log1p) and 2 (cbrt) ulps here, java.lang.Math is exact (0 ulps):
@@ -1636,6 +1658,9 @@
   (t/testing "edge cases"
     (t/is (m/== ##-Inf (m/logsumexp [])))
     (t/is (m/== ##-Inf (m/logsumexp nil)))
+    (doseq [x [-0.0 0.0 3.0 -1.0e300]]
+      (t/is (same-double? x (m/logsumexp [x])) (str "a single element as is: " x)))
+    (t/is (same-double? -0.0 (m/logsumexp (double-array [-0.0]))) "a double array")
     (doseq [[xs expected] [[[##-Inf] ##-Inf] [[##-Inf 1.0] 1.0] [[1.0 ##-Inf] 1.0] [[##-Inf ##-Inf] ##-Inf]
                            [[##-Inf ##-Inf 1.0] 1.0] [[##Inf] ##Inf] [[##Inf 1.0] ##Inf] [[##Inf ##Inf] ##Inf]
                            [[1.0 ##Inf ##Inf] ##Inf] [[##-Inf ##Inf] ##Inf] [[##Inf ##-Inf] ##Inf]]]
@@ -1673,8 +1698,10 @@
 (t/deftest smooth-max-limits-test
   (t/testing "empty input"
     (doseq [family smooth-max-families
-            alpha [2.0 -2.0]]
-      (t/is (m/== (if (= family :p-norm) 0.0 ##-Inf) (m/smooth-max [] alpha family)) (str family " " alpha))))
+            alpha [2.0 -2.0 ##Inf ##-Inf]]
+      ;; the empty maximum is -Inf, the empty smooth minimum (negative alpha) +Inf; :p-norm is a magnitude
+      (t/is (m/== (cond (= family :p-norm) 0.0 (m/neg? alpha) ##Inf :else ##-Inf) (m/smooth-max [] alpha family))
+            (str family " " alpha))))
   (t/testing "NaN propagates"
     (doseq [family smooth-max-families
             xs [[##NaN 1.0] [1.0 ##NaN] [##NaN ##Inf] [##-Inf ##NaN]]]

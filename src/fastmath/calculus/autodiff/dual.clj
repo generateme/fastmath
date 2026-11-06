@@ -13,7 +13,7 @@
 (defn fresh-tag
   "Returns a new tag, larger than all tags returned before."
   ^long []
-  (long (swap! tag-counter inc)))
+  (swap! tag-counter inc))
 
 ;; ## The dual type
 
@@ -36,7 +36,7 @@
              (let [^objects q (.partials ^Dual o)
                    n (alength partials)]
                (and (m/== n (alength q))
-                    (loop [i 0]
+                    (loop [i (long 0)]
                       (cond
                         (m/== i n) true
                         (Util/equiv (aget partials i) (aget q i)) (recur (m/long-inc i))
@@ -127,7 +127,7 @@
   ^objects [f ^objects p]
   (let [n (alength p)
         a (object-array n)]
-    (loop [i 0]
+    (loop [i (long 0)]
       (when (m/< i n)
         (aset a i (f (aget p i)))
         (recur (m/long-inc i))))
@@ -138,7 +138,7 @@
   ^objects [f ^objects px ^objects py]
   (let [n (alength px)
         a (object-array n)]
-    (loop [i 0]
+    (loop [i (long 0)]
       (when (m/< i n)
         (aset a i (f (aget px i) (aget py i)))
         (recur (m/long-inc i))))
@@ -159,7 +159,7 @@
   (or (nil? p)
       (let [^objects v p
             n (alength v)]
-        (loop [i 0]
+        (loop [i (long 0)]
           (cond
             (m/== i n) true
             (zero-element? (aget v i)) (recur (m/long-inc i))

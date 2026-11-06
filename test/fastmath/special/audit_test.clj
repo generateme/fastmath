@@ -630,14 +630,6 @@
 ;; native gamma namespace
 
 (t/deftest gamma-helpers
-  (t/testing "sin-pi / cos-pi are exact at integers / half-integers"
-    (doseq [k (range -5 6)]
-      (t/is (m/zero? (gam/sin-pi (double k))))
-      (t/is (m/zero? (gam/cos-pi (+ k 0.5)))))
-    (t/is (m/delta-eq 1.0 (gam/sin-pi 0.5) 1.0e-15))
-    (t/is (m/delta-eq -1.0 (gam/sin-pi 1.5) 1.0e-15))
-    (t/is (m/delta-eq -1.0 (gam/cos-pi 1.0) 1.0e-15))
-    (t/is (m/neg? (m/copy-sign 1.0 (gam/sin-pi -0.0)))))
   (t/testing "unsafe-gamma is +Inf at the poles (1/Gamma = 0)"
     (t/is (m/pos-inf? (gam/unsafe-gamma 0.0)))
     (t/is (m/pos-inf? (gam/unsafe-gamma -4.0)))

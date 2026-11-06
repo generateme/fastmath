@@ -40,7 +40,8 @@ All notable changes to this project will be documented in this file. This change
 ### Fixed
 
 * `fastmath.core/frac` saturated beyond the `long` range (`(frac 1e20)` was `9.08e19`, now `0.0`)
-* log-exp family returns limits at infinities and doesn't overflow: `fastmath.core/logexpm1`, `logaddexp`, `logsumexp` (empty gives `##-Inf`), `smooth-max` (all families; empty gives `##-Inf`, `0.0` for `:p-norm`), `fastmath.vector/logsumexp`, `logmeanexp`, `softmax`, `logsoftmax`
+* log-exp family returns limits at infinities and doesn't overflow: `fastmath.core/logexpm1`, `logaddexp`, `logsumexp` (empty gives `##-Inf`), `smooth-max` (all families; empty gives `##-Inf`, `##Inf` for negative `alpha`, `0.0` for `:p-norm`), `fastmath.vector/logsumexp`, `logmeanexp`, `softmax`, `logsoftmax`
+* `fastmath.core/sinpi`, `cospi`, `tanpi`, `cotpi`, `secpi`, `cscpi` reduce the argument exactly: ~1 ulp for any `x`, exact zeros/units at integers and half-integers (were `sin(PI*x)`, no longer inlined)
 * `fastmath.core/log2` is a port of fdlibm `log2` (exact at powers of two, was up to 1.3 ulp off)
 * `fastmath.special/beta`, `log-beta` where `p+q` is a non-positive integer: no exception for huge arguments, accurate (was up to 100% off)
 * `fastmath.special` incomplete gamma for small and large shapes (no `NaN`, negative `Q` or hang) and regularized/incomplete beta for tiny and one large shape (no exception); two large shapes give `##NaN`

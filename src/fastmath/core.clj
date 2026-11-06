@@ -1050,19 +1050,29 @@
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (sin x)))
 
+(defn- minus-one-pow
+  "`(-1)^r` for an integral double `r`, `1.0` for infinite or NaN `r`."
+  ^double [^double r]
+  (if (== 1.0 (abs (rem r 2.0))) -1.0 1.0))
+
 (defn sinpi
   "Computes `sin(π·x)` -- the sine of `x` expressed in half-turns (units of π) rather than radians.
+
+  The argument is reduced exactly to the nearest integer before the sine is taken, so the result is accurate to about 1 ulp for any `x`, the error does not grow with `|x|`, and the identity values are exact.
 
   Parameters:
 
   - `x` (double): value in half-turns to take the sine of.
 
-  Returns `sin(π·x)` as a double, equivalent to `(sin (* PI x))`. Near-exact identity values (e.g. `x=0.5` giving `1.0`) are not guaranteed to be bit-exact, since `π` is only finitely represented as a double.
+  Returns `sin(π·x)` as a double. At every integer `x` the result is a zero with the sign of `x` (`+0.0` or `-0.0`), at half-integers it is exactly `1.0` or `-1.0`. Infinite or NaN `x` gives `##NaN`.
 
-  See also [[sin]], [[cospi]], [[tanpi]]."
-  {:inline (fn [x] `(sin (* PI (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (sin (* PI x)))
+  See also [[sin]], [[cospi]], [[tanpi]], [[cscpi]]."
+  ^double [^double x]
+  (let [r (FastMath/rint x)
+        d (- x r)]
+    (if (zero? d)
+      (copy-sign 0.0 x)
+      (* (minus-one-pow r) (sin (* PI d))))))
 
 (defn cos
   "cos(x)
@@ -1091,16 +1101,22 @@
 (defn cospi
   "Computes `cos(π·x)` -- the cosine of `x` expressed in half-turns (units of π) rather than radians.
 
+  The argument is reduced exactly to the nearest integer before the cosine is taken, so the result is accurate to about 1 ulp for any `x` (also next to its zeros), the error does not grow with `|x|`, and the identity values are exact.
+
   Parameters:
 
   - `x` (double): value in half-turns to take the cosine of.
 
-  Returns `cos(π·x)` as a double, equivalent to `(cos (* PI x))`. Near-exact identity values (e.g. `x=1.0` giving `-1.0`) are not guaranteed to be bit-exact, since `π` is only finitely represented as a double.
+  Returns `cos(π·x)` as a double. At every half-integer `x` the result is `+0.0` (the function is even), at integers it is exactly `1.0` or `-1.0`. Infinite or NaN `x` gives `##NaN`.
 
-  See also [[cos]], [[sinpi]], [[tanpi]]."
-  {:inline (fn [x] `(cos (* PI (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (cos (* PI x)))
+  See also [[cos]], [[sinpi]], [[tanpi]], [[secpi]]."
+  ^double [^double x]
+  (let [ax (abs x)
+        r (FastMath/rint ax)
+        a (abs (- ax r))]
+    (* (minus-one-pow r) (if (<= a 0.25)
+                           (cos (* PI a))
+                           (sin (* PI (- 0.5 a)))))))
 
 (defn tan
   "tan(x)
@@ -1133,12 +1149,17 @@
 
   - `x` (double): value in half-turns to take the tangent of.
 
-  Returns `tan(π·x)` as a double, equivalent to `(tan (* PI x))`. Diverges to very large magnitudes near `x = k+0.5` for integer `k` (where `cos(π·x)` is near zero), matching plain [[tan]]'s behavior at its own poles.
+  Returns `tan(π·x)` as a double, accurate to about 1 ulp for any `x` (the argument is reduced exactly). The signs follow the quotient of [[sinpi]] and [[cospi]]: at an integer `x` the result is a signed zero, at a half-integer `x` it is `##Inf` or `##-Inf`. Infinite or NaN `x` gives `##NaN`.
 
-  See also [[tan]], [[sinpi]], [[cospi]]."
-  {:inline (fn [x] `(tan (* PI (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (tan (* PI x)))
+  See also [[tan]], [[sinpi]], [[cospi]], [[cotpi]]."
+  ^double [^double x]
+  (let [r (FastMath/rint x)
+        d (- x r)
+        a (abs d)]
+    (cond
+      (zero? d) (* (minus-one-pow r) (copy-sign 0.0 x))
+      (<= a 0.25) (tan (* PI d))
+      :else (/ (copy-sign 1.0 d) (tan (* PI (- 0.5 a)))))))
 
 (defn asin
   "asin(x)"
@@ -1266,12 +1287,10 @@
 
   - `x` (double): value in half-turns.
 
-  Returns `cot(π·x)` as a double. Diverges near integer `x` (where `tan(π·x)` is near zero).
+  Returns `cot(π·x)` as a double, the reciprocal of [[tanpi]]: `##Inf` or `##-Inf` at an integer `x`, a signed zero at a half-integer `x`. Infinite or NaN `x` gives `##NaN`.
 
   See also [[cot]], [[tanpi]], [[secpi]], [[cscpi]]."
-  {:inline (fn [x] `(/ (tan (* PI (double ~x)))))
-   :inline-arities #{1}}
-  (^double [^double x] (/ (tan (* PI x)))))
+  ^double [^double x] (/ (tanpi x)))
 
 (defn sec
   "Computes the secant of `x`, `sec(x) = 1/cos(x)`.
@@ -1294,12 +1313,10 @@
 
   - `x` (double): value in half-turns.
 
-  Returns `sec(π·x)` as a double. Diverges near half-integer `x` (where `cos(π·x)` is near zero).
+  Returns `sec(π·x)` as a double, the reciprocal of [[cospi]]: `##Inf` at every half-integer `x`, exactly `1.0` or `-1.0` at integers. Infinite or NaN `x` gives `##NaN`.
 
   See also [[sec]], [[cospi]], [[cotpi]], [[cscpi]]."
-  {:inline (fn [x] `(/ (cos (* PI (double ~x)))))
-   :inline-arities #{1}}
-  (^double [^double x] (/ (cos (* PI x)))))
+  ^double [^double x] (/ (cospi x)))
 
 (defn csc
   "Computes the cosecant of `x`, `csc(x) = 1/sin(x)`.
@@ -1322,12 +1339,10 @@
 
   - `x` (double): value in half-turns.
 
-  Returns `csc(π·x)` as a double. Diverges near integer `x` (where `sin(π·x)` is near zero).
+  Returns `csc(π·x)` as a double, the reciprocal of [[sinpi]]: `##Inf` or `##-Inf` (the sign of `x`) at an integer `x`. Infinite or NaN `x` gives `##NaN`.
 
   See also [[csc]], [[sinpi]], [[cotpi]], [[secpi]]."
-  {:inline (fn [x] `(/ (sin (* PI (double ~x)))))
-   :inline-arities #{1}}
-  (^double [^double x] (/ (sin (* PI x)))))
+  ^double [^double x] (/ (sinpi x)))
 
 ;; Additional cyclometric functions
 
@@ -1913,12 +1928,6 @@
   Returns the result as a double. Returns exactly `1.0` for `|x|` below `10` times machine epsilon (the correct limiting value as `x -> 0`), and `##Inf` for `x > 717.0` (avoiding `exp` overflow before it would occur), otherwise computes `expm1(x)/x` directly.
 
   See also [[expm1]], [[exp]]."
-  {:inline (fn [x] `(let [x# (double ~x)]
-                     (cond
-                       (< (. FastMath abs x#) MACHINE-EPSILON10) 1.0
-                       (> x# 717.0) ##Inf
-                       :else (/ (expm1 x#) x#))))
-   :inline-arities #{1}}
   ^double [^double x]
   (cond
     (< (. FastMath abs x) MACHINE-EPSILON10) 1.0
@@ -2100,12 +2109,14 @@
 
   - `xs` (sequence of doubles): values to combine.
 
-  Returns the result as a double, computed without overflowing any individual `exp(xi)` for large arguments. Infinite elements give the limits (`##-Inf` elements contribute nothing, any `##Inf` gives `##Inf`), an empty sequence gives `##-Inf`, and any `##NaN` gives `##NaN`.
+  Returns the result as a double, computed without overflowing any individual `exp(xi)` for large arguments. Infinite elements give the limits (`##-Inf` elements contribute nothing, any `##Inf` gives `##Inf`), an empty sequence gives `##-Inf`, a single element is returned as is (the sign of zero kept), and any `##NaN` gives `##NaN`.
 
   See also [[logaddexp]] (2-arity version)."
   ^double [xs]
-  (if-not (seq xs)
-    ##-Inf
+  (cond
+    (not (seq xs)) ##-Inf
+    (not (next xs)) (double (first xs))
+    :else
     (loop [xs xs
            r 0.0
            alpha ##-Inf]
@@ -3670,7 +3681,7 @@
 
   See also [[lerp]]/[[mlerp]] (linear), [[quad-interpolation]], [[smooth-interpolation]] (other easing curves)."
   ^double [^double start ^double stop ^double t]
-  (mlerp start stop (* 0.5 (- 1.0 (cos (* t PI))))))
+  (mlerp start stop (* 0.5 (- 1.0 (cospi t)))))
 
 (defn smooth-interpolation
   "Interpolates between `start` and `stop` following the classic smoothstep (Hermite) ease curve, for amount `t`.
@@ -3932,7 +3943,7 @@
     - `:p-norm` - p-norm-based smooth absolute maximum; always returns non-negative values; does not act as smooth minimum for negative `alpha`.
     - `:sigmoid`, `:circular`, `:quadratic`, `:cubic`, `:quartic`, `:exponential` - pairwise reductions based on Inigo Quilez smooth minimum kernels for SDFs.
 
-  Returns the smooth maximum as a double. Infinite elements give the limits (for positive `alpha` any `##Inf` gives `##Inf` and `##-Inf` elements contribute nothing, though `:mellowmax` still counts them in its mean; mirrored for negative `alpha`; `:p-norm` uses magnitudes), and the families do not overflow for large `alpha * x`. Any `##NaN` gives `##NaN`. A single element is returned as is (its magnitude for `:p-norm`); an empty `xs` gives `0.0` for `:p-norm` and `##-Inf` for the other families. An infinite `alpha` gives the hard maximum (minimum for `##-Inf`); `:p-norm` the largest (smallest) magnitude.
+  Returns the smooth maximum as a double. Infinite elements give the limits (for positive `alpha` any `##Inf` gives `##Inf` and `##-Inf` elements contribute nothing, though `:mellowmax` still counts them in its mean; mirrored for negative `alpha`; `:p-norm` uses magnitudes), and the families do not overflow for large `alpha * x`. Any `##NaN` gives `##NaN`. A single element is returned as is (its magnitude for `:p-norm`); an empty `xs` gives `0.0` for `:p-norm`, `##-Inf` for the other families (`##Inf` for negative `alpha`, the empty smooth minimum). An infinite `alpha` gives the hard maximum (minimum for `##-Inf`); `:p-norm` the largest (smallest) magnitude.
 
   See also [[logsumexp]] (used internally by the `:lse` and `:mellowmax` families)."
   (^double [xs] (smooth-max xs 2.0))
@@ -3941,7 +3952,7 @@
    (if-not (seq xs)
      (case family
        :p-norm 0.0
-       (:lse :boltzmann :mellowmax :smu :sigmoid :circular :quadratic :cubic :quartic :exponential) ##-Inf)
+       (:lse :boltzmann :mellowmax :smu :sigmoid :circular :quadratic :cubic :quartic :exponential) (if (neg? alpha) ##Inf ##-Inf))
      (if-not (next (seq xs))
        ;; a single element is its own smooth maximum (its magnitude for :p-norm): exact, signed zero kept
        (let [x (double (first xs))]

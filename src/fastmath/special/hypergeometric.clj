@@ -118,6 +118,7 @@
 (defn log1pover
   "Internal helper of the Gauss hypergeometric function: the port of `log1pover` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double x] (m// (m/log1p x) x))
+
 (defn expm1nlog1p
   "Internal helper of the Gauss hypergeometric function: the port of `expm1nlog1p` of HypergeometricFunctions.jl (Michel and Stoitsov 2008 transformations); not part of the public API, see [[fastmath.special/hypergeometric-2F1]]."
   ^double [^double n ^double x] (m// (m/expm1 (m/* n (m/log1p x))) (m/* n x)))
@@ -152,7 +153,7 @@
                          (m/* (m/+ c (m/dec k)) k))]
           (recur (m/inc k) nterm (m/+ sum nterm) (m/+ abs-sum (m/abs nterm))))))))
 
-(defn- non-positive-integer? [^double x] (and (m/not-pos? x) (m/== x (m/rint x))))
+(defn- non-positive-integer? [^double x] (and (m/not-pos? x) (m/integer? x)))
 
 (defn- condition-number
   "Condition number `sum |term| / |sum|` of a [[terminating-2F1-sum]] result."
@@ -632,8 +633,8 @@
                                       (Gamma/logGamma (m/- v)))]
                            (if (m/valid-double? f) ##Inf ##NaN))))
     (m/< b a) (general-2F1 b a c x)
-    (or (and (m/== (m/rint a) a) (m/not-pos? a))
-        (and (m/== (m/rint b) b) (m/not-pos? b))) (terminating-2F1 a b c x)
+    (or (and (m/integer? a) (m/not-pos? a))
+        (and (m/integer? b) (m/not-pos? b))) (terminating-2F1 a b c x)
     ;; a negative non-integer parameter makes the direct series alternate (the terms grow before they decay):
     ;; the Euler transformation turns it into a series with positive terms
     (and (m/pos? x) (m/<= x 0.72) (m/pos? (m/- c a b)) (m/pos? (m/- c a)) (m/pos? (m/- c b))

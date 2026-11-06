@@ -1078,7 +1078,7 @@
 (defn- all-close? [expected actual] (every? true? (map #(rule-close? %1 %2 1.0e-14) (flatten expected) (flatten actual))))
 
 (t/deftest core-reference-test
-  ;; measured: max error relative to max(1, |expected|) 8.5e-15 (sinpi, its value is sin(pi x): sinpi(7) is not 0),
+  ;; measured (before the exact argument reduction of m/sinpi, m/cospi): max error relative to max(1, |expected|) 8.5e-15 (sinpi),
   ;; 3.0e-15 (cospi), 4.2e-15 (smooth-max), below 1e-15 elsewhere
   (t/testing "ForwardDiff reference, first and second derivatives"
     (t/is (= (set (keys core-unary)) (set (keys (:unary @core-reference)))) "every function is in the reference")
@@ -1354,7 +1354,7 @@
       (t/is (rule-close? (m// (m/+ (m/* x e) (m/- e 1.0)) (m/* x x)) ((D ad/Ein 2) x) 1.0e-14) "Ein'' below -2.15"))
     (t/is (every? nan? [((D (fn [x] (ad/En 2.5 x))) -1.0) ((D (fn [x] (ad/En 1.0 x))) -1.0)])
           "a fractional or positive integer order at a negative x: complex, NaN")
-    (t/is (thrown? AssertionError ((D ad/Ci) -1.0)) "fastmath.special/Ci asserts a non-negative argument"))
+    (t/is (thrown? clojure.lang.ExceptionInfo ((D ad/Ci) -1.0)) "fastmath.special/Ci asserts a non-negative argument"))
   (t/testing "the order of En has no derivative"
     (t/is (= {:function :En :argument :n} (thrown-data #((D (fn [n] (ad/En n 1.0))) 2.0))))
     (t/is (= ((D (fn [x] (ad/En 2.0 x))) 1.0) (ad/scalar ((D (fn [x] (ad/En (ad/dual 1 2.0 [0.0]) x))) 1.0)))
@@ -1425,14 +1425,15 @@
 
 (t/deftest bessel-reference-test
   ;; measured: max error relative to max(1, |expected|) 6.4e-14 (spherical-bessel-k at the orders -0.499, -0.501, x <= 1:
-  ;; the tolerance of k within 0.1 of the order -1/2 is 1e-13), 2.3e-15 (spherical-bessel-j at the order -0.53), 1.6e-15 (airy-Bi, airy-Bi' at 12),
+  ;; between the grid points up to 1.4e-12 at 1e-5 < d < 1e-3, x <= 1.5, the error of k at the neighbouring order n - 1
+  ;; (bessel-K next to an integer order): the tolerance of k within 0.1 of the order -1/2 is 2e-12), 2.3e-15 (spherical-bessel-j at the order -0.53), 1.6e-15 (airy-Bi, airy-Bi' at 12),
   ;; 9.1e-16 (spherical-bessel-1-i at the order -0.499999), below 8e-16 elsewhere
   (t/testing "mpmath reference, first and second derivatives in x"
     (t/is (= (set (keys bessel-functions)) (set (keys @bessel-reference))) "every function is in the reference")
     (doseq [[id rows] @bessel-reference
             :let [f (first (bessel-functions id))]
             [n x d1 d2] rows
-            :let [tolerance (if (and (= id :spherical-bessel-k) (m/< (m/abs (m/+ (double n) 0.5)) 0.1)) 1.0e-13 1.0e-14)]]
+            :let [tolerance (if (and (= id :spherical-bessel-k) (m/< (m/abs (m/+ (double n) 0.5)) 0.1)) 2.0e-12 1.0e-14)]]
       (t/is (rule-close? d1 ((D (fn [v] (f n v))) x) tolerance) (str id " " n " d1 at " x))
       (t/is (rule-close? d2 ((D (fn [v] (f n v)) 2) x) tolerance) (str id " " n " d2 at " x))))
   (t/testing "the fixed orders, against the rows of their order"

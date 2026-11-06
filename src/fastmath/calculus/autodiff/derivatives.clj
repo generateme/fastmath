@@ -85,7 +85,7 @@
 (defn- seed-chunk
   "The point `x` with the `k` inputs from `start` replaced by duals of tag `t` with basis partials; the other inputs stay constants."
   [x ^long t ^long start ^long k]
-  (loop [i 0
+  (loop [i (long 0)
          xs (transient x)]
     (if (m/< i k)
       (let [j (m/long-add start i)]
@@ -95,7 +95,7 @@
 (defn- gradient-at
   [f x ^long chunk]
   (let [n (count x)]
-    (loop [start 0
+    (loop [start (long 0)
            acc (transient [])]
       (if (m/< start n)
         (let [k (m/long-min chunk (m/long-sub n start))
@@ -122,7 +122,7 @@
   (let [n (count x)]
     ;; `rows` is nil before the first pass: the first pass always runs, also for the empty point (n = 0),
     ;; where it is a pass over 0 inputs which calls `f` once to get the number of rows m
-    (loop [start 0
+    (loop [start (long 0)
            rows nil]
       (if (or (m/< start n) (nil? rows))
         (let [k (m/long-min chunk (m/long-sub n start))
@@ -166,7 +166,7 @@
   vectors have the same length."
   [x v ^long t]
   (let [n (count x)]
-    (loop [i 0
+    (loop [i (long 0)
            xs (transient x)]
       (if (m/< i n)
         (let [p (object-array 1)]

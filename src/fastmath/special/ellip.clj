@@ -173,10 +173,8 @@
                                (m/- 2.0 (m// (m/+ nmu nyn) nmu))
                                (m/- 2.0 (m// (m/+ nmu nzn) nmu)))))))))
 
-(def ^{:private true :const true :tag (quote double)} CARLSON-RESCALE-BELOW
-  ;; largest argument below which Rj and Rg are rescaled to 1 (homogeneity): products of the arguments underflow
-  1.0e-50)
-
+;; largest argument below which Rj and Rg are rescaled to 1 (homogeneity): products of the arguments underflow
+(def ^{:private true :const true :tag (quote double)} CARLSON-RESCALE-BELOW 1.0e-50)
 (def ^{:private true :const true :tag (quote double)} Rj-error (m/pow (m// m/MACHINE-EPSILON 3.0) m/SIXTH))
 
 (defn- rj-principal-value-overflow?
@@ -316,12 +314,11 @@
      (let [phi2 (m/+ phi m/HALF_PI)]
        (m/- (m/* 2.0 (m/floor (m// phi2 m/PI)) (K m))
             (K (m/- m/HALF_PI (m/mod phi2 m/PI)) m)))
-     :else
-     (let [sinphi (m/sin phi)]
-       (if (and (m/one? (m/abs sinphi)) (m/one? m))
-         (m/copy-sign ##Inf sinphi)
-         (let [sinphi2 (m/* sinphi sinphi)]
-           (m/* sinphi (Rf (m/- 1.0 sinphi2) (m/- 1.0 (m/* m sinphi2)) 1.0)))))))
+     :else (let [sinphi (m/sin phi)]
+             (if (and (m/one? (m/abs sinphi)) (m/one? m))
+               (m/copy-sign ##Inf sinphi)
+               (let [sinphi2 (m/* sinphi sinphi)]
+                 (m/* sinphi (Rf (m/- 1.0 sinphi2) (m/- 1.0 (m/* m sinphi2)) 1.0)))))))
   
   (^double [^double m]
    (let [negx? (m/neg? m)
@@ -429,16 +426,15 @@
      (let [phi2 (m/+ phi m/HALF_PI)]
        (m/- (m/* 2.0 (m/floor (m// phi2 m/PI)) (E m))
             (E (m/- m/HALF_PI (m/mod phi2 m/PI)) m)))
-     :else
-     (let [sinphi (m/sin phi)]
-       (if (and (m/one? (m/abs sinphi)) (m/one? m))
-         sinphi ;; E(+-pi/2|1) = +-1 (Rf and Rd are both infinite there)
-         (let [sinphi2 (m/* sinphi sinphi)
-               cosphi2 (m/- 1.0 sinphi2)
-               y (m/- 1.0 (m/* m sinphi2))
-               drf (Rf cosphi2 y 1.0)
-               drd (Rd cosphi2 y 1.0)]
-           (m/* sinphi (m/- drf (m/* m/THIRD m sinphi2 drd))))))))
+     :else (let [sinphi (m/sin phi)]
+             (if (and (m/one? (m/abs sinphi)) (m/one? m))
+               sinphi ;; E(+-pi/2|1) = +-1 (Rf and Rd are both infinite there)
+               (let [sinphi2 (m/* sinphi sinphi)
+                     cosphi2 (m/- 1.0 sinphi2)
+                     y (m/- 1.0 (m/* m sinphi2))
+                     drf (Rf cosphi2 y 1.0)
+                     drd (Rd cosphi2 y 1.0)]
+                 (m/* sinphi (m/- drf (m/* m/THIRD m sinphi2 drd))))))))
   (^double [^double m]
    (let [negx? (m/neg? m)
          x (if negx? (m// m (m/dec m)) m)
@@ -570,8 +566,7 @@
   ^double [^double u ^double k ^double k1 ^double tol]
   (cond
     (or (m/nan? k) (m/nan? k1)) ##NaN ;; the AGM would not converge (e.g. m = -Inf in the callers)
-    (m/< k (m/sqrt tol))
-    (m/- u (m/* 0.25 k (m/- u (m/* 0.5 (m/sin (m/* 2.0 u))))))
+    (m/< k (m/sqrt tol)) (m/- u (m/* 0.25 k (m/- u (m/* 0.5 (m/sin (m/* 2.0 u))))))
     :else
     (let [buf (double-array 20)]
       (loop [a 1.0
@@ -591,6 +586,9 @@
             (Array/aset buf nn (m// nc na))
             (recur na nb nc nn)))))))
 
+;;  Phase u*sqrt(1-m) of am for m < 0 above which am is its linear part pi u/(2K(m)).
+(def ^{:private true :const true :tag 'double} AM-LINEAR-PHASE 1.0e290)
+
 (defn am
   "Jacobi amplitude am(u|m), the inverse of the incomplete elliptic integral F; `k` is the parameter `m` (not the modulus), `tol` the optional tolerance of the AGM iteration. For `m<0` the imaginary-modulus transformation, for `m>1` the reciprocal-parameter one (`asin(sn)`, bounded). See [[fastmath.special/jacobi-am]]."
   (^double [^double u ^double k] (am u k m/MACHINE-EPSILON))
@@ -603,14 +601,20 @@
                   (m/one? k) (m/copy-sign m/HALF_PI u)
                   :else ##NaN)
      (m/one? k) (m/* 2.0 (m/atan (m/tanh (m/* 0.5 u)))) ;; gd(u)
+     (m/pos-inf? k) 0.0 ;; the limit: |am| <= asin(1/sqrt(m))
      ;; tan am(u|m) = c tan am(u/c|mu), c^2 = 1/(1-m) = 1-mu, mu = -m/(1-m); the angle form keeps the quadrant
      (m/neg? k) (let [ku1 (m// (m/- 1.0 k))
                       c (m/sqrt ku1)
-                      phi (am-agm (m// u c) (m/* (m/- k) ku1) ku1 tol)
-                      s (m/sin phi)
-                      co (m/cos phi)]
-                  (m/+ phi (m/atan2 (m/* (m/- c 1.0) s co)
-                                    (m/+ (m/* co co) (m/* c s s)))))
+                      uc (m// u c)]
+                  (if (m/> (m/abs uc) AM-LINEAR-PHASE)
+                    ;; am = pi u/(2K) + a periodic part below pi/2, far below the ulp here (am > 1e287); the AGM
+                    ;; scales the phase by 2^n and overflows next to the double range
+                    (m/* m/HALF_PI (m// u (K k)))
+                    (let [phi (am-agm uc (m/* (m/- k) ku1) ku1 tol)
+                          s (m/sin phi)
+                          co (m/cos phi)]
+                      (m/+ phi (m/atan2 (m/* (m/- c 1.0) s co)
+                                        (m/+ (m/* co co) (m/* c s s)))))))
      ;; the complement of 1/m is (m-1)/m, exact (1 - 1/m loses digits next to m = 1)
      ;; am = atan2(sn, cn) with cn > 0 (asin(sn) loses digits at the peaks, where sn is next to 1)
      (m/> k 1.0) (let [sk (m/sqrt k)
@@ -627,6 +631,7 @@
   (cond
     (or (m/nan? u) (m/nan? k)) ##NaN
     (m/zero? u) u ;; odd: keeps the sign of zero
+    (m/pos-inf? k) (if (m/inf? u) ##NaN 0.0) ;; the limit for a finite u: |sn| <= 1/sqrt(m)
     ;; 1 - ku sin^2 = ku1 + ku cos^2 (no cancellation for ku near 1)
     (m/neg? k) (let [ku1 (m// (m/- 1.0 k))
                      ku (m/* -1.0 k ku1)
@@ -647,6 +652,7 @@
   (cond
     (or (m/nan? u) (m/nan? k)) ##NaN
     (m/zero? u) 1.0
+    (m/pos-inf? k) (if (m/inf? u) ##NaN 1.0) ;; the limit for a finite u: sqrt(1-1/m) <= cn <= 1
     (m/neg? k) (let [ku1 (m// (m/- 1.0 k))
                      ku (m/* -1.0 k ku1)
                      sqrtku1 (m/sqrt ku1)
@@ -669,6 +675,7 @@
   (cond
     (or (m/nan? u) (m/nan? k)) ##NaN
     (m/zero? u) 1.0
+    (m/pos-inf? k) ##NaN ;; no limit: dn oscillates between -1 and 1
     (m/neg? k) (let [ku1 (m// (m/- 1.0 k))
                      ku (m/* -1.0 k ku1)
                      sqrtku1 (m/sqrt ku1)
@@ -686,27 +693,37 @@
 (defn jsc
   "Jacobi elliptic function sc(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-sc]]."
   ^double [^double u ^double k] (m// (jsn u k) (jcn u k)))
+
 (defn jsd
   "Jacobi elliptic function sd(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-sd]]."
   ^double [^double u ^double k] (m// (jsn u k) (jdn u k)))
+
 (defn jcs
   "Jacobi elliptic function cs(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-cs]]."
-  ^double [^double u ^double k] (m// (jcn u k) (jsn u k)))
+  ^double [^double u ^double k]
+  (if (and (m/pos-inf? k) (not (m/zero? u))) ##NaN (m// (jcn u k) (jsn u k)))) ;; sn -> 0 through both signs at m = Inf
+
 (defn jcd
   "Jacobi elliptic function cd(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-cd]]."
   ^double [^double u ^double k] (m// (jcn u k) (jdn u k)))
+
 (defn jds
   "Jacobi elliptic function ds(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-ds]]."
   ^double [^double u ^double k] (m// (jdn u k) (jsn u k)))
+
 (defn jdc
   "Jacobi elliptic function dc(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-dc]]."
   ^double [^double u ^double k] (m// (jdn u k) (jcn u k)))
+
 (defn jns
   "Jacobi elliptic function ns(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-ns]]."
-  ^double [^double u ^double k] (m// (jsn u k)))
+  ^double [^double u ^double k]
+  (if (and (m/pos-inf? k) (not (m/zero? u))) ##NaN (m// (jsn u k)))) ;; sn -> 0 through both signs at m = Inf
+
 (defn jnc
   "Jacobi elliptic function nc(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-nc]]."
   ^double [^double u ^double k] (m// (jcn u k)))
+
 (defn jnd
   "Jacobi elliptic function nd(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-nd]]."
   ^double [^double u ^double k] (m// (jdn u k)))

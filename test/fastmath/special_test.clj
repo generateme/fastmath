@@ -1127,8 +1127,8 @@
     (t/is (m/nan? (sut/Ci ##NaN)))
     (t/is (m/neg-inf? (sut/Ci 0.0)))
     (t/is (m/zero? (sut/Ci ##Inf)))
-    (t/is (thrown? AssertionError (sut/Ci -1.0)))
-    (t/is (thrown? AssertionError (sut/Ci ##-Inf))))
+    (t/is (thrown? clojure.lang.ExceptionInfo (sut/Ci -1.0)))
+    (t/is (thrown? clojure.lang.ExceptionInfo (sut/Ci ##-Inf))))
   (t/testing "continuity across the internal branch switches (x=3, x=6, x=12)"
     (doseq [edge [3.0 6.0 12.0]]
       (t/is (m/delta-eq (sut/Ci (m/- edge 1.0e-9)) (sut/Ci (m/+ edge 1.0e-9)) 1.0e-8 1.0e-8))))
@@ -2791,6 +2791,22 @@
     (t/is (m/nan? (sut/jacobi-sn 1.0 ##-Inf)))
     (t/is (m/nan? (sut/jacobi-cn 1.0 ##-Inf)))
     (t/is (m/nan? (sut/jacobi-dn 1.0 ##-Inf))))
+  (t/testing "m = +Inf: the limit for a finite u != 0 (|sn| <= 1/sqrt(m), sqrt(1-1/m) <= cn <= 1), NaN where none"
+    (doseq [u [1.0 -2.5]]
+      (t/is (= [0.0 0.0 1.0 0.0 1.0] (mapv #(% u ##Inf) [sut/jacobi-am sut/jacobi-sn sut/jacobi-cn sut/jacobi-sc sut/jacobi-nc])) (str u))
+      (doseq [f [sut/jacobi-dn sut/jacobi-sd sut/jacobi-cs sut/jacobi-cd sut/jacobi-ds sut/jacobi-dc sut/jacobi-ns sut/jacobi-nd]]
+        (t/is (m/nan? (f u ##Inf)) (str f " " u))))
+    (t/is (m/pos-inf? (sut/jacobi-cs 0.0 ##Inf)) "the pole at u = 0 stays")
+    (t/is (m/nan? (sut/jacobi-sn ##Inf ##Inf)))
+    (t/is (m/nan? (sut/jacobi-cn ##Inf ##Inf))))
+  (t/testing "am at large negative m: pi u/(2K(m)) once the phase u sqrt(1-m) is huge (mpmath, ellipk at 50 digits)"
+    ;; observed 3.9e-16, 2.2e-16, 1.2e-16 (the base: NaN)
+    (doseq [[u m expected] [[1.7e158 -1.0e300 7.700558019142266e305] [1.0e160 -1.0e300 4.529740011260157e307]
+                            [-1.0e160 -1.0e300 -4.529740011260157e307] [7.0e289 -1.0 8.386981643149146e289]]]
+      (t/is (<= (relative-error (sut/jacobi-am u m) expected) 1.0e-15) (str u " " m)))
+    (t/is (m/pos-inf? (sut/jacobi-am 1.0e300 -1.0e300)) "overflow")
+    (t/is (m/neg-inf? (sut/jacobi-am -1.0e300 -1.0e300)))
+    (t/is (= [##Inf ##-Inf] [(sut/jacobi-am 1.0 ##-Inf) (sut/jacobi-am -1.0 ##-Inf)]) "the limit at m = -Inf"))
   (t/testing "am at u = +-Inf"
     (t/is (m/pos-inf? (sut/jacobi-am ##Inf 0.5)))
     (t/is (m/neg-inf? (sut/jacobi-am ##-Inf -2.0)))

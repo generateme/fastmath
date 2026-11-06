@@ -60,7 +60,8 @@ def airy(f):
 
 # orders next to -1/2 (where the recurrence through both neighbouring orders cancels), for every spherical family except y: the
 # value of fastmath.special/spherical-bessel-y there has the documented error about eps/d (d the distance from -1/2), the
-# derivatives follow it (1.6e-4 at d = 1e-12); k: 6.4e-14 (orders -0.499, -0.501, x <= 1)
+# derivatives follow it (1.6e-4 at d = 1e-12); k: 6.4e-14 (orders -0.499, -0.501, x <= 1), 1.4e-12 between the grid points
+# (1e-5 < d < 1e-3, x <= 1.5: k at the neighbouring order, bessel-K next to an integer order)
 near_minus_half = [-0.5 - 1.0e-12, -0.5 + 1.0e-12, -0.500001, -0.499999, -0.501, -0.499, -0.53, -0.47, -0.2]
 
 functions = [
