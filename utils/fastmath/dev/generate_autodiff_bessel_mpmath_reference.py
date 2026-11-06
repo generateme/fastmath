@@ -58,9 +58,9 @@ def airy(f):
     return lambda n: f
 
 
-# orders next to -1/2 (where the recurrence through both neighbouring orders cancels), for j and i2 only: the values of
-# fastmath.special y, i1 and k there lose digits themselves (y: 1.5e-3 at -1/2 +/- 1e-12; k at -1.499: 4e-11), the
-# derivatives follow them
+# orders next to -1/2 (where the recurrence through both neighbouring orders cancels), for every spherical family except y: the
+# value of fastmath.special/spherical-bessel-y there has the documented error about eps/d (d the distance from -1/2), the
+# derivatives follow it (1.6e-4 at d = 1e-12); k: 6.4e-14 (orders -0.499, -0.501, x <= 1)
 near_minus_half = [-0.5 - 1.0e-12, -0.5 + 1.0e-12, -0.500001, -0.499999, -0.501, -0.499, -0.53, -0.47, -0.2]
 
 functions = [
@@ -72,9 +72,9 @@ functions = [
     ("airy-Ai'", airy(lambda x: mp.airyai(x, derivative=1)), [0.0], [-7.0, -1.2, 0.0, 0.7, 3.0, 12.0]),
     ("airy-Bi", airy(mp.airybi), [0.0], [-7.0, -1.2, 0.0, 0.7, 3.0, 12.0]),
     ("airy-Bi'", airy(lambda x: mp.airybi(x, derivative=1)), [0.0], [-7.0, -1.2, 0.0, 0.7, 3.0, 12.0]),
-    ("spherical-bessel-1-i", sph(mp.besseli, up), [0.0, 1.0, 2.0, 3.5, -0.5], positive),
+    ("spherical-bessel-1-i", sph(mp.besseli, up), [0.0, 1.0, 2.0, 3.5, -0.5] + near_minus_half, positive),
     ("spherical-bessel-2-i", sph(mp.besseli, down), [0.0, 1.0, 2.0, 3.5, -0.5] + near_minus_half, positive),
-    ("spherical-bessel-k", sph(mp.besselk, up), [0.0, 1.0, 2.0, 3.5, -0.5], positive),
+    ("spherical-bessel-k", sph(mp.besselk, up), [0.0, 1.0, 2.0, 3.5, -0.5] + near_minus_half, positive),
     ("spherical-bessel-j", sph(mp.besselj, up), [0.0, 1.0, 2.0, 3.5, -0.5] + near_minus_half, positive + [-0.7, -4.0]),
     ("spherical-bessel-y", sph(mp.bessely, up), [0.0, 1.0, 2.0, 3.5, -0.5], positive),
     ("bessel-K-half-odd", lambda n: (lambda x: mp.besselk(mp.mpf(n) / 2, x)), [1, 3, 5, -3], positive),

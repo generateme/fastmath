@@ -1424,15 +1424,17 @@
    [:spherical-bessel-k 2.0 ad/spherical-bessel-k2 special/spherical-bessel-k2]])
 
 (t/deftest bessel-reference-test
-  ;; measured: max error relative to max(1, |expected|) 2.3e-15 (spherical-bessel-j at the order -0.53), 1.6e-15 (airy-Bi,
-  ;; airy-Bi' at 12), below 8e-16 elsewhere
+  ;; measured: max error relative to max(1, |expected|) 6.4e-14 (spherical-bessel-k at the orders -0.499, -0.501, x <= 1:
+  ;; the tolerance of k within 0.1 of the order -1/2 is 1e-13), 2.3e-15 (spherical-bessel-j at the order -0.53), 1.6e-15 (airy-Bi, airy-Bi' at 12),
+  ;; 9.1e-16 (spherical-bessel-1-i at the order -0.499999), below 8e-16 elsewhere
   (t/testing "mpmath reference, first and second derivatives in x"
     (t/is (= (set (keys bessel-functions)) (set (keys @bessel-reference))) "every function is in the reference")
     (doseq [[id rows] @bessel-reference
             :let [f (first (bessel-functions id))]
-            [n x d1 d2] rows]
-      (t/is (rule-close? d1 ((D (fn [v] (f n v))) x) 1.0e-14) (str id " " n " d1 at " x))
-      (t/is (rule-close? d2 ((D (fn [v] (f n v)) 2) x) 1.0e-14) (str id " " n " d2 at " x))))
+            [n x d1 d2] rows
+            :let [tolerance (if (and (= id :spherical-bessel-k) (m/< (m/abs (m/+ (double n) 0.5)) 0.1)) 1.0e-13 1.0e-14)]]
+      (t/is (rule-close? d1 ((D (fn [v] (f n v))) x) tolerance) (str id " " n " d1 at " x))
+      (t/is (rule-close? d2 ((D (fn [v] (f n v)) 2) x) tolerance) (str id " " n " d2 at " x))))
   (t/testing "the fixed orders, against the rows of their order"
     (doseq [[id order f] bessel-fixed-order
             [n x d1 d2] (id @bessel-reference)
@@ -1505,8 +1507,8 @@
   {:jacobi-sn [ad/jacobi-sn special/jacobi-sn] :jacobi-cn [ad/jacobi-cn special/jacobi-cn] :jacobi-dn [ad/jacobi-dn special/jacobi-dn] :jacobi-sc [ad/jacobi-sc special/jacobi-sc] :jacobi-sd [ad/jacobi-sd special/jacobi-sd] :jacobi-cs [ad/jacobi-cs special/jacobi-cs] :jacobi-cd [ad/jacobi-cd special/jacobi-cd] :jacobi-ds [ad/jacobi-ds special/jacobi-ds] :jacobi-dc [ad/jacobi-dc special/jacobi-dc] :jacobi-ns [ad/jacobi-ns special/jacobi-ns] :jacobi-nc [ad/jacobi-nc special/jacobi-nc] :jacobi-nd [ad/jacobi-nd special/jacobi-nd] :jacobi-am [ad/jacobi-am special/jacobi-am] :jacobi-asn [ad/jacobi-asn special/jacobi-asn] :jacobi-acn [ad/jacobi-acn special/jacobi-acn] :jacobi-adn [ad/jacobi-adn special/jacobi-adn] :jacobi-asc [ad/jacobi-asc special/jacobi-asc] :jacobi-asd [ad/jacobi-asd special/jacobi-asd] :jacobi-acs [ad/jacobi-acs special/jacobi-acs] :jacobi-acd [ad/jacobi-acd special/jacobi-acd] :jacobi-ads [ad/jacobi-ads special/jacobi-ads] :jacobi-adc [ad/jacobi-adc special/jacobi-adc] :jacobi-ans [ad/jacobi-ans special/jacobi-ans] :jacobi-anc [ad/jacobi-anc special/jacobi-anc] :jacobi-and [ad/jacobi-and special/jacobi-and] :elliptic-F [ad/elliptic-F special/elliptic-F] :elliptic-E [ad/elliptic-E special/elliptic-E] :elliptic-D [ad/elliptic-D special/elliptic-D]})
 
 (t/deftest elliptic-reference-test
-  ;; measured: max error relative to max(1, |expected|) 5.4e-15 (cs, ds, ns at u = 3, m = -0.5), 3.3e-15 (inverses),
-  ;; below 1e-15 elsewhere
+  ;; measured: max error relative to max(1, |expected|) 5.4e-15 (cs, ds, ns at u = 3, m = -0.5), 3.6e-15 (inverses),
+  ;; below 1e-15 elsewhere (am, also m = -0.5 and 1.5: 2.8e-16)
   (t/testing "mpmath reference, first and second derivatives in u, x or phi"
     (t/is (= (conj (set (keys elliptic-functions)) :elliptic-PI) (set (keys @elliptic-reference))) "every function is in the reference")
     (doseq [[id rows] (dissoc @elliptic-reference :elliptic-PI)
@@ -1567,12 +1569,17 @@
     (t/is (= [##-Inf ##Inf ##Inf] (mapv (fn [f] ((D (fn [x] (f x 0.5))) 1.0)) [ad/jacobi-ans ad/jacobi-anc ad/jacobi-and])))
     (doseq [[f x] [[ad/jacobi-asn 0.4] [ad/jacobi-asc 2.0] [ad/jacobi-acs 2.0] [ad/jacobi-ans 2.0]]]
       (t/is (= ((D (fn [v] (f v 0.5))) x) ((D (fn [v] (f v 0.5))) (m/- (double x)))) (str f " even derivative"))))
-  (t/testing "the branch signs outside 0 <= m <= 1 (adn, and for m < 0; acd for m > 1) against 1/f'(u)"
+  (t/testing "the branch signs outside 0 <= m <= 1 (adn, and for m < 0; acd for m > 1) and at a negative x against 1/f'(u)"
     (doseq [[f g u0 mm] [[ad/jacobi-adn special/jacobi-dn 0.6 -0.5] [ad/jacobi-and special/jacobi-nd 0.6 -0.5]
-                         [ad/jacobi-acd special/jacobi-cd 0.6 1.5] [ad/jacobi-adc special/jacobi-dc 0.6 1.5]]
+                         [ad/jacobi-acd special/jacobi-cd 0.6 1.5] [ad/jacobi-adc special/jacobi-dc 0.6 1.5]
+                         ;; x < 0: u0 = 2.4 in (K, 2K) (K(0.3) = 1.71, the real quarter period at m = 1.5 is 1.47)
+                         [ad/jacobi-acn special/jacobi-cn 2.4 0.3] [ad/jacobi-acs special/jacobi-cs 2.4 0.3]
+                         [ad/jacobi-asn special/jacobi-sn -0.4 0.3] [ad/jacobi-ans special/jacobi-ns -0.4 0.3]
+                         [ad/jacobi-adn special/jacobi-dn 2.4 1.5]]
             :let [x (double (g u0 mm))
                   u (double (ad/primal (f (ad/dual 1 x [1.0]) mm)))
                   fd (m// (m/- (double (g (m/+ u 1.0e-6) mm)) (double (g (m/- u 1.0e-6) mm))) 2.0e-6)]]
+      (t/is (rule-close? x (g u mm) 1.0e-14) (str f " at " [x mm] ": f(u) = x, the branch of x"))
       (t/is (rule-close? (m// 1.0 fd) ((D (fn [v] (f v mm))) x) 1.0e-8) (str f " at " [x mm]))))
   (t/testing "poles, periods and the domain of the integrals"
     (t/is (= [##-Inf ##-Inf ##-Inf] (mapv (fn [f] ((D (fn [u] (f u 0.5))) 0.0)) [ad/jacobi-cs ad/jacobi-ds ad/jacobi-ns])))

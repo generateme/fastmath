@@ -10,8 +10,8 @@
 # Output: test/resources/calculus/autodiff_erf_expint_mpmath_reference.edn
 # {<id> [[x d1 d2] ..]                the ids are the names of fastmath.calculus.autodiff
 #  :En-real-branch [[n x d1 d2] ..]}   En of a non-positive integer order at a negative x (real there), derivatives in x
-# Points inside the domains, away from the singularities (Lambert W branch point -1/e, li at 1); Ein down to -2.15
-# (fastmath.special/Ein is NaN below).
+# Points inside the domains, away from the singularities (Lambert W branch point -1/e, li at 1); Ein also below -2.15
+# (-3, -10).
 
 import os
 import mpmath as mp
@@ -42,7 +42,8 @@ functions = [
     ("lambert-W", lambert_w0, [-0.3, -0.1, 0.0, 0.5, 1.0, 2.5, 2.8, 10.0, 1.0e6, 1.0e300]),
     ("lambert-W-1", lambert_wm1, [-0.36, -0.3, -0.1, -1.0e-3, -1.0e-10, -1.0e-300]),
     ("E0", lambda x: mp.exp(-x) / x, [-3.7, -0.3, 0.2, 2.5, 30.0]),
-    ("Ein", ein, [-2.1, -1.2, -0.3, 0.0, 0.2, 0.9, 2.5, 7.0]),
+    # -3 and -10 appended (not sorted): the earlier rows keep their places in the output
+    ("Ein", ein, [-2.1, -1.2, -0.3, 0.0, 0.2, 0.9, 2.5, 7.0, -3.0, -10.0]),
     ("Cin", cin, [-7.0, -1.2, 0.0, 1.0e-3, 0.2, 2.5, 30.0]),
     ("si", lambda x: mp.si(x) - mp.pi / 2, [-3.7, -0.3, 0.2, 2.5, 30.0]),
     ("Ei", mp.ei, [-30.0, -2.5, -0.3, 0.2, 0.9, 2.5, 7.0, 30.0, 300.0, 709.5, 710.0, 716.0]),

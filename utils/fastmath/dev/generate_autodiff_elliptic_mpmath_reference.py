@@ -10,7 +10,7 @@
 # {<id> [[a m d1 d2] ..]} (a = u, x or phi), :elliptic-PI [[n phi m d1 d2] ..]; the ids are the names of
 # fastmath.calculus.autodiff.
 # - Jacobi functions: mpmath.ellipfun (parameter m, also m = 1.5 > 1), the quotients of sn, cn, dn;
-# - jacobi-am: the root phi of ellipf(phi, m) = u;
+# - jacobi-am: at the parameters and u of the Jacobi functions; the root phi of ellipf(phi, m) = u, atan2(sn, cn) for m = 1.5;
 # - inverses: at x = f(u0) with u0 = 0.3 and 0.7 quarter periods (K(m); K(1/m)/sqrt(m) for m > 1), in the principal range of
 #   fastmath.special), the derivatives of the inverse 1/f'(u0) and -f''(u0)/f'(u0)^3;
 # - integrals: ellipf, ellipe, ellippi, and D = (F - E)/m.
@@ -21,12 +21,16 @@ import mpmath as mp
 mp.mp.dps = 50
 
 
-def edn(v):
+def real(v):
     if isinstance(v, mp.mpc):
         # mpmath returns complex numbers with a zero imaginary part for some real arguments (negative m)
         assert abs(v.imag) <= mp.mpf(10) ** -30 * max(1, abs(v.real)), v
         v = v.real
-    v = float(v)
+    return v
+
+
+def edn(v):
+    v = float(real(v))
     if v != v:
         return "##NaN"
     if v in (float("inf"), float("-inf")):
@@ -52,6 +56,9 @@ phis = [-1.2, 0.3, 1.0, 2.5]
 
 
 def am(u, m):
+    # m > 1: atan2(sn, cn), the convention of fastmath.special (as mpmath; ellipf is real only up to asin(1/sqrt(m)))
+    if m > 1:
+        return mp.atan2(real(sn(u, m)), real(cn(u, m)))
     return mp.findroot(lambda p: mp.ellipf(p, m) - u, u)
 
 
@@ -76,9 +83,9 @@ for name, f in jacobi.items():
             d2 = mp.diff(lambda t: f(t, m), u0, 2)
             inv.append((f(u0, m), m, 1 / d1, -d2 / d1 ** 3))
     rows["jacobi-a" + name] = inv
-# jacobi-am for m >= 0 only: fastmath.special/jacobi-am is NaN for a negative m
+# jacobi-am at the parameters of the Jacobi functions (m = 1.5: the first quarter period)
 rows["jacobi-am"] = [(u, m, mp.diff(lambda t: am(t, m), mp.mpf(u), 1), mp.diff(lambda t: am(t, m), mp.mpf(u), 2))
-                     for m in ms if m >= 0 for u in us]
+                     for m, uss in ms_jacobi for u in uss]
 for name, f in [("elliptic-F", mp.ellipf), ("elliptic-E", mp.ellipe),
                 ("elliptic-D", lambda p, m: (mp.ellipf(p, m) - mp.ellipe(p, m)) / m)]:
     rows[name] = [(p, m, mp.diff(lambda t: f(t, m), mp.mpf(p), 1), mp.diff(lambda t: f(t, m), mp.mpf(p), 2))
