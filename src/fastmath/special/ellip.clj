@@ -31,14 +31,15 @@
 (defn Rc
   "Rc - Carlson symmetric form, iterative.
 
-  `x>=0`; for `y<0` the Cauchy principal value. Returns `Inf` for `y=0` (the integral diverges) and `NaN` for `x<0`."
+  `x>=0`; for `y<0` the Cauchy principal value. Returns `Inf` for `y=0` (the integral diverges), `0.0` for an infinite argument and `NaN` for `x<0` or a `NaN` argument."
   ^double [^double x ^double y]
   (cond
-    (m/neg? x) ##NaN
+    (or (m/nan? x) (m/nan? y) (m/neg? x)) ##NaN
     (m/== x y) (m// (m/sqrt x))
     (and (m/zero? x) (m/zero? y)) ##Inf
-    (m/zero? x) (m// m/HALF_PI (m/sqrt y))
+    (and (m/zero? x) (m/pos? y)) (m// m/HALF_PI (m/sqrt y))
     (m/zero? y) ##Inf
+    (or (m/inf? x) (m/inf? y)) 0.0
     (m/neg? y) (let [y- (m/- y)]
                  (m/* (m/sqrt (m// x (m/+ x y-)))
                       (Rc (m/+ x y-) y-)))
@@ -69,7 +70,10 @@
   "Rd - Carlson symmetric form of the second kind, iterative. See [[fastmath.special/elliptic-Rd]]."
   ^double [^double x ^double y ^double z]
   (cond
-    (and (m/zero? x) (m/zero? y)) ##Inf
+    (or (m/nan? x) (m/nan? y) (m/nan? z)
+        (m/neg? x) (m/neg? y) (m/neg? z)) ##NaN
+    (or (m/zero? z) (and (m/zero? x) (m/zero? y))) ##Inf
+    (or (m/inf? x) (m/inf? y) (m/inf? z)) 0.0
     (and (m/zero? x) (m/== y z)) (m// (m/* 3.0 m/QUARTER_PI)
                                       (m/pow y 1.5))
     (m/== x y z) (m/pow x -1.5)
@@ -126,8 +130,12 @@
   "Rf - Carlson symmetric form of the first kind, iterative. See [[fastmath.special/elliptic-Rf]]."
   ^double [^double x ^double y ^double z]
   (cond
-    (or (m/neg? x) (m/neg? y) (m/neg? z)) ##NaN
-    (and (m/zero? x) (m/zero? y)) ##Inf
+    (or (m/nan? x) (m/nan? y) (m/nan? z)
+        (m/neg? x) (m/neg? y) (m/neg? z)) ##NaN
+    ;; two zero arguments: the integral diverges at t = 0
+    (or (and (m/zero? x) (m/zero? y))
+        (and (m/zero? z) (or (m/zero? x) (m/zero? y)))) ##Inf
+    (or (m/inf? x) (m/inf? y) (m/inf? z)) 0.0
     (m/== y z) (Rc x y)
     :else (let [mu0 (m/* m/THIRD (m/+ x y z))]
             (loop [i (long 0)
@@ -165,25 +173,45 @@
                                (m/- 2.0 (m// (m/+ nmu nyn) nmu))
                                (m/- 2.0 (m// (m/+ nmu nzn) nmu)))))))))
 
+(def ^{:private true :const true :tag (quote double)} CARLSON-RESCALE-BELOW
+  ;; largest argument below which Rj and Rg are rescaled to 1 (homogeneity): products of the arguments underflow
+  1.0e-50)
+
 (def ^{:private true :const true :tag (quote double)} Rj-error (m/pow (m// m/MACHINE-EPSILON 3.0) m/SIXTH))
+
+(defn- rj-principal-value-overflow?
+  "True when a term of the principal value of Rj (`p<0`) overflows: `q-`, `x*z` or `p*q`."
+  [^double x ^double y ^double z ^double p]
+  (let [q- (m// (m/* (m/- z y) (m/- y x)) (m/- y p))]
+    (or (m/inf? q-) (m/inf? (m/* x z)) (m/inf? (m/* p (m/+ y q-))))))
 
 (defn Rj
   "Rj - Carlson symmetric form of the third kind, iterative. See [[fastmath.special/elliptic-Rj]]."
   ^double [^double x ^double y ^double z ^double p]
   (cond
-    (or (m/neg? x) (m/neg? y) (m/neg? z)) ##NaN
+    (or (m/nan? x) (m/nan? y) (m/nan? z) (m/nan? p)
+        (m/neg? x) (m/neg? y) (m/neg? z)) ##NaN
     (m/zero? p) ##Inf
     (m/== z p) (Rd x y z)
     (m/== x y z) (Rd p p x)
     (and (m/zero? x) (m/zero? y)) ##Inf
+    (or (m/inf? x) (m/inf? y) (m/inf? z) (m/inf? p)) 0.0
+    ;; homogeneity Rj(lx,ly,lz,lp) = Rj(x,y,z,p)/l^(3/2), the arguments divided by the largest one
+    (or (m/< (m/max x y z (m/abs p)) CARLSON-RESCALE-BELOW)
+        (and (m/neg? p) (rj-principal-value-overflow? x y z p)))
+    (let [s (m/max x y z (m/abs p))]
+      (m// (m// (Rj (m// x s) (m// y s) (m// z s) (m// p s)) s) (m/sqrt s)))
     (m/neg? p) (let [p+ (m/- p)
                      y+p+ (m/+ y p+)
                      q- (m// (m/* (m/- z y) (m/- y x)) y+p+)
                      q (m/+ y q-)]
-                 (m// (m/+ (m/- (m/* q- (Rj x y z q))
-                                (m/* 3.0 (Rf x y z)))
-                           (m/* 3.0 (m/sqrt y) (Rc (m/* x z) (m/* p q))))
-                      y+p+))
+                 (if (m/pos? q)
+                   (m// (m/+ (m/- (m/* q- (Rj x y z q))
+                                  (m/* 3.0 (Rf x y z)))
+                             (m/* 3.0 (m/sqrt y) (Rc (m/* x z) (m/* p q))))
+                        y+p+)
+                   ;; y not the median: q <= 0 recursed forever; symmetric in x, y, z, the median as y gives q > 0
+                   (Rj (m/min x y z) (m/max (m/min x y) (m/min (m/max x y) z)) (m/max x y z) p)))
     :else (let [mu0 (m/* 0.2 (m/+ x y z p p))]
             (loop [i (long 0)
                    xn x
@@ -234,23 +262,38 @@
                             nzn (m/* 0.25 (m/+ zn lambda))
                             npn (m/* 0.25 (m/+ pn lambda))
                             nmu (m/* 0.2 (m/+ nxn nyn nzn npn npn))]
-                        (recur (m/inc i)
-                               nxn nyn nzn npn nmu
-                               (m// (m/- nmu nxn) nmu)
-                               (m// (m/- nmu nyn) nmu)
-                               (m// (m/- nmu nzn) nmu)
-                               (m// (m/- nmu npn) nmu)
-                               (m/+ sigma (m/* power4 (Rc alpha beta)))
-                               (m/* 0.25 power4))))))))
+                        (if (and (m/zero? i) (or (m/inf? alpha) (m/inf? beta)))
+                          ;; the first (largest) alpha, beta overflow: homogeneity as above
+                          (let [s (m/max x y z p)]
+                            (m// (m// (Rj (m// x s) (m// y s) (m// z s) (m// p s)) s) (m/sqrt s)))
+                          (recur (m/inc i)
+                                 nxn nyn nzn npn nmu
+                                 (m// (m/- nmu nxn) nmu)
+                                 (m// (m/- nmu nyn) nmu)
+                                 (m// (m/- nmu nzn) nmu)
+                                 (m// (m/- nmu npn) nmu)
+                                 (m/+ sigma (m/* power4 (Rc alpha beta)))
+                                 (m/* 0.25 power4)))))))))
 
 (defn Rg
   "Rg - Carlson symmetric form of the second kind, iterative. See [[fastmath.special/elliptic-Rg]]."
   ^double [^double x ^double y ^double z]
   (cond
+    (or (m/nan? x) (m/nan? y) (m/nan? z)
+        (m/neg? x) (m/neg? y) (m/neg? z)) ##NaN
+    (or (m/inf? x) (m/inf? y) (m/inf? z)) ##Inf
     (m/== x y z) (m/sqrt x)
     (and (m/zero? x) (m/== y z)) (m/* m/QUARTER_PI (m/sqrt y))
     (and (m/zero? x) (m/zero? y) (m/pos? z)) (m/* 0.5 (m/sqrt z))
+    (m/zero? z) (Rg z x y) ;; symmetric: the branches above take the zero first (Rc(x, 0) is infinite)
     (m/== y z) (m/* 0.5 (m/+ (m/* y (Rc x y)) (m/sqrt x)))
+    ;; z not the median: (x-z)(y-z) > 0 cancels in the formula below (DLMF 19.21.10); symmetric, the median as z
+    (m/pos? (m/* (m/- x z) (m/- y z))) (Rg (m/min x y z) (m/max x y z) (m/max (m/min x y) (m/min (m/max x y) z)))
+    ;; x*y/z or (x-z)(y-z) overflows, or all arguments tiny (the products underflow): homogeneity
+    ;; Rg(lx,ly,lz) = sqrt(l) Rg(x,y,z) with l = 1/max
+    (or (m/inf? (m// (m/* x y) z)) (m/inf? (m/* (m/- x z) (m/- y z))) (m/< (m/max x y z) CARLSON-RESCALE-BELOW))
+    (let [hi (m/max x y z)]
+      (m/* (m/sqrt hi) (Rg (m// x hi) (m// y hi) (m// z hi))))
     :else (m/* 0.5 (m/+ (m/- (m/* z (Rf x y z))
                              (m/* m/THIRD (m/- x z) (m/- y z) (Rd x y z)))
                         (m/sqrt (m// (m/* x y) z))))))
@@ -266,10 +309,14 @@
 (defn K
   "Complete elliptic integral K(m), and the incomplete one F(phi|m) with two arguments (quasi-periodic in phi); `m` is the parameter, `m<=1`. See [[fastmath.special/elliptic-K]]."
   (^double [^double phi ^double m]
-   (if (m/> (m/abs phi) m/HALF_PI)
+   (cond
+     (m/inf? phi) (if (and (m/<= m 1.0) (m/> m ##-Inf)) phi ##NaN)
+     (m/neg-inf? m) (m/* 0.0 phi) ;; F(phi|-Inf) = 0
+     (m/> (m/abs phi) m/HALF_PI)
      (let [phi2 (m/+ phi m/HALF_PI)]
        (m/- (m/* 2.0 (m/floor (m// phi2 m/PI)) (K m))
             (K (m/- m/HALF_PI (m/mod phi2 m/PI)) m)))
+     :else
      (let [sinphi (m/sin phi)]
        (if (and (m/one? (m/abs sinphi)) (m/one? m))
          (m/copy-sign ##Inf sinphi)
@@ -278,11 +325,13 @@
   
   (^double [^double m]
    (let [negx? (m/neg? m)
-         x (if negx? (m// m (m/dec m)) m)]
+         x (if negx? (m// m (m/dec m)) m)
+         ;; 1 - x, exact for m < 0 (x rounds to 1.0 below about -2^53)
+         td (if negx? (m// (m/- 1.0 m)) (m/- 1.0 x))]
      (cond
        (m/neg-inf? m) 0.0
        (or (m/> x 1.0) (m/nan? x)) ##NaN
-       (m/one? x) ##Inf
+       (m/zero? td) ##Inf
        (m/zero? x) m/HALF_PI
        (m/< x 0.1) (ellip-K-from-poly (m/- x 0.05 ) m negx?
                      1.591003453790792180 0.416000743991786912 0.245791514264103415
@@ -347,8 +396,7 @@
                      2855288351.100810619 21090077038.76684053 156699833947.7902014
                      1170222242422.439893 8777948323668.937971 66101242752484.95041
                      499488053713388.7989 37859743397240299.20)
-       :else (let [td (m/- 1.0 x)
-                   td1 (m/- td 0.05)
+       :else (let [td1 (m/- td 0.05)
                    qd (poly/mevalpoly td
                         0.0 0.0625 0.03125 0.0205078125 0.01513671875 0.01193428039550781,
                         0.009816169738769531 0.008315593004226685 0.007199153304100037,
@@ -374,24 +422,32 @@
 (defn E
   "Complete elliptic integral E(m), and the incomplete one E(phi|m) with two arguments (quasi-periodic in phi); `m` is the parameter, `m<=1`. See [[fastmath.special/elliptic-E]]."
   (^double [^double phi ^double m]
-   (if (m/> (m/abs phi) m/HALF_PI)
+   (cond
+     (m/inf? phi) (if (m/<= m 1.0) phi ##NaN)
+     (and (m/neg-inf? m) (not (m/nan? phi))) (if (m/zero? phi) phi (m/copy-sign ##Inf phi))
+     (m/> (m/abs phi) m/HALF_PI)
      (let [phi2 (m/+ phi m/HALF_PI)]
        (m/- (m/* 2.0 (m/floor (m// phi2 m/PI)) (E m))
             (E (m/- m/HALF_PI (m/mod phi2 m/PI)) m)))
+     :else
      (let [sinphi (m/sin phi)]
-       (let [sinphi2 (m/* sinphi sinphi)
-             cosphi2 (m/- 1.0 sinphi2)
-             y (m/- 1.0 (m/* m sinphi2))
-             drf (Rf cosphi2 y 1.0)
-             drd (Rd cosphi2 y 1.0)]
-         (m/* sinphi (m/- drf (m/* m/THIRD m sinphi2 drd)))))))
+       (if (and (m/one? (m/abs sinphi)) (m/one? m))
+         sinphi ;; E(+-pi/2|1) = +-1 (Rf and Rd are both infinite there)
+         (let [sinphi2 (m/* sinphi sinphi)
+               cosphi2 (m/- 1.0 sinphi2)
+               y (m/- 1.0 (m/* m sinphi2))
+               drf (Rf cosphi2 y 1.0)
+               drd (Rd cosphi2 y 1.0)]
+           (m/* sinphi (m/- drf (m/* m/THIRD m sinphi2 drd))))))))
   (^double [^double m]
    (let [negx? (m/neg? m)
-         x (if negx? (m// m (m/dec m)) m)]
+         x (if negx? (m// m (m/dec m)) m)
+         ;; 1 - x, exact for m < 0 (x rounds to 1.0 below about -2^53)
+         td (if negx? (m// (m/- 1.0 m)) (m/- 1.0 x))]
      (cond
        (m/neg-inf? m) ##Inf
        (or (m/> x 1.0) (m/nan? x)) ##NaN
-       (m/one? x) 1.0
+       (m/zero? td) 1.0
        (m/zero? x) m/HALF_PI
        (m/< x 0.1) (ellip-E-from-poly (m/- x 0.05 ) m negx?
                      +1.550973351780472328 -0.400301020103198524 -0.078498619442941939
@@ -451,7 +507,7 @@
                      -57502.51612140314030 -368596.1167416106063 -2415611.088701091428
                      -16120097.81581656797 -109209938.5203089915 -749380758.1942496220
                      -5198725846.725541393 -36409256888.12139973)
-       :else (let [td1 (m/- (m/- 1.0 x) 0.05)
+       :else (let [td1 (m/- td 0.05)
                    kdm (poly/mevalpoly td1
                          1.591003453790792180 0.416000743991786912 0.245791514264103415
                          0.179481482914906162 0.144556057087555150 0.123200993312427711
@@ -463,7 +519,8 @@
                          -0.009442372874146547 -0.007246728512402157 -0.005807424012956090
                          -0.004809187786009338)
                    hdm (m/- kdm edm)
-                   km (K x)
+                   ;; K(x) = sqrt(1-m) K(m) for m < 0, through the exact complement
+                   km (if negx? (m/* (K m) (m/sqrt (m/- 1.0 m))) (K x))
                    t (m// (m/+ m/HALF_PI (m/* hdm km)) kdm)]
                (if negx? (m/* t (m/sqrt (m/- 1.0 m))) t))))))
 
@@ -478,8 +535,11 @@
   The incomplete form is extended to `|phi|>π/2` by the quasi-periodicity `Π(n;φ+kπ|m)=Π(n;φ|m)+2kΠ(n|m)`."
   (^double [^double n ^double phi ^double m]
    (cond
+     (m/neg-inf? n) (if (or (m/nan? phi) (m/nan? m) (m/> m 1.0)) ##NaN 0.0)
      (m/one? n) ##NaN
      (or (m/> m 1.0) (m/> n 1.0)) ##NaN
+     ;; quasi-periodic with Pi(n|m) > 0 for n < 1
+     (m/inf? phi) (if (and (m/< n 1.0) (m/<= m 1.0) (m/> m ##-Inf)) phi ##NaN)
      (m/> (m/abs phi) m/HALF_PI) (let [k (m/floor (m// (m/+ phi m/HALF_PI) m/PI))
                                        phi' (m/- phi (m/* k m/PI))]
                                    (m/+ (PI n phi' m) (m/* 2.0 k (PI n m))))
@@ -494,6 +554,7 @@
                                      (Rj cosp2 y 1.0 (m/- 1.0 (m/* n sinp2)))))))))))
   (^double [^double n ^double m]
    (cond
+     (m/neg-inf? n) (if (or (m/nan? m) (m/> m 1.0)) ##NaN 0.0)
      (m/one? n) ##NaN
      (or (m/> m 1.0) (m/> n 1.0)) ##NaN
      (m/one? m) ##Inf
@@ -504,86 +565,122 @@
 
 ;; Jacobi functions
 
+(defn- am-agm
+  "am(u|k) for `0<=k<=1`, `k<1` or `k1>0`, with the complement `k1=1-k` given separately (exact when the caller knows it): the first-order series in `k` below `sqrt(tol)`, the AGM (A&S 16.4) otherwise."
+  ^double [^double u ^double k ^double k1 ^double tol]
+  (cond
+    (or (m/nan? k) (m/nan? k1)) ##NaN ;; the AGM would not converge (e.g. m = -Inf in the callers)
+    (m/< k (m/sqrt tol))
+    (m/- u (m/* 0.25 k (m/- u (m/* 0.5 (m/sin (m/* 2.0 u))))))
+    :else
+    (let [buf (double-array 20)]
+      (loop [a 1.0
+             b (m/sqrt k1)
+             c (m/sqrt k)
+             n (long 0)]
+        (if (m/<= (m/abs c) tol)
+          (loop [i n
+                 phi (m/* a u (m/exp2 n))]
+            (if (m/zero? i) phi
+                (recur (m/dec i) (m/* 0.5 (m/+ phi (m/asin (m/* (Array/aget buf i)
+                                                                (m/sin phi))))))))
+          (let [na (m/* 0.5 (m/+ a b))
+                nb (m/sqrt (m/* a b))
+                nc (m/* 0.5 (m/- a b))
+                nn (m/inc n)]
+            (Array/aset buf nn (m// nc na))
+            (recur na nb nc nn)))))))
+
 (defn am
-  "Jacobi amplitude am(u|m), the inverse of the incomplete elliptic integral F; `k` is the parameter `m` (not the modulus), `tol` the optional tolerance of the AGM iteration. See [[fastmath.special/jacobi-am]]."
+  "Jacobi amplitude am(u|m), the inverse of the incomplete elliptic integral F; `k` is the parameter `m` (not the modulus), `tol` the optional tolerance of the AGM iteration. For `m<0` the imaginary-modulus transformation, for `m>1` the reciprocal-parameter one (`asin(sn)`, bounded). See [[fastmath.special/jacobi-am]]."
   (^double [^double u ^double k] (am u k m/MACHINE-EPSILON))
   (^double [^double u ^double k ^double tol]
    (cond
-     (m/zero? u) 0.0
-     (or (m/> k 1.0) (m/neg? k)) ##NaN
-     :else (let [tolr (m/sqrt tol)
-                 k1 (m/- 1.0 k)]
-             (cond
-               (m/< k tolr) (m/- u (m/* 0.25 k
-                                        (m/- u (m/* 0.5 (m/sin (m/* 2.0 u))))))
-               (m/< k1 tolr) (let [t (m/tanh u)]
-                               (m/+ (m/asin t)
-                                    (m/* 0.25 k1 (m/cosh u) (m/- t (m/* u (m/- 1.0 (m/* t t)))))))
-               :else (let [buf (double-array 20)]
-                       (loop [a 1.0
-                              b (m/sqrt k1)
-                              c (m/sqrt k)
-                              n (long 0)]
-                         (if (m/<= (m/abs c) tol)
-                           (loop [i n
-                                  phi (m/* a u (m/exp2 n))]                         
-                             (if (m/zero? i) phi
-                                 (recur (m/dec i) (m/* 0.5 (m/+ phi (m/asin (m/* (Array/aget buf i)
-                                                                                 (m/sin phi))))))))
-                           (let [na (m/* 0.5 (m/+ a b))
-                                 nb (m/sqrt (m/* a b))
-                                 nc (m/* 0.5 (m/- a b))
-                                 nn (m/inc n)]
-                             (Array/aset buf nn (m// nc na))
-                             (recur na nb nc nn))))))))))
+     (or (m/nan? u) (m/nan? k)) ##NaN
+     (m/zero? u) u ;; odd: keeps the sign of zero
+     (m/inf? u) (cond
+                  (m/< k 1.0) u
+                  (m/one? k) (m/copy-sign m/HALF_PI u)
+                  :else ##NaN)
+     (m/one? k) (m/* 2.0 (m/atan (m/tanh (m/* 0.5 u)))) ;; gd(u)
+     ;; tan am(u|m) = c tan am(u/c|mu), c^2 = 1/(1-m) = 1-mu, mu = -m/(1-m); the angle form keeps the quadrant
+     (m/neg? k) (let [ku1 (m// (m/- 1.0 k))
+                      c (m/sqrt ku1)
+                      phi (am-agm (m// u c) (m/* (m/- k) ku1) ku1 tol)
+                      s (m/sin phi)
+                      co (m/cos phi)]
+                  (m/+ phi (m/atan2 (m/* (m/- c 1.0) s co)
+                                    (m/+ (m/* co co) (m/* c s s)))))
+     ;; the complement of 1/m is (m-1)/m, exact (1 - 1/m loses digits next to m = 1)
+     ;; am = atan2(sn, cn) with cn > 0 (asin(sn) loses digits at the peaks, where sn is next to 1)
+     (m/> k 1.0) (let [sk (m/sqrt k)
+                       ku1 (m// (m/dec k) k)
+                       phi (am-agm (m/* u sk) (m// k) ku1 tol)
+                       s (m/sin phi)
+                       c (m/cos phi)]
+                   (m/atan2 (m// s sk) (m/sqrt (m/+ (m/* c c) (m/* ku1 s s)))))
+     :else (am-agm u k (m/- 1.0 k) tol))))
 
 (defn jsn
   "Jacobi elliptic function sn(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-sn]]."
   ^double [^double u ^double k]
   (cond
-    (m/zero? u) 0.0
+    (or (m/nan? u) (m/nan? k)) ##NaN
+    (m/zero? u) u ;; odd: keeps the sign of zero
+    ;; 1 - ku sin^2 = ku1 + ku cos^2 (no cancellation for ku near 1)
     (m/neg? k) (let [ku1 (m// (m/- 1.0 k))
                      ku (m/* -1.0 k ku1)
                      sqrtku1 (m/sqrt ku1)
-                     s (m/sin (am (m// u sqrtku1) ku))]
+                     phi (am-agm (m// u sqrtku1) ku ku1 m/MACHINE-EPSILON)
+                     s (m/sin phi)
+                     c (m/cos phi)]
                  (m// (m/* s sqrtku1)
-                      (m/sqrt (m/- 1.0 (m/* ku s s)))))
+                      (m/sqrt (m/+ ku1 (m/* ku c c)))))
     (m/> k 1.0) (let [ku (m// k)]
                   (m/* (m/sqrt ku)
-                       (m/sin (am (m/* u (m/sqrt k)) ku))))
+                       (m/sin (am-agm (m/* u (m/sqrt k)) ku (m// (m/dec k) k) m/MACHINE-EPSILON))))
     :else (m/sin (am u k))))
 
 (defn jcn
   "Jacobi elliptic function cn(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-cn]]."
   ^double [^double u ^double k]
   (cond
+    (or (m/nan? u) (m/nan? k)) ##NaN
     (m/zero? u) 1.0
     (m/neg? k) (let [ku1 (m// (m/- 1.0 k))
                      ku (m/* -1.0 k ku1)
                      sqrtku1 (m/sqrt ku1)
-                     phi (am (m// u sqrtku1) ku)
-                     s (m/sin phi)]
-                 (m// (m/cos phi)
-                      (m/sqrt (m/- 1.0 (m/* ku s s)))))
+                     phi (am-agm (m// u sqrtku1) ku ku1 m/MACHINE-EPSILON)
+                     c (m/cos phi)]
+                 (m// c (m/sqrt (m/+ ku1 (m/* ku c c)))))
+    ;; 1 - sin^2/m = cos^2 + (m-1)/m sin^2 (no cancellation next to m = 1)
     (m/> k 1.0) (let [ku (m// k)
-                      phi (am (m/* u (m/sqrt k)) ku)]
-                  (m/sqrt (m/- 1.0 (m/* ku (m/sq (m/sin phi))))))
+                      ku1 (m// (m/dec k) k)
+                      phi (am-agm (m/* u (m/sqrt k)) ku ku1 m/MACHINE-EPSILON)
+                      c (m/cos phi)
+                      s (m/sin phi)]
+                  (m/sqrt (m/+ (m/* c c) (m/* ku1 s s))))
+    (m/one? k) (m// (m/cosh u))
     :else (m/cos (am u k))))
 
 (defn jdn
   "Jacobi elliptic function dn(u|m): the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-dn]]."
   ^double [^double u ^double k]
   (cond
+    (or (m/nan? u) (m/nan? k)) ##NaN
     (m/zero? u) 1.0
     (m/neg? k) (let [ku1 (m// (m/- 1.0 k))
                      ku (m/* -1.0 k ku1)
                      sqrtku1 (m/sqrt ku1)
-                     phi (am (m// u sqrtku1) ku)
-                     s (m/sin phi)]
-                 (m// (m/sqrt (m/- 1.0 (m/* ku s s)))))
-    (m/> k 1.0) (let [ku (m// k)
-                      phi (am (m/* u (m/sqrt k)) ku)]
-                  (m/cos phi))
+                     c (m/cos (am-agm (m// u sqrtku1) ku ku1 m/MACHINE-EPSILON))]
+                 (m// (m/sqrt (m/+ ku1 (m/* ku c c)))))
+    (m/> k 1.0) (m/cos (am-agm (m/* u (m/sqrt k)) (m// k) (m// (m/dec k) k) m/MACHINE-EPSILON))
+    (m/one? k) (m// (m/cosh u))
+    ;; 1 - m sn^2 = cn^2 + (1-m) sn^2: no cancellation next to the minimum sqrt(1-m) of dn (eps/dn^2 otherwise)
+    (m/> k 0.5) (let [phi (am u k)
+                                                 c (m/cos phi)
+                                                 s (m/sin phi)]
+                                             (m/sqrt (m/+ (m/* c c) (m/* (m/- 1.0 k) s s))))
     :else (m/sqrt (m/- 1.0 (m/* k (m/sq (m/sin (am u k))))))))
 
 (defn jsc
@@ -615,6 +712,20 @@
   ^double [^double u ^double k] (m// (jdn u k)))
 
 ;; inverses, https://dlmf.nist.gov/19.25#v
+;;
+;; Branches at negative x (DLMF 22.15): where f takes both signs on [0, 2K] the inverse is on [0, 2K] (af(-x) = 2K - af(x));
+;; an odd f with positive values only on (0, 2K) is extended by oddness; an even f with positive values only has no negative x.
+;; For x^2 overflowing, the Carlson homogeneity Rf(lx,ly,lz) = Rf(x,y,z)/sqrt(l) with l = 1/x^2 keeps the argument finite.
+
+(defn- real-quarter-period
+  "Real quarter period of the Jacobi functions of the parameter `k`: K(k) for `k<=1`, K(1/k)/sqrt(k) for `k>1`."
+  ^double [^double k]
+  (if (m/> k 1.0) (m// (Rf 0.0 (m// (m/dec k) k) 1.0) (m/sqrt k)) (K k))) ;; K(1/k) = Rf(0, (k-1)/k, 1), exact complement
+
+(defn- reflect-half-period
+  "The inverse on the second quarter period, `2K - u`, for the value at `-x` from `u` at `x`."
+  ^double [^double u ^double k]
+  (m/- (m/* 2.0 (real-quarter-period k)) u))
 
 ;; sq
 
@@ -622,13 +733,19 @@
 (defn jasc
   "Inverse of the Jacobi function sc: `u` with sc(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-asc]]."
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)] (m/* x (Rf 1.0 (m/inc (m/* x2 (m/- 1.0 k))) (m/inc x2)))))
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [w (m/sq (m// x))] (m/copy-sign (Rf w (m/+ w (m/- 1.0 k)) (m/+ w 1.0)) x))
+      (m/* x (Rf 1.0 (m/inc (m/* x2 (m/- 1.0 k))) (m/inc x2))))))
 
 ;; cd,nd
 (defn jasd
   "Inverse of the Jacobi function sd: `u` with sd(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-asd]]."
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)] (m/* x (Rf 1.0 (m/inc (m/* x2 (m/dec k))) (m/inc (m/* x2 k))))))
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [w (m/sq (m// x))] (m/copy-sign (Rf w (m/+ w (m/dec k)) (m/+ w k)) x))
+      (m/* x (Rf 1.0 (m/inc (m/* x2 (m/dec k))) (m/inc (m/* x2 k)))))))
 
 ;; cn,dn
 (defn jasn
@@ -636,66 +753,147 @@
   ^double [^double x ^double k]
   (let [x2 (m/* x x)] (m/* x (Rf 1.0 (m/inc (m/- x2)) (m/inc (m/* x2 (m/- k)))))))
 
-;; ps
+;; ps, the value for x >= 0
 
 ;; dc,nc
-(defn jacs
-  "Inverse of the Jacobi function cs: `u` with cs(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-acs]]."
+(defn- jacs-nonneg
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)] (Rf x2 (m/+ x2 (m/- 1.0 k)) (m/inc x2))))
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [w (m/sq (m// x))] (m// (Rf 1.0 (m/inc (m/* w (m/- 1.0 k))) (m/inc w)) (m/abs x)))
+      (Rf x2 (m/+ x2 (m/- 1.0 k)) (m/inc x2)))))
 
 ;; cd,nd
-(defn jads
-  "Inverse of the Jacobi function ds: `u` with ds(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-ads]]."
+(defn- jads-nonneg
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)] (Rf x2 (m/+ x2 (m/dec k)) (m/+ x2 k))))
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [w (m/sq (m// x))] (m// (Rf 1.0 (m/inc (m/* w (m/dec k))) (m/inc (m/* w k))) (m/abs x)))
+      (Rf x2 (m/+ x2 (m/dec k)) (m/+ x2 k)))))
 
 ;; cn,dn
+(defn- jans-nonneg
+  ^double [^double x ^double k]
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [w (m/sq (m// x))] (m// (Rf 1.0 (m/- 1.0 w) (m/- 1.0 (m/* w k))) (m/abs x)))
+      (Rf x2 (m/dec x2) (m/+ x2 (m/- k))))))
+
+(defn jacs
+  "Inverse of the Jacobi function cs: `u` with cs(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). For `m<1` on (0, 2K) (DLMF 22.15.23), odd for `m>=1`. See [[fastmath.special/jacobi-acs]]."
+  ^double [^double x ^double k]
+  (cond
+    (not (m/neg? x)) (jacs-nonneg x k)
+    (m/< k 1.0) (reflect-half-period (jacs-nonneg (m/- x) k) k)
+    :else (m/- (jacs-nonneg (m/- x) k))))
+
+(defn jads
+  "Inverse of the Jacobi function ds: `u` with ds(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). Odd for `m<=1`, on (0, 2K) for `m>1`. See [[fastmath.special/jacobi-ads]]."
+  ^double [^double x ^double k]
+  (cond
+    (not (m/neg? x)) (jads-nonneg x k)
+    (m/> k 1.0) (reflect-half-period (jads-nonneg (m/- x) k) k)
+    :else (m/- (jads-nonneg (m/- x) k))))
+
 (defn jans
-  "Inverse of the Jacobi function ns: `u` with ns(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-ans]]."
+  "Inverse of the Jacobi function ns: `u` with ns(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). Odd. See [[fastmath.special/jacobi-ans]]."
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)] (Rf x2 (m/dec x2) (m/+ x2 (m/- k)))))
+  (if (m/neg? x) (m/- (jans-nonneg (m/- x) k)) (jans-nonneg x k)))
 
-;; pq, 
+;; pq, the value for x >= 0
 
-(defn jacd
-  "Inverse of the Jacobi function cd: `u` with cd(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-acd]]."
+(defn- jacd-nonneg
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)
-        w (m// (m/- 1.0 x2) (m/- 1.0 k))]
-    (m/* (m/sqrt w) (Rf x2 1.0 (m/inc (m/* w k))))))
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [t (m/sq (m// x))
+            w (m// (m/dec t) (m/- 1.0 k))]
+        (m/* (m/sqrt w) (Rf 1.0 t (m/+ t (m/* w k)))))
+      (let [w (m// (m/- 1.0 x2) (m/- 1.0 k))]
+        (m/* (m/sqrt w) (Rf x2 1.0 (m/inc (m/* w k))))))))
 
-(defn jadc
-  "Inverse of the Jacobi function dc: `u` with dc(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-adc]]."
+(defn- jadc-nonneg
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)
-        w (m// (m/- 1.0 x2) (m/dec k))]
-    (m/* (m/sqrt w) (Rf x2 1.0 (m/inc w)))))
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [t (m/sq (m// x))
+            w (m// (m/dec t) (m/dec k))]
+        (m/* (m/sqrt w) (Rf 1.0 t (m/+ t w))))
+      (let [w (m// (m/- 1.0 x2) (m/dec k))]
+        (m/* (m/sqrt w) (Rf x2 1.0 (m/inc w)))))))
 
-(defn jacn
-  "Inverse of the Jacobi function cn: `u` with cn(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-acn]]."
+(defn- jacn-nonneg
   ^double [^double x ^double k]
   (let [x2 (m/* x x)
         w (m/- 1.0 x2)]
-    (m/* (m/sqrt w) (Rf x2 1.0 (m/inc (m/* w (m/- k)))))))
+    ;; 1 - k (1 - x^2) = (1 - k) + k x^2 (no cancellation next to k = 1)
+    (m/* (m/sqrt w) (Rf x2 1.0 (m/+ (m/- 1.0 k) (m/* k x2))))))
 
-(defn janc
-  "Inverse of the Jacobi function nc: `u` with nc(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-anc]]."
+(defn- janc-nonneg
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)
-        w (m/dec x2)]
-    (m/* (m/sqrt w) (Rf x2 1.0 (m/inc (m/* w (m/- 1.0 k)))))))
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [t (m/sq (m// x))
+            w (m/- 1.0 t)]
+        (m/* (m/sqrt w) (Rf 1.0 t (m/+ t (m/* w (m/- 1.0 k))))))
+      (let [w (m/dec x2)]
+        (m/* (m/sqrt w) (Rf x2 1.0 (m/inc (m/* w (m/- 1.0 k)))))))))
 
-(defn jadn
-  "Inverse of the Jacobi function dn: `u` with dn(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-adn]]."
+(defn- jadn-nonneg
   ^double [^double x ^double k]
   (let [x2 (m/* x x)
         w (m// (m/- 1.0 x2) k)]
-    (m/* (m/sqrt w) (Rf x2 1.0 (m/inc (m/- w))))))
+    ;; 1 - (1 - x^2)/k = ((k - 1) + x^2)/k (no cancellation next to k = 1)
+    (m/* (m/sqrt w) (Rf x2 1.0 (m// (m/+ (m/dec k) x2) k)))))
+
+(defn- jand-nonneg
+  ^double [^double x ^double k]
+  (let [x2 (m/* x x)]
+    (if (m/inf? x2)
+      (let [t (m/sq (m// x))
+            w (m// (m/- 1.0 t) k)]
+        (m/* (m/sqrt w) (Rf 1.0 t (m/+ t (m/* w (m/dec k))))))
+      (let [w (m// (m/- 1.0 x2) (m/- k))]
+        (m/* (m/sqrt w) (Rf x2 1.0 (m/inc (m/* w (m/dec k)))))))))
+
+(defn jacd
+  "Inverse of the Jacobi function cd: `u` with cd(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). On [0, 2K]. See [[fastmath.special/jacobi-acd]]."
+  ^double [^double x ^double k]
+  (if (m/neg? x) (reflect-half-period (jacd-nonneg (m/- x) k) k) (jacd-nonneg x k)))
+
+(defn jadc
+  "Inverse of the Jacobi function dc: `u` with dc(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). On [0, 2K]. See [[fastmath.special/jacobi-adc]]."
+  ^double [^double x ^double k]
+  (if (m/neg? x) (reflect-half-period (jadc-nonneg (m/- x) k) k) (jadc-nonneg x k)))
+
+(defn jacn
+  "Inverse of the Jacobi function cn: `u` with cn(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). On [0, 2K] for `m<1` (DLMF 22.15.6); `cn>0` for `m>=1`. See [[fastmath.special/jacobi-acn]]."
+  ^double [^double x ^double k]
+  (cond
+    (not (m/neg? x)) (jacn-nonneg x k)
+    (m/< k 1.0) (reflect-half-period (jacn-nonneg (m/- x) k) k)
+    :else ##NaN))
+
+(defn janc
+  "Inverse of the Jacobi function nc: `u` with nc(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). On [0, 2K] for `m<1`; `nc>0` for `m>=1`. See [[fastmath.special/jacobi-anc]]."
+  ^double [^double x ^double k]
+  (cond
+    (not (m/neg? x)) (janc-nonneg x k)
+    (m/< k 1.0) (reflect-half-period (janc-nonneg (m/- x) k) k)
+    :else ##NaN))
+
+(defn jadn
+  "Inverse of the Jacobi function dn: `u` with dn(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). On [0, 2K] for `m>1`; `dn>0` for `m<=1`. See [[fastmath.special/jacobi-adn]]."
+  ^double [^double x ^double k]
+  (cond
+    (not (m/neg? x)) (jadn-nonneg x k)
+    (m/> k 1.0) (reflect-half-period (jadn-nonneg (m/- x) k) k)
+    :else ##NaN))
 
 (defn jand
-  "Inverse of the Jacobi function nd: `u` with nd(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). See [[fastmath.special/jacobi-and]]."
+  "Inverse of the Jacobi function nd: `u` with nd(u|m)=x; the second argument `k` is the parameter `m=k^2` (not the modulus). On [0, 2K] for `m>1`; `nd>0` for `m<=1`. See [[fastmath.special/jacobi-and]]."
   ^double [^double x ^double k]
-  (let [x2 (m/* x x)
-        w (m// (m/- 1.0 x2) (m/- k))]
-    (m/* (m/sqrt w) (Rf x2 1.0 (m/inc (m/* w (m/dec k)))))))
+  (cond
+    (not (m/neg? x)) (jand-nonneg x k)
+    (m/> k 1.0) (reflect-half-period (jand-nonneg (m/- x) k) k)
+    :else ##NaN))

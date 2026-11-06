@@ -2703,3 +2703,253 @@
     (t/is (check-tricomis-u-complex (@tricomis-u-complex-reference :integer-b) 1.0e-4)))
   (t/testing "vs mpmath, z=0"
     (t/is (check-tricomis-u-complex (@tricomis-u-complex-reference :zero-z) 1.0e-8))))
+
+;; Jacobi and elliptic functions (upstream group 5): am for every m, the inverses on their principal branches (negative
+;; x), NaN and infinite arguments (no exceptions), complete K/E at large negative m, the Jacobi functions next to m = 1.
+;; Reference: utils/fastmath/dev/generate_special_jacobi_elliptic_reference.py (mpmath).
+
+(def ^:private jacobi-elliptic-reference
+  (delay (edn/read-string (slurp (io/resource "special/jacobi_elliptic_reference.edn")))))
+
+(def ^:private jacobi-inverses
+  {"sn" sut/jacobi-asn "cn" sut/jacobi-acn "dn" sut/jacobi-adn "sc" sut/jacobi-asc "sd" sut/jacobi-asd
+   "cs" sut/jacobi-acs "cd" sut/jacobi-acd "ds" sut/jacobi-ads "dc" sut/jacobi-adc "ns" sut/jacobi-ans
+   "nc" sut/jacobi-anc "nd" sut/jacobi-and})
+
+(defn- scaled-error
+  "Absolute error for `|expected|<=1`, relative above (`##Inf` for a NaN)."
+  ^double [^double actual ^double expected]
+  (if (m/nan? actual) ##Inf (m// (m/abs (m/- actual expected)) (m/max 1.0 (m/abs expected)))))
+
+(t/deftest jacobi-am-outside-unit-interval
+  (let [{:keys [u m ref]} (:am @jacobi-elliptic-reference)]
+    (doseq [[u m ref] (map vector u m ref)]
+      (if (m/neg? m)
+        ;; imaginary-modulus transformation, observed 3.3e-16
+        (t/is (<= (relative-error (sut/jacobi-am u m) ref) 1.0e-15) (str u " " m))
+        ;; asin(sn), observed 1.2e-15 (absolute next to the zeros of am)
+        (t/is (<= (scaled-error (sut/jacobi-am u m) ref) 2.0e-15) (str u " " m)))))
+  (t/is (m/delta-eq 3.310515108332372 (sut/jacobi-am 3.0 -0.5)))
+  (t/testing "am is the inverse of F for m < 0, asin(sn) for m > 1"
+    (t/is (m/delta-eq 2.5 (sut/elliptic-F (sut/jacobi-am 2.5 -2.0) -2.0) 1.0e-15))
+    (t/is (m/delta-eq (m/asin (sut/jacobi-sn 2.5 3.0)) (sut/jacobi-am 2.5 3.0) 1.0e-15))))
+
+(t/deftest jacobi-inverses-principal-branches
+  (t/testing "all 12 inverses, both signs of x, m in {-2, -0.5, 0.3, 0.8, 1.5, 3}"
+    (let [{:keys [family x m ref]} (:inverse @jacobi-elliptic-reference)]
+      (doseq [[fm x m ref] (map vector family x m ref)]
+        ;; observed 1.25e-15 (7e-16 at negative x)
+        (t/is (<= (scaled-error ((jacobi-inverses fm) x m) ref) 2.0e-15) (str fm " " x " " m)))))
+  (t/testing "branches at negative x"
+    (t/is (m/delta-eq (m/* 2.0 (sut/elliptic-K 0.5)) (sut/jacobi-acn -1.0 0.5)) "cn on [0, 2K]")
+    (t/is (m/delta-eq (m/- (m/* 2.0 (sut/elliptic-K 0.5)) (sut/jacobi-acs 0.7 0.5)) (sut/jacobi-acs -0.7 0.5)) "cs, DLMF")
+    (t/is (m/== (m/- (sut/jacobi-ans 1.7 0.5)) (sut/jacobi-ans -1.7 0.5)) "ns odd")
+    (t/is (m/== (m/- (sut/jacobi-ads 1.7 0.5)) (sut/jacobi-ads -1.7 0.5)) "ds odd for m <= 1")
+    (t/is (m/== (m/- (sut/jacobi-acs 1.7 1.5)) (sut/jacobi-acs -1.7 1.5)) "cs odd for m > 1")
+    (t/is (m/nan? (sut/jacobi-acn -0.7 1.5)) "cn > 0 for m > 1")
+    (t/is (m/nan? (sut/jacobi-adn -0.9 0.5)) "dn > 0 for m <= 1")
+    (t/is (m/delta-eq -0.7 (sut/jacobi-dn (sut/jacobi-adn -0.7 3.0) 3.0)) "dn on [0, 2K] for m > 1"))
+  (t/testing "no clamping: NaN a rounding error outside the range (U14)"
+    (t/is (m/nan? (sut/jacobi-asn 0.8164965809277261 1.5)))
+    (t/is (m/nan? (sut/jacobi-acn (m/next-double 1.0) 0.5))))
+  (t/testing "infinite and huge x"
+    (t/is (m/delta-eq (sut/elliptic-K 0.5) (sut/jacobi-asc ##Inf 0.5)))
+    (t/is (m/delta-eq (m/- (sut/elliptic-K 0.5)) (sut/jacobi-asc ##-Inf 0.5)))
+    (t/is (m/delta-eq (sut/elliptic-K 0.5) (sut/jacobi-asc 1.0e300 0.5) 0.0 1.0e-15))
+    (t/is (m/delta-eq (sut/elliptic-K 0.5) (sut/jacobi-anc ##Inf 0.5)))
+    (t/is (m/delta-eq (sut/elliptic-K 0.5) (sut/jacobi-adc ##Inf 0.5)))
+    (t/is (m/delta-eq (m/* 2.0 (sut/elliptic-K 0.5)) (sut/jacobi-acs ##-Inf 0.5)))
+    (let [k3 (m// (sut/elliptic-K (m// 3.0)) (m/sqrt 3.0))]
+      (t/is (m/delta-eq k3 (sut/jacobi-asd ##Inf 3.0)))
+      (t/is (m/delta-eq k3 (sut/jacobi-acd ##Inf 3.0)))
+      (t/is (m/delta-eq k3 (sut/jacobi-and 1.0e300 3.0) 0.0 1.0e-15)))
+    (t/is (m/zero? (sut/jacobi-acs ##Inf 0.5)))
+    (t/is (m/zero? (sut/jacobi-ads ##Inf 0.5)))
+    (t/is (m/zero? (sut/jacobi-ans ##Inf 0.5))))
+  (t/testing "next to m = 1: no cancellation in the Rf argument, exact complement in K (mpmath)"
+    ;; observed 1.4e-16, 2.1e-16, 2.7e-16 (were 2.6e-8, 1.3e-8, 2.5e-8)
+    (t/is (<= (relative-error (sut/jacobi-acn 4.388426670293571e-6 0.999999999999) 13.016951541712052) 1.0e-15))
+    (t/is (<= (relative-error (sut/jacobi-acn -2.681837745538246e-6 0.999999999999) 16.91455145773535) 1.0e-15))
+    (t/is (<= (relative-error (sut/jacobi-adn 4.407851056617032e-6 1.000000000001) 13.012643571459865) 1.0e-15))
+    ;; observed 1.8e-16, 0 (were 2.2e-12, 1.5e-12)
+    (t/is (<= (relative-error (sut/jacobi-and -531.530744576609 1.000001) 9.683331225915287) 1.0e-15))
+    (t/is (<= (relative-error (sut/jacobi-adn -0.1277132040006363 1.000001) 13.841099053392831) 1.0e-15)))
+  (t/testing "degenerate parameters: cd, dc constant at m = 1, dn, nd at m = 0"
+    (t/is (m/nan? (sut/jacobi-acd 0.5 1.0)))
+    (t/is (m/nan? (sut/jacobi-adc 2.0 1.0)))
+    (t/is (m/nan? (sut/jacobi-adn 0.5 0.0)))
+    (t/is (m/nan? (sut/jacobi-and 1.5 0.0)))))
+
+(t/deftest jacobi-nan-and-infinite-arguments
+  (t/testing "NaN in, NaN out (no exception), also at u = 0"
+    (doseq [f [sut/jacobi-am sut/jacobi-sn sut/jacobi-cn sut/jacobi-dn sut/jacobi-cd sut/jacobi-ns]
+            [u m] [[0.0 ##NaN] [1.0 ##NaN] [##NaN 0.5] [##NaN ##NaN]]]
+      (t/is (m/nan? (f u m)) (str f " " u " " m)))
+    (doseq [f (vals jacobi-inverses) [x m] [[0.5 ##NaN] [##NaN 0.5] [-0.5 ##NaN]]]
+      (t/is (m/nan? (f x m)) (str f " " x " " m))))
+  (t/testing "m = -Inf: no limit at u != 0"
+    (t/is (m/nan? (sut/jacobi-sn 1.0 ##-Inf)))
+    (t/is (m/nan? (sut/jacobi-cn 1.0 ##-Inf)))
+    (t/is (m/nan? (sut/jacobi-dn 1.0 ##-Inf))))
+  (t/testing "am at u = +-Inf"
+    (t/is (m/pos-inf? (sut/jacobi-am ##Inf 0.5)))
+    (t/is (m/neg-inf? (sut/jacobi-am ##-Inf -2.0)))
+    (t/is (m/== m/HALF_PI (sut/jacobi-am ##Inf 1.0)))
+    (t/is (m/== (m/- m/HALF_PI) (sut/jacobi-am ##-Inf 1.0)))
+    (t/is (m/nan? (sut/jacobi-am ##Inf 1.5)))
+    (t/is (m/nan? (sut/jacobi-am ##-Inf 1.5)))
+    (t/is (m/== m/HALF_PI (sut/jacobi-am 1.0e300 1.0)) "Gudermannian, no cosh overflow"))
+  (t/testing "odd functions keep the sign of zero"
+    (doseq [m [0.5 -2.0 3.0 1.0]]
+      (t/is (same-double? -0.0 (sut/jacobi-am -0.0 m)) (str "am " m))
+      (t/is (same-double? -0.0 (sut/jacobi-sn -0.0 m)) (str "sn " m))
+      (t/is (same-double? -0.0 (sut/jacobi-sc -0.0 m)) (str "sc " m)))
+    (t/is (same-double? -0.0 (sut/elliptic-D -0.0 0.5)))
+    (t/is (m/neg-inf? (sut/jacobi-cs -0.0 1.0)))))
+
+(t/deftest jacobi-next-to-one
+  (let [{:keys [u m sn cn dn am]} (:near-one @jacobi-elliptic-reference)]
+    (doseq [[u m sn cn dn am] (map vector u m sn cn dn am)]
+      ;; the AGM (the first-order branch is gone), observed 1.6e-15 (sn), 4.1e-15 (am)
+      (t/is (<= (relative-error (sut/jacobi-sn u m) sn) 2.0e-15) (str "sn " u " " m))
+      (t/is (<= (relative-error (sut/jacobi-am u m) am) 5.0e-15) (str "am " u " " m))
+      ;; cn = cos(am) near its zeros: absolute, observed 7.4e-15
+      (t/is (m/delta-eq cn (sut/jacobi-cn u m) 1.0e-14 0.0) (str "cn " u " " m))
+      (t/is (m/delta-eq dn (sut/jacobi-dn u m) 1.0e-14 0.0) (str "dn " u " " m))
+      (when (m/one? m)
+        ;; sech u, observed 1.4e-16
+        (t/is (<= (relative-error (sut/jacobi-cn u m) cn) 1.0e-15) (str "cn " u))
+        (t/is (<= (relative-error (sut/jacobi-dn u m) dn) 1.0e-15) (str "dn " u)))))
+  (t/is (<= (relative-error (sut/jacobi-cn 20.0 1.0) 4.122307244877116e-9) 1.0e-15))
+  (t/testing "just above m = 1: the exact complement (m-1)/m (mpmath)"
+    ;; observed 1.1e-15, 3.2e-15, 6.3e-16 (were 2.6e-10, 6.2e-10, 2.1e-11)
+    (t/is (<= (relative-error (sut/jacobi-sn 50.0 1.000001) -0.23144252452264552) 2.0e-15))
+    (t/is (<= (relative-error (sut/jacobi-am 20.0 1.00000001) 0.981964598829344) 5.0e-15))
+    ;; at the peak of am (sn next to 1/sqrt(m)): atan2(sn, cn), observed 0 (asin(sn) 4.8e-13)
+    (t/is (<= (relative-error (sut/jacobi-am 10.0 1.00000001) 1.570677993855153) 1.0e-15))
+    (t/is (<= (relative-error (sut/jacobi-dn 20.0 1.000001) -0.06588118665943035) 2.0e-15))
+    ;; cn near its minimum sqrt(1-1/m): absolute, observed 1.4e-17 (was 4.8e-13)
+    (t/is (m/delta-eq 1.1833293946756709e-4 (sut/jacobi-cn 10.0 1.00000001) 1.0e-16)))
+  (t/testing "dn near its minimum sqrt(1-m) below 1 - sqrt(eps): no cancellation (mpmath)"
+    ;; absolute, observed 2.0e-17 and 3.5e-16 (were 4.0e-14 and 1.1e-14)
+    (t/is (m/delta-eq 3.661306371788353e-4 (sut/jacobi-dn 10.0 0.9999999) 1.0e-16))
+    (t/is (m/delta-eq 0.0025414628143573367 (sut/jacobi-dn 50.0 0.9999999) 1.0e-15))))
+
+(t/deftest jacobi-large-negative-parameter
+  (let [{:keys [u m sn cn dn]} (:negative-m @jacobi-elliptic-reference)]
+    (doseq [[u m sn cn dn] (map vector u m sn cn dn)
+            [nm f ref] [["sn" sut/jacobi-sn sn] ["cn" sut/jacobi-cn cn] ["dn" sut/jacobi-dn dn]]
+            :let [v (f u m)]]
+      (cond
+        ;; the exact complement 1/(1-m), observed 2.0e-14
+        (m/== m -1.0e3) (t/is (<= (relative-error v ref) 3.0e-14) (str nm " " u " " m))
+        ;; the phase u sqrt(-m) = 3e5 loses digits, observed 3.7e-9
+        (m/== m -1.0e10) (t/is (<= (relative-error v ref) 5.0e-9) (str nm " " u " " m))
+        ;; no digits left (documented): finite and in the range
+        :else (t/is (if (= nm "dn") (m/>= v 1.0) (m/<= (m/abs v) 1.0)) (str nm " " u " " m)))))
+  (t/testing "at the quarter period: sn = 1, dn = sqrt(1-m) (1 - m sn^2 written without cancellation)"
+    (doseq [m [-1.0e3 -1.0e6 -1.0e10 -1.0e14]
+            :let [k (sut/elliptic-K m)]]
+      ;; observed 1.1e-16
+      (t/is (m/delta-eq 1.0 (sut/jacobi-sn k m) 1.0e-15) (str "sn " m))
+      (t/is (<= (relative-error (sut/jacobi-dn k m) (m/sqrt (m/- 1.0 m))) 1.0e-15) (str "dn " m)))))
+
+(t/deftest elliptic-complete-negative-parameter
+  (let [{:keys [m K E D PI]} (:complete @jacobi-elliptic-reference)]
+    (doseq [[m k e d p] (map vector m K E D PI)]
+      ;; the exact complement 1/(1-m), observed 1.6e-15
+      (t/is (<= (relative-error (sut/elliptic-K m) k) 2.0e-15) (str "K " m))
+      (t/is (<= (relative-error (sut/elliptic-E m) e) 2.0e-15) (str "E " m))
+      (t/is (<= (relative-error (sut/elliptic-D m) d) 2.0e-15) (str "D " m))
+      (t/is (<= (relative-error (sut/elliptic-PI 0.5 m) p) 2.0e-15) (str "PI " m))))
+  (t/testing "through the complete integrals (mpmath)"
+    (t/is (<= (relative-error (sut/elliptic-F 1.0e300 -1.0e300) 2.2076322206443893e152) 1.0e-14))
+    (t/is (<= (relative-error (sut/elliptic-E 2.0 -1.0e300) 1.4161468365471425e150) 1.0e-14))))
+
+(t/deftest elliptic-integrals-edges
+  (t/testing "infinite amplitude and parameter"
+    (t/is (m/pos-inf? (sut/elliptic-F ##Inf 0.5)))
+    (t/is (m/neg-inf? (sut/elliptic-F ##-Inf -0.5)))
+    (t/is (m/pos-inf? (sut/elliptic-F ##Inf 1.0)))
+    (t/is (m/nan? (sut/elliptic-F ##Inf 1.5)))
+    (t/is (m/zero? (sut/elliptic-F 1.0 ##-Inf)))
+    (t/is (m/zero? (sut/elliptic-F 0.0 ##-Inf)))
+    (t/is (m/pos-inf? (sut/elliptic-E ##Inf 0.5)))
+    (t/is (m/neg-inf? (sut/elliptic-E ##-Inf 1.0)))
+    (t/is (m/pos-inf? (sut/elliptic-E 1.0 ##-Inf)))
+    (t/is (m/pos-inf? (sut/elliptic-D ##Inf 0.5)))
+    (t/is (m/zero? (sut/elliptic-D 1.0 ##-Inf)))
+    (t/is (m/zero? (sut/elliptic-D ##-Inf)))
+    (t/is (m/zero? (sut/elliptic-PI ##-Inf 0.5)))
+    (t/is (m/zero? (sut/elliptic-PI ##-Inf 1.0 0.5)))
+    (t/is (m/pos-inf? (sut/elliptic-PI 0.5 ##Inf 0.5)))
+    (t/is (m/neg-inf? (sut/elliptic-PI -2.0 ##-Inf 1.0)))
+    (t/is (m/nan? (sut/elliptic-PI 0.5 ##Inf 1.5))))
+  (t/testing "m = 1 at the amplitude pi/2"
+    (t/is (m/== 1.0 (sut/elliptic-E m/HALF_PI 1.0)))
+    (t/is (m/== -1.0 (sut/elliptic-E (m/- m/HALF_PI) 1.0)))
+    (t/is (m/pos-inf? (sut/elliptic-D m/HALF_PI 1.0))))
+  (t/testing "NaN in, NaN out; complex E for m > 1 beyond the real range"
+    (t/is (m/nan? (sut/elliptic-F ##NaN 0.5)))
+    (t/is (m/nan? (sut/elliptic-E 1.0 ##NaN)))
+    (t/is (m/nan? (sut/elliptic-PI ##NaN 1.0 0.5)))
+    (t/is (m/nan? (sut/elliptic-E -2.0 1.5)))))
+
+(t/deftest carlson-nan-and-infinite-arguments
+  (t/testing "NaN in any argument"
+    (doseq [[x y z] [[##NaN 1.0 2.0] [1.0 ##NaN 2.0] [1.0 2.0 ##NaN]]]
+      (t/is (m/nan? (sut/elliptic-Rf x y z)))
+      (t/is (m/nan? (sut/elliptic-Rd x y z)))
+      (t/is (m/nan? (sut/elliptic-Rg x y z)))
+      (t/is (m/nan? (sut/elliptic-Rj x y z 1.0))))
+    (t/is (m/nan? (sut/elliptic-Rj 1.0 2.0 3.0 ##NaN)))
+    (t/is (m/nan? (sut/elliptic-Rc ##NaN 1.0)))
+    (t/is (m/nan? (sut/elliptic-Rc 1.0 ##NaN)))
+    (t/is (m/nan? (sut/elliptic-Rc ##NaN 0.0))))
+  (t/testing "negative arguments"
+    (t/is (m/nan? (sut/elliptic-Rd -1.0 1.0 1.0)))
+    (t/is (m/nan? (sut/elliptic-Rg -1.0 1.0 2.0))))
+  (t/testing "infinite arguments: the limits"
+    (t/is (m/zero? (sut/elliptic-Rf 0.0 1.0 ##Inf)))
+    (t/is (m/zero? (sut/elliptic-Rf ##Inf 1.0 2.0)))
+    (t/is (m/pos-inf? (sut/elliptic-Rf ##Inf 0.0 0.0)))
+    (t/is (m/zero? (sut/elliptic-Rc 1.0 ##Inf)))
+    (t/is (m/zero? (sut/elliptic-Rc ##Inf 1.0)))
+    (t/is (m/zero? (sut/elliptic-Rd 1.0 2.0 ##Inf)))
+    (t/is (m/zero? (sut/elliptic-Rd ##Inf 1.0 2.0)))
+    (t/is (m/zero? (sut/elliptic-Rj 1.0 2.0 3.0 ##Inf)))
+    (t/is (m/zero? (sut/elliptic-Rj ##Inf 2.0 3.0 1.0)))
+    (t/is (m/pos-inf? (sut/elliptic-Rg 1.0 2.0 ##Inf))))
+  (t/testing "two zero arguments diverge"
+    (t/is (m/pos-inf? (sut/elliptic-Rf 0.0 1.0 0.0)))
+    (t/is (m/pos-inf? (sut/elliptic-Rd 1.0 2.0 0.0)))
+    (t/is (m/pos-inf? (sut/elliptic-Rd 1.0 0.0 0.0))))
+  (t/testing "Rg with a zero z: the symmetry (was NaN)"
+    (t/is (m/delta-eq (sut/elliptic-Rg 0.0 1.0 2.0) (sut/elliptic-Rg 1.0 2.0 0.0) 1.0e-15))
+    (t/is (m/delta-eq (m/* m/QUARTER_PI (m/sqrt 3.0)) (sut/elliptic-Rg 3.0 3.0 0.0) 1.0e-15))
+    (t/is (m/delta-eq 0.5 (sut/elliptic-Rg 1.0 0.0 0.0) 1.0e-15)))
+  (t/testing "Rj principal value (p < 0) with y not the median: no endless recursion (mpmath, real part)"
+    (t/is (<= (relative-error (sut/elliptic-Rj 3.0 1.0 2.0 -0.7) 0.043285627512328378) 1.0e-14))
+    (t/is (<= (relative-error (sut/elliptic-Rj 1.0 0.0 2.0 -0.7) -1.8727591467500228) 1.0e-14))
+    (t/is (m/zero? (sut/elliptic-Rc 0.0 -2.0)) "Rc(0, y < 0) = 0"))
+  (t/testing "Rj without overflow of the iteration (mpmath)"
+    (t/is (<= (relative-error (sut/elliptic-Rj 1.0e200 1.0e150 1.0 0.7) 3.369161975679309e-175) 1.0e-15))
+    (t/is (<= (relative-error (sut/elliptic-Rj 1.0e-300 0.5 1.0e150 -0.7) -3.2902361442230e-75) 1.0e-13))
+    (t/is (<= (relative-error (sut/elliptic-Rj 1.0e200 1.0e150 1.0e150 -0.7) 5.186166583395684e-248) 1.0e-15)
+          "x*z overflows in the principal value (mpmath, 300 digits)"))
+  (t/testing "Rg without overflow of x*y (mpmath)"
+    (t/is (<= (relative-error (sut/elliptic-Rg 1.0e300 1.0e300 1.0) 7.8539816339744835e149) 1.0e-15))
+    (t/is (<= (relative-error (sut/elliptic-Rg 1.0e-10 1.0e300 1.0e200) 5.0000000000000001e149) 1.0e-15))
+    (t/is (<= (relative-error (sut/elliptic-Rg 1.0e200 1.0e100 1.0e-200) 4.9999999999999999e99) 1.0e-15) "x*y/z overflows"))
+  (t/testing "tiny arguments: rescaled, the products no longer underflow"
+    ;; homogeneity: 1e-80 Rg(0, 2.6177..., 78.9789...), also mpmath; observed 3.2e-16 (was 1.7e-6)
+    (t/is (<= (relative-error (sut/elliptic-Rg 0.0 2.617761836257941e-160 7.897894363052276e-159) 4.636085731671906e-80) 1.0e-15))
+    ;; principal values with tiny x, y, z (were +-Inf): -3 Rf(x,y,z)/(y-p) dominates (mpmath Rf, 60 digits; mpmath's elliprj
+    ;; itself is off by 2.4e-4 there), the other two mpmath elliprj at 60 digits
+    (t/is (<= (relative-error (sut/elliptic-Rj 0.0 2.9948376608342252e-145 9.130370143563188e-142 -24.788067170453335) -2.1620139451095599e70) 1.0e-15))
+    (t/is (<= (relative-error (sut/elliptic-Rj 1.5081819565369786e-144 9.448641829382154e-157 1.2553133110808357e-65 -0.039872461438677696) -1.958947154001953e36) 1.0e-15))
+    (t/is (<= (relative-error (sut/elliptic-Rj 9.644600228042035e-65 3.162315724330361e-194 3.850311230317295e-182 -0.03495814948614609) -1.1931958475454592e36) 1.0e-15)))
+  (t/testing "Rg with z not the median: no cancellation (mpmath)"
+    (t/is (<= (relative-error (sut/elliptic-Rg 1.0e100 1.0e150 3.0) 5.0e74) 1.0e-15) "was -4.7e108")
+    (t/is (<= (relative-error (sut/elliptic-Rg 1.0e100 1.0e150 1.0e-10) 5.0e74) 1.0e-15) "was 0")
+    (t/is (<= (relative-error (sut/elliptic-Rg 1.0 2.0 3.0) 1.4018470999908951) 1.0e-15))))

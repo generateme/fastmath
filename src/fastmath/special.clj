@@ -4488,9 +4488,9 @@
   - `phi` (double): the amplitude; any real, quasi-periodic: $F(\\phi+k\\pi|m)=F(\\phi|m)+2kK(m)$.
   - `m` (double): the parameter, `m<=1`.
 
-  Returns `Inf` for `phi=π/2` and `m=1`. The inverse in `phi` is [[jacobi-am]].
+  Returns `Inf` for `phi=π/2` and `m=1`; `±Inf` for `phi=±Inf` (`m<=1`); `0.0` for `m=-Inf` (finite `phi`). The inverse in `phi` is [[jacobi-am]].
 
-  Accuracy: relative error about 1e-15.
+  Accuracy: relative error about 1e-15, up to 2e-14 next to `m=1`.
 
   See also [[elliptic-K]], [[elliptic-E]], [[jacobi-am]]."
   ^double [^double phi ^double m] (ellip/K phi m))
@@ -4503,9 +4503,9 @@
   - `phi` (double, optional): the amplitude; omitted for the complete integral $E(m)=E(\\pi/2|m)$. Any real: the incomplete integral is quasi-periodic, $E(\\phi+k\\pi|m)=E(\\phi|m)+2kE(m)$.
   - `m` (double): the parameter, `m<=1` (`NaN` for `m>1`, where the value is complex).
 
-  Returns `E(1)=1`.
+  Returns `E(1)=1` and `E(±π/2|1)=±1`; `±Inf` for `phi=±Inf` (`m<=1`) and for `m=-Inf` (`phi` not zero); accurate for large negative `m` (the complement `1/(1-m)` is carried exactly).
 
-  Accuracy: relative error about 2e-15.
+  Accuracy: relative error about 2e-15, up to 6e-15 next to `m=1`.
 
   See also [[elliptic-K]], [[elliptic-F]], [[elliptic-D]]."
   (^double [^double m] (ellip/E m))
@@ -4520,7 +4520,7 @@
   - `phi` (double, optional): the amplitude; omitted for the complete integral $\\Pi(n|m)=\\Pi(n;\\pi/2|m)$. Any real, quasi-periodic: $\\Pi(n;\\phi+k\\pi|m)=\\Pi(n;\\phi|m)+2k\\Pi(n|m)$.
   - `m` (double): the parameter, `m<=1`.
 
-  Returns `Inf` for the complete integral at `m=1`; `##NaN` for `n=1` (a pole, the one-sided limits differ), for `n>1` (a principal value, not supported) and for `m>1`.
+  Returns `Inf` for the complete integral at `m=1`; `0.0` for `n=-Inf`; `±Inf` for `phi=±Inf` (`n<1`, `m<=1`); `##NaN` for `n=1` (a pole, the one-sided limits differ), for `n>1` (a principal value, not supported) and for `m>1`. For large negative `n` the result cancels: relative error about `sqrt(-n)` times 1e-16 (1e-11 at `n=-1e10`), more next to `m=1` (3e-12 at `n=-1.8e5`, `m=1-1.5e-11`).
 
   Accuracy: relative error about 1e-15.
 
@@ -4552,7 +4552,7 @@
   - `phi` (double, optional): the amplitude; omitted for the complete integral (`phi=π/2`). Any real, quasi-periodic as [[elliptic-F]] and [[elliptic-E]].
   - `m` (double): the parameter, `m<=1`.
 
-  Returns `π/4` at `m=0` for the complete integral (the removable singularity of the quotient); `Inf` at `m=1` for the complete integral; `NaN` for `m>1`. A power series in `m` is used for `|m|<0.5`, where the quotient cancels.
+  Returns `π/4` at `m=0` for the complete integral (the removable singularity of the quotient); `Inf` at `m=1` for the complete integral; `0.0` for `m=-Inf`; `±Inf` for `phi=±Inf` (`m<=1`); `NaN` for `m>1`. A power series in `m` is used for `|m|<0.5`, where the quotient cancels.
 
   Accuracy: relative error about 1e-14.
 
@@ -4560,11 +4560,15 @@
   (^double [^double m]
    (cond
      (m/> m 1.0) ##NaN
+     (m/neg-inf? m) 0.0
      (m/< (m/abs m) 0.5) (elliptic-D-series m/HALF_PI m)
      :else (m// (m/- (ellip/K m) (ellip/E m)) m)))
   (^double [^double phi ^double m]
    (cond
      (m/> m 1.0) ##NaN
+     (m/zero? phi) phi ;; odd: keeps the sign of zero
+     (m/inf? phi) (if (and (m/<= m 1.0) (m/> m ##-Inf)) phi ##NaN)
+     (m/neg-inf? m) (m/* 0.0 phi)
      (m/> (m/abs phi) m/HALF_PI) (let [k (m/floor (m// (m/+ phi m/HALF_PI) m/PI))]
                                     (m/+ (elliptic-D (m/- phi (m/* k m/PI)) m)
                                          (m/* 2.0 k (elliptic-D m))))
@@ -4578,7 +4582,7 @@
 
   - `x`, `y`, `z` (double): non-negative, at most one of them zero.
 
-  Returns `Inf` when two of the arguments are zero; `##NaN` for negative arguments. Symmetric in all arguments, $R_F(x,x,x)=1/\\sqrt x$.
+  Returns `Inf` when two of the arguments are zero; `0.0` for an infinite argument (otherwise); `##NaN` for negative or `NaN` arguments. Symmetric in all arguments, $R_F(x,x,x)=1/\\sqrt x$.
 
   Accuracy: relative error about 3e-16.
 
@@ -4593,7 +4597,7 @@
 
   - `x`, `y`, `z` (double): non-negative, `x` and `y` not both zero, `z>0`.
 
-  Returns `Inf` for `z=0`; `##NaN` for negative arguments.
+  Returns `Inf` for `z=0` and for `x=y=0`; `0.0` for an infinite argument (otherwise); `##NaN` for negative or `NaN` arguments.
 
   Accuracy: relative error about 2e-16.
 
@@ -4608,9 +4612,9 @@
 
   - `x`, `y`, `z` (double): non-negative.
 
-  Returns `0.0` for `x=y=z=0`. Symmetric in all arguments.
+  Returns `0.0` for `x=y=z=0`, `Inf` for an infinite argument; `##NaN` for negative or `NaN` arguments. Symmetric in all arguments.
 
-  Accuracy: relative error about 6e-15.
+  Accuracy: relative error about 6e-16.
 
   See also [[elliptic-Rf]], [[elliptic-Rd]], [[elliptic-E]]."
   ^double [^double x ^double y ^double z]
@@ -4624,7 +4628,7 @@
   - `x`, `y`, `z` (double): non-negative, at most one of them zero.
   - `p` (double): `p!=0`; for `p<0` the Cauchy principal value.
 
-  Returns `Inf` for `p=0`. Symmetric in `x`, `y`, `z`.
+  Returns `Inf` for `p=0`; `0.0` for an infinite argument; `##NaN` for negative `x`, `y`, `z` or a `NaN` argument. Symmetric in `x`, `y`, `z`. Huge arguments are rescaled by homogeneity. For `p<0` the principal value can be ill-conditioned when a zero argument meets widely spread ones (the leading terms cancel).
 
   Accuracy: relative error about 4e-16.
 
@@ -4640,7 +4644,7 @@
   - `x` (double): `x>=0`.
   - `y` (double): `y!=0`; for `y<0` the Cauchy principal value.
 
-  Returns `Inf` for `y=0` (the integral diverges) and for `x=y=0`; `##NaN` for `x<0`. Elementary: $R_C(x,x)=1/\\sqrt x$.
+  Returns `Inf` for `y=0` (the integral diverges) and for `x=y=0`; `0.0` for an infinite argument and for `x=0`, `y<0`; `##NaN` for `x<0` or a `NaN` argument. Elementary: $R_C(x,x)=1/\\sqrt x$.
 
   Accuracy: relative error about 2e-16.
 
@@ -4656,11 +4660,13 @@
   Parameters:
 
   - `u` (double): the argument.
-  - `m` (double): the parameter ($m=k^2$).
+  - `m` (double): the parameter ($m=k^2$), any real.
 
-  Returns an increasing function of `u` with $\\operatorname{am}(u+2K(m))=\\operatorname{am}(u)+\\pi$.
+  For `m<=1` returns an increasing function of `u` with $\\operatorname{am}(u+2K(m))=\\operatorname{am}(u)+\\pi$ (the imaginary-modulus transformation for `m<0`), `am(u|1)` is the Gudermannian function. For `m>1` returns `asin(sn(u|m))`: bounded by `asin(1/sqrt(m))` and periodic (the convention of `mpmath`, `atan2(sn, cn)` with `cn>0`).
 
-  Accuracy: relative error about 1e-16 for $|u|\\le50$.
+  Returns `±Inf` for `u=±Inf` and `m<1`, `±π/2` for `m=1`, `NaN` for `m>1` (no limit) and for a `NaN` argument.
+
+  Accuracy: relative error about 1e-16 for $|u|\\le50$, up to 4e-15 next to `m=1`; about 1e-13 near the zeros of `am` for `m>1`.
 
   See also [[elliptic-F]], [[jacobi-sn]]."
   ^double [^double u ^double m]
@@ -4678,7 +4684,7 @@
 
   Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
 
-  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period. For large negative `m` it grows with the phase `u*sqrt(-m)` (4e-9 at `m=-1e10`, `u=3`; no digits left beyond about `m=-1e17`, `u=3`). Next to `m=1` the absolute error near the zeros of `cn` is up to about 1e-14 (also the absolute error of `dn` near its minimum `sqrt(1-m)` for `m<1` and of `cn` near its minimum `sqrt(1-1/m)` for `m>1`).
 
   See also [[jacobi-am]], [[elliptic-K]]."
   ^double [^double u ^double m] (ellip/jsn u m))
@@ -4692,7 +4698,7 @@
 
   Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
 
-  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period. For large negative `m` it grows with the phase `u*sqrt(-m)` (4e-9 at `m=-1e10`, `u=3`; no digits left beyond about `m=-1e17`, `u=3`). Next to `m=1` the absolute error near the zeros of `cn` is up to about 1e-14 (also the absolute error of `dn` near its minimum `sqrt(1-m)` for `m<1` and of `cn` near its minimum `sqrt(1-1/m)` for `m>1`).
 
   See also [[jacobi-am]], [[elliptic-K]]."
   ^double [^double u ^double m] (ellip/jcn u m))
@@ -4706,7 +4712,7 @@
 
   Periodic (and quasi-periodic for the quotients) in `u` with the period $4K(m)$.
 
-  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period.
+  Accuracy: relative error below 5e-14 for $|u|\\le50$; the error grows with `|u|` because the argument is reduced modulo the period. For large negative `m` it grows with the phase `u*sqrt(-m)` (4e-9 at `m=-1e10`, `u=3`; no digits left beyond about `m=-1e17`, `u=3`). Next to `m=1` the absolute error near the zeros of `cn` is up to about 1e-14 (also the absolute error of `dn` near its minimum `sqrt(1-m)` for `m<1` and of `cn` near its minimum `sqrt(1-1/m)` for `m>1`).
 
   See also [[jacobi-am]], [[elliptic-K]]."
   ^double [^double u ^double m] (ellip/jdn u m))
@@ -4844,10 +4850,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `sn` for the parameter `m`: $-1\\le x\\le1$ (|x|>1 gives `NaN`).
+  - `x` (double): the value, in the range of `sn`: `|x|<=1` for `m<=1`, `|x|<=1/sqrt(m)` for `m>1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-asn (jacobi-sn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `[-K, K]` (odd in `x`). `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-asn (jacobi-sn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-sn]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jasn x m))
@@ -4856,10 +4862,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `cn` for the parameter `m`: $-1\\le x\\le1$.
+  - `x` (double): the value, in the range of `cn`: `-1<=x<=1` for `m<1`, `sqrt(1-1/m)<=x<=1` for `m>1`, `0<x<=1` for `m=1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-acn (jacobi-cn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `[0, 2K]` for `m<1` (DLMF 22.15.6), in `[0, K]` for `m>=1`. `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-acn (jacobi-cn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-cn]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jacn x m))
@@ -4868,10 +4874,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `dn` for the parameter `m`: $\\sqrt{1-m}\\le x\\le1$.
+  - `x` (double): the value, in the range of `dn`: `sqrt(1-m)<=x<=1` for `0<=m<=1`, `1<=x<=sqrt(1-m)` for `m<0`, `-1<=x<=1` for `m>1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-adn (jacobi-dn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `[0, K]` for `m<=1`, in `[0, 2K]` for `m>1`. `NaN` at `m=0` (`dn` is constant). `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-adn (jacobi-dn u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-dn]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jadn x m))
@@ -4880,10 +4886,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `sc` for the parameter `m`: any real.
+  - `x` (double): the value, any real for `m<=1`; `|x|<=1/sqrt(m-1)` for `m>1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-asc (jacobi-sc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `(-K, K)` (odd in `x`); `±K(m)` for `x=±Inf`. `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-asc (jacobi-sc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-sc]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jasc x m))
@@ -4892,10 +4898,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `sd` for the parameter `m`: any real.
+  - `x` (double): the value, in the range of `sd`: `|x|<=1/sqrt(1-m)` for `m<1`, any real for `m>=1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-asd (jacobi-sd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `[-K, K]` (odd in `x`). `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-asd (jacobi-sd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-sd]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jasd x m))
@@ -4904,10 +4910,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `cs` for the parameter `m`: any real.
+  - `x` (double): the value, any real for `m<1`; `|x|>=sqrt(m-1)` for `m>=1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-acs (jacobi-cs u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `(0, 2K)` for `m<1` (DLMF 22.15.23, `acs(-x)=2K-acs(x)`); odd in `x` with `u` in `(0, K]` for `x>0` when `m>=1`. `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-acs (jacobi-cs u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-cs]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jacs x m))
@@ -4916,10 +4922,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `cd` for the parameter `m`: $-1\\le x\\le1$.
+  - `x` (double): the value, `-1<=x<=1` for `m<1`, any real for `m>1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-acd (jacobi-cd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `[0, 2K]`. `NaN` at `m=1` (`cd` is constant). `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-acd (jacobi-cd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-cd]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jacd x m))
@@ -4928,10 +4934,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `ds` for the parameter `m`: $|x|\\ge\\sqrt{1-m}$.
+  - `x` (double): the value, `|x|>=sqrt(1-m)` for `m<=1`, any real for `m>1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-ads (jacobi-ds u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` odd in `x` with `u` in `(0, K]` for `x>0` when `m<=1`; in `(0, 2K)` for `m>1`. `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-ads (jacobi-ds u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-ds]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jads x m))
@@ -4940,10 +4946,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `dc` for the parameter `m`: $x\\ge1$.
+  - `x` (double): the value, `|x|>=1` for `m<1`, `-1<=x<=1` for `m>1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-adc (jacobi-dc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `[0, 2K]`. `NaN` at `m=1` (`dc` is constant). `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-adc (jacobi-dc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-dc]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jadc x m))
@@ -4952,10 +4958,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `ns` for the parameter `m`: $|x|\\ge1$.
+  - `x` (double): the value, `|x|>=1` for `m<=1`, `|x|>=sqrt(m)` for `m>1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-ans (jacobi-ns u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` odd in `x` with `u` in `(0, K]` for `x>0`. `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-ans (jacobi-ns u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-ns]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jans x m))
@@ -4964,10 +4970,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `nc` for the parameter `m`: $x\\ge1$.
+  - `x` (double): the value, `|x|>=1` for `m<1`, `1<=x<=1/sqrt(1-1/m)` for `m>1`, `x>=1` for `m=1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-anc (jacobi-nc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `[0, 2K]` for `m<1`, in `[0, K]` for `m>=1`. `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-anc (jacobi-nc u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-nc]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/janc x m))
@@ -4976,10 +4982,10 @@
 
   Parameters:
 
-  - `x` (double): the value, in the range of `nd` for the parameter `m`: $1\\le x\\le1/\\sqrt{1-m}$.
+  - `x` (double): the value, `1<=x<=1/sqrt(1-m)` for `0<=m<1`, `1/sqrt(1-m)<=x<=1` for `m<0`, `|x|>=1` for `m>1`.
   - `m` (double): the parameter ($m=k^2$).
 
-  Returns the value of `u` in the principal range, `##NaN` for `x` outside the range of the function. Round trip: `(jacobi-and (jacobi-nd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
+  Returns `u` in `[0, K]` for `m<=1`, in `[0, 2K]` for `m>1`. `NaN` at `m=0` (`nd` is constant). `K` is the real quarter period, `K(1/m)/sqrt(m)` for `m>1`. `NaN` for `x` outside the range, also by a rounding error at its ends (no clamping), and for a `NaN` argument. Round trip: `(jacobi-and (jacobi-nd u m) m) = u` for `u` in the first quarter period `[0, K(m)]`.
 
   See also [[jacobi-nd]], [[jacobi-am]]."
   ^double [^double x ^double m] (ellip/jand x m))
