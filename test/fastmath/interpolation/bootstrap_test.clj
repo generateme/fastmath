@@ -74,6 +74,7 @@
     (t/is (= :samples (property #(sut/bootstrap line xs ys {:samples 0}))))
     (t/is (= :samples (property #(sut/bootstrap line xs ys {:samples 2.5}))))
     (t/is (= :ci (property #(sut/bootstrap line xs ys {:ci :bca}))))
+    (t/is (= :fit-fn (property #(sut/bootstrap (fn [_ _] 42) xs ys {:samples 2}))))
     (t/is (= :length-mismatch (property #(sut/bootstrap line xs (rest ys)))))
     (let [b (sut/bootstrap line xs ys {:samples 2})]
       (t/is (= :level (property #(b 1.0 0.0))))

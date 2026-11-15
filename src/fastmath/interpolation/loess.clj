@@ -26,7 +26,7 @@
         u (m/- 1.0 d3)]
     (m/* u u u)))
 
-(defrecord LocalFits [^doubles fit ^doubles hat-diag ^doubles hat-sq ^doubles hat-var])
+(defrecord ^:no-doc LocalFits [^doubles fit ^doubles hat-diag ^doubles hat-sq ^doubles hat-var])
 
 (defn- fit-pass
   "One pass of local linear regressions at every node. `w` are the weights of the observations (user weights
@@ -38,16 +38,17 @@
   weights are positive the observation itself is kept.
 
   The fit at node `i` is `sum_j L[i,j] * y_j`, `L` - the hat matrix of the pass. Returns `LocalFits`: `:fit` - the
-  fitted values and, per node `i`, `:hat-diag` - `L[i,i]`, `:hat-sq` - `sum_j L[i,j]^2` and `:hat-var` -
-  `sum_j L[i,j]^2 / uw_j` (`uw` - the user weights, `nil` for equal weights; a zero weight has zero `L[i,j]`)."
-  [^doubles xs ^doubles ys ^doubles w ^doubles uw k]
+  fitted values and, with `hat?`, per node `i`, `:hat-diag` - `L[i,i]`, `:hat-sq` - `sum_j L[i,j]^2` and `:hat-var` -
+  `sum_j L[i,j]^2 / uw_j` (`uw` - the user weights, `nil` for equal weights; a zero weight has zero `L[i,j]`);
+  without `hat?` these are `nil`."
+  [^doubles xs ^doubles ys ^doubles w ^doubles uw k hat?]
   (let [n (alength xs)
         k (long k)
         yfit (double-array n)
         wt (double-array n)
-        l-diag (double-array n)
-        l-sq (double-array n)
-        l-var (double-array n)]
+        l-diag (when hat? (double-array n))
+        l-sq (when hat? (double-array n))
+        l-var (when hat? (double-array n))]
     (loop [i (long 0)
            left (long 0)]
       (when (m/< i n)
@@ -69,9 +70,10 @@
                 (recur (m/inc j) (m/+ sw wj) (if (m/> wj 1.0e-12) (m/inc cnt) cnt)))
               (if (m/< cnt 2)
                 (do (Array/aset yfit i (Array/aget ys i))
-                    (Array/aset l-diag i 1.0)
-                    (Array/aset l-sq i 1.0)
-                    (Array/aset l-var i (if uw (m// 1.0 (Array/aget uw i)) 1.0)))
+                    (when hat?
+                      (Array/aset l-diag i 1.0)
+                      (Array/aset l-sq i 1.0)
+                      (Array/aset l-var i (if uw (m// 1.0 (Array/aget uw i)) 1.0))))
                 (let [swx (double (loop [j left
                                          s 0.0]
                                     (if (m/< j right)
@@ -93,9 +95,10 @@
                                                 pj (m/* wj (m/+ 1.0 (m// (m/* dxv (m/- (Array/aget xs j) swx)) wsq)))]
                                             (recur (m/inc j) (m/+ s (m/* pj (Array/aget ys j)))))
                                           s))))
-                  (loop [j left
-                         sq 0.0
-                         vr 0.0]
+                  (when hat?
+                    (loop [j left
+                           sq 0.0
+                           vr 0.0]
                     (if (m/< j right)
                       (let [wj (m// (Array/aget wt j) sw)
                             pj (m/* wj (m/+ 1.0 (m// (m/* dxv (m/- (Array/aget xs j) swx)) wsq)))
@@ -104,7 +107,7 @@
                         (recur (m/inc j) (m/+ sq pj2)
                                (if (m/zero? pj2) vr (m/+ vr (if uw (m// pj2 (Array/aget uw j)) pj2)))))
                       (do (Array/aset l-sq i sq)
-                          (Array/aset l-var i vr))))))))
+                          (Array/aset l-var i vr)))))))))
           (recur (m/inc i) left))))
     (->LocalFits yfit l-diag l-sq l-var)))
 
@@ -152,14 +155,16 @@
       (dotimes [i n]
         (Array/aset w i (m/* (if uw (Array/aget uw i) 1.0)
                              (if rw (Array/aget ^doubles rw i) 1.0))))
-      (let [fits (fit-pass xs ys w uw k)
+      ;; the hat matrix rows only in the final pass: the last iteration, or a pass the accuracy stops (redone)
+      (let [last? (m/>= it iters)
+            fits (fit-pass xs ys w uw k last?)
             ^doubles yfit (:fit fits)]
-        (if (m/< it iters)
+        (if last?
+          fits
           (let [med (median-abs-residual ys yfit)]
             (if (m/< med accuracy)
-              fits
-              (recur (m/inc it) (robustness-weights ys yfit med))))
-          fits)))))
+              (fit-pass xs ys w uw k true)
+              (recur (m/inc it) (robustness-weights ys yfit med)))))))))
 
 (defrecord Loess [spline stderr-spline ^double sigma ^double df ^double trace]
   Fn ;; marker: `fn?` stays true, as for the plain function loess returned before
@@ -176,7 +181,7 @@
   "The `Loess` record of the final pass `fits` (`LocalFits`, see `fit-pass`) at the nodes `xs` (data `ys`, user
   weights `uw` or `nil`): residual scale from `delta1 = n - 2 tr(L) + tr(L^T L)` (observations with the weight zero
   left out), standard errors at the nodes `sigma * sqrt(sum_j L[i,j]^2 / uw_j)`, a natural cubic spline through
-  both."
+  both (standard errors `NaN` outside the nodes' range)."
   [^doubles xs ^doubles ys ^doubles uw fits]
   (let [^doubles yfit (:fit fits)
         ^doubles l-diag (:hat-diag fits)
@@ -197,10 +202,14 @@
         df (if (m/> delta1 df-tolerance) delta1 0.0)
         sigma (if (m/pos? df) (m/sqrt (m// rss df)) ##NaN)
         spline (cubic/cubic xs yfit)
+        lo (Array/aget xs 0)
+        hi (Array/aget xs (m/dec n))
         stderr-spline (if (m/nan? sigma)
                         (constantly ##NaN)
                         (let [c (cubic/cubic xs (map (fn [^long i] (m/* sigma (m/sqrt (Array/aget l-var i)))) (range n)))]
-                          (fn ^double [x] (m/max 0.0 (double (c x))))))]
+                          (fn ^double [x]
+                            (let [x (double x)]
+                              (if (and (m/<= lo x) (m/<= x hi)) (m/max 0.0 (double (c x))) ##NaN)))))]
     (->Loess spline stderr-spline sigma df trace)))
 
 (defn- check-options!
@@ -249,7 +258,7 @@
       - `:accuracy` (non-negative number, default: `1.0e-12`): the iterations stop when the median of absolute residuals falls below this value (for example when the data lie exactly on a line). With `0.0` the iterations always run, as statsmodels does.
       - `:weights` (sequence of non-negative numbers, default: `nil`): weights of the observations, the same count as `xs`. They are multiplied into the tricube weights (and into the robustness weights) of every local fit; an observation with the weight zero is ignored. `nil` means equal weights.
 
-  Returns a `Loess` record, a function: `(f x)` returns the interpolated `double` value - the natural cubic spline through the smoothed values (beyond the domain the end cubic polynomials are continued); the curve does not pass through the data points unless `k` is 2 or the data is exactly linear. `(f x true)` returns `[fit stderr]`, the standard error of the fit (as R `predict.loess(se = TRUE)`, with the hat matrix `L` of the final pass, robustness weights included): `sigma * sqrt(sum_j L[i,j]^2 / w_j)` at the nodes (`w` - the user weights, 1 without them) and a natural cubic spline through these values between them (clamped at 0). The record holds `:sigma` - the residual scale `sqrt(sum w_i r_i^2 / delta1)`, `:df` - `delta1 = n - 2 tr(L) + tr(L^T L)` (R's `one.delta`, the degrees of freedom of a t interval) and `:trace` - `tr(L)`; observations with the weight zero are left out of the sums. With `k = 2` (or no residual degrees of freedom) `:df` is 0 and the standard errors are `NaN`; exactly linear data gives the standard error 0.
+  Returns a `Loess` record, a function: `(f x)` returns the interpolated `double` value - the natural cubic spline through the smoothed values (beyond the domain the end cubic polynomials are continued); the curve does not pass through the data points unless `k` is 2 or the data is exactly linear. `(f x true)` returns `[fit stderr]`, the standard error of the fit (as R `predict.loess(se = TRUE)`, with the hat matrix `L` of the final pass, robustness weights included): `sigma * sqrt(sum_j L[i,j]^2 / w_j)` at the nodes (`w` - the user weights, 1 without them) and a natural cubic spline through these values between them (clamped at 0); outside the range of the nodes the standard error is `NaN` (no information there, as R). The record holds `:sigma` - the residual scale `sqrt(sum w_i r_i^2 / delta1)`, `:df` - `delta1 = n - 2 tr(L) + tr(L^T L)` (R's `one.delta`, the degrees of freedom of a t interval) and `:trace` - `tr(L)`; observations with the weight zero are left out of the sums. With robustness iterations (`:iters` > 0) the hat matrix includes the robustness weights but `:sigma` uses the plain residuals, so outliers the robust fit downweights still widen the standard errors: the bands are conservative. With `k = 2` (or no residual degrees of freedom) `:df` is 0 and the standard errors are `NaN`; exactly linear data gives the standard error 0.
 
   A local fit with less than two positive weights keeps the original value. The variance of the weighted regression abscissas is bounded from below by 1e-12 times the squared window radius, so the result does not depend on the scale of `xs`. Each pass costs `O(n k)`.
 

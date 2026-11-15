@@ -218,7 +218,7 @@
       (t/is (m/pos? (double (:sigma f)))))
     (t/testing "stderr between nodes is non-negative and finite"
       (t/is (every? (fn [^double x] (let [s (double (second (f x true)))] (and (m/valid-double? s) (m/>= s 0.0))))
-                    (range -0.5 29.5 0.1)))))
+                    (range 0.0 29.0 0.1)))))
   (t/testing "robustness iterations: the hat matrix of the final pass"
     (let [f (sut/loess noisy-xs (assoc noisy-ys 10 5.0) {:bandwidth 0.4})]
       (t/is (m/pos? (double (:df f))))
@@ -250,3 +250,18 @@
           g (sut/loess noisy-xs noisy-ys {:bandwidth 0.4 :iters 0 :weights (repeat 30 4.0)})]
       (t/is (m/delta-eq (m/* 2.0 (double (:sigma f))) (double (:sigma g)) 1.0e-12))
       (t/is (m/delta-eq (double (second (f 7.3 true))) (double (second (g 7.3 true))) 1.0e-12)))))
+
+(t/deftest loess-stderr-review
+  (let [f (sut/loess noisy-xs noisy-ys {:bandwidth 0.4})]
+    (t/testing "outside the nodes' range the stderr is NaN, the fit extrapolates; the ends are inside"
+      (t/is (m/nan? (double (second (f -0.001 true)))))
+      (t/is (m/nan? (double (second (f 29.001 true)))))
+      (t/is (m/nan? (double (second (f 100.0 true)))))
+      (t/is (m/valid-double? (double (first (f 100.0 true)))))
+      (t/is (m/valid-double? (double (second (f 0.0 true)))))
+      (t/is (m/valid-double? (double (second (f 29.0 true)))))))
+  (t/testing "hat rows of the final pass for every iteration count"
+    (doseq [iters [0 1 2 4]]
+      (let [f (sut/loess noisy-xs noisy-ys {:bandwidth 0.4 :iters iters})]
+        (t/is (m/pos? (double (:df f))) (str iters))
+        (t/is (every? (fn [x] (m/valid-double? (double (second (f x true))))) noisy-xs) (str iters))))))

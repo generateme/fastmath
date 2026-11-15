@@ -70,8 +70,9 @@
   (skipped samples). The fits are computed once; a band point costs `O(samples)`.
 
   Throws `ex-info` (`:type :invalid-input`, `:method :bootstrap`) for different lengths of `xs` and `ys`
-  (`:length-mismatch`), a `:samples` that isn't a positive integer (`:samples`), an unknown `:ci` (`:ci`) or a
-  `level` outside (0, 1) (`:level`); errors of the fit of the data itself propagate."
+  (`:length-mismatch`), a `:samples` that isn't a positive integer (`:samples`), an unknown `:ci` (`:ci`), a fit of
+  the data that isn't a function (`:fit-fn`) or a `level` outside (0, 1) (`:level`); errors of the fit of the data
+  itself propagate."
   ([fit-fn xs ys] (bootstrap fit-fn xs ys nil))
   ([fit-fn xs ys {:keys [samples rng ci estimation]}]
    (let [samples (if (nil? samples) default-samples samples)
@@ -90,6 +91,9 @@
      (let [pairs (mapv vector xs ys)
            [pxs pys] (prepared pairs)
            fit (fit-fn pxs pys)
+           _ (when-not (fn? fit)
+               (ic/invalid-input! :bootstrap :fit-fn (str "fit-fn has to return a function of x, got " (type fit))
+                                  {:value fit}))
            drawn (:samples (boot/bootstrap {:data pairs} {:samples samples
                                                          :rng (r/ensure-rng rng)
                                                          :distribution :categorical-distribution}))
