@@ -63,6 +63,7 @@
             [fastmath.interpolation.bspline :as bspline]
             [fastmath.interpolation.bicubic :as bicubic]
             [fastmath.interpolation.loess :as loess]
+            [fastmath.interpolation.bootstrap :as boot]
             [fastmath.interpolation.microsphere :as microsphere]
             [fastmath.interpolation.barycentric :as bc]
             [fastmath.interpolation.shepard :as shepard]
@@ -515,10 +516,13 @@
     - `:accuracy` - the robustness iterations stop when the median absolute residual is below it (default: `1.0e-12`).
     - `:weights` - a sequence of non-negative observation weights, multiplied into the local weights; when `nil`, all points are weighted equally.
 
-  Returns a function `f` such that `(f x)` returns the interpolated `double` value at `x`.
+  Returns a function `f` (a `Loess` record) such that `(f x)` returns the interpolated `double` value at `x` and
+  `(f x true)` returns `[fit stderr]` - the standard error of the fit from the hat matrix of the local fits (as R
+  `predict.loess(se = TRUE)`); the record holds `:sigma` (residual scale), `:df` (residual degrees of freedom, R's
+  `one.delta`, for t intervals) and `:trace`. See [[fastmath.interpolation.loess/loess]].
   Throws `ex-info` for invalid data or options.
 
-  See also [[cubic-smoothing]], [[cubic]], [[interpolation]]."
+  See also [[cubic-smoothing]], [[cubic]], [[interpolation]], [[bootstrap]]."
   ([xs ys] (loess/loess xs ys))
   ([xs ys opts] (loess/loess xs ys opts)))
 
@@ -868,3 +872,30 @@
      :else (ic/invalid-input! :extrapolation :method
                               (str "unknown extrapolation method " (pr-str method))
                               {:extrapolation method}))))
+
+(defn bootstrap
+  "Bootstrap band of a 1D interpolator or smoother: the method fitted to the data and refitted on resampled data.
+
+  - `method` - a keyword of [[interpolation]] (a 1D method without its own error estimate, as `:cubic-smoothing`,
+    `:rbf`, `:shepard`, `:pchip`, `:akima`; [[loess]] and [[gp]] give standard errors themselves) or a function
+    `(fn [xs ys] f)`
+  - `xs`, `ys` - the data, of equal length (sorted by x, repeated x averaged)
+  - `opts` - `:samples` (default 200), `:rng` (seed it to reproduce the band), `:params` (a vector of extra
+    arguments of the method, as for [[interpolation]], e.g. `[{:rho 0.5}]` for `:cubic-smoothing`), `:ci` (`:percentile` - default,
+    `:basic`, `:normal`, `:bc`) and `:estimation` (quantile strategy, default `:legacy`)
+
+  Samples are drawn by [[fastmath.stats.bootstrap/bootstrap]]. Returns a `Bootstrap` record: `(f x)` - the fit at
+  `x`; `(f x level)` - `[lo hi]`, the `:ci` bootstrap interval of the refitted values at `x` for `level` in (0, 1).
+  See [[fastmath.interpolation.bootstrap/bootstrap]].
+  Throws `ex-info` for an unknown method (`:method`) or invalid input."
+  ([method xs ys] (bootstrap method xs ys nil))
+  ([method xs ys {:keys [params] :as opts}]
+   (let [fit-fn (cond
+                  (fn? method) (fn [xs ys] (apply method xs ys params))
+                  (and (keyword? method) (contains? (methods interpolation) method))
+                  (fn [xs ys] (apply interpolation method xs ys params))
+                  :else (ic/invalid-input! :bootstrap :method
+                                           (str "method has to be an interpolation method keyword or a function, got " method)
+                                           {:value method}))]
+     (boot/bootstrap fit-fn xs ys opts))))
+

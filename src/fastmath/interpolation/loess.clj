@@ -3,7 +3,8 @@
   (:require [fastmath.core :as m]
             [fastmath.interpolation.common :as ic]
             [fastmath.interpolation.cubic :as cubic])
-  (:import [fastmath.java Array]))
+  (:import [fastmath.java Array]
+           [clojure.lang Fn IFn]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -25,6 +26,8 @@
         u (m/- 1.0 d3)]
     (m/* u u u)))
 
+(defrecord LocalFits [^doubles fit ^doubles hat-diag ^doubles hat-sq ^doubles hat-var])
+
 (defn- fit-pass
   "One pass of local linear regressions at every node. `w` are the weights of the observations (user weights
   times robustness weights), `k` is the number of the nearest neighbours.
@@ -32,12 +35,19 @@
   The window of `k` consecutive nodes slides to the right while the evaluated node is closer to the next
   node than to the first node of the window, so it always contains the `k` nearest neighbours. Weights are
   tricube functions of the distance divided by the largest distance in the window. When fewer than two
-  weights are positive the observation itself is kept."
-  [^doubles xs ^doubles ys ^doubles w k]
+  weights are positive the observation itself is kept.
+
+  The fit at node `i` is `sum_j L[i,j] * y_j`, `L` - the hat matrix of the pass. Returns `LocalFits`: `:fit` - the
+  fitted values and, per node `i`, `:hat-diag` - `L[i,i]`, `:hat-sq` - `sum_j L[i,j]^2` and `:hat-var` -
+  `sum_j L[i,j]^2 / uw_j` (`uw` - the user weights, `nil` for equal weights; a zero weight has zero `L[i,j]`)."
+  [^doubles xs ^doubles ys ^doubles w ^doubles uw k]
   (let [n (alength xs)
         k (long k)
         yfit (double-array n)
-        wt (double-array n)]
+        wt (double-array n)
+        l-diag (double-array n)
+        l-sq (double-array n)
+        l-var (double-array n)]
     (loop [i (long 0)
            left (long 0)]
       (when (m/< i n)
@@ -58,7 +68,10 @@
                 (Array/aset wt j wj)
                 (recur (m/inc j) (m/+ sw wj) (if (m/> wj 1.0e-12) (m/inc cnt) cnt)))
               (if (m/< cnt 2)
-                (Array/aset yfit i (Array/aget ys i))
+                (do (Array/aset yfit i (Array/aget ys i))
+                    (Array/aset l-diag i 1.0)
+                    (Array/aset l-sq i 1.0)
+                    (Array/aset l-var i (if uw (m// 1.0 (Array/aget uw i)) 1.0)))
                 (let [swx (double (loop [j left
                                          s 0.0]
                                     (if (m/< j right)
@@ -79,9 +92,21 @@
                                           (let [wj (m// (Array/aget wt j) sw)
                                                 pj (m/* wj (m/+ 1.0 (m// (m/* dxv (m/- (Array/aget xs j) swx)) wsq)))]
                                             (recur (m/inc j) (m/+ s (m/* pj (Array/aget ys j)))))
-                                          s))))))))
+                                          s))))
+                  (loop [j left
+                         sq 0.0
+                         vr 0.0]
+                    (if (m/< j right)
+                      (let [wj (m// (Array/aget wt j) sw)
+                            pj (m/* wj (m/+ 1.0 (m// (m/* dxv (m/- (Array/aget xs j) swx)) wsq)))
+                            pj2 (m/* pj pj)]
+                        (when (m/== j i) (Array/aset l-diag i pj))
+                        (recur (m/inc j) (m/+ sq pj2)
+                               (if (m/zero? pj2) vr (m/+ vr (if uw (m// pj2 (Array/aget uw j)) pj2)))))
+                      (do (Array/aset l-sq i sq)
+                          (Array/aset l-var i vr))))))))
           (recur (m/inc i) left))))
-    yfit))
+    (->LocalFits yfit l-diag l-sq l-var)))
 
 (defn- median-abs-residual
   "True median of absolute residuals (mean of the two central values for an even count)."
@@ -113,8 +138,9 @@
 
 (defn- smooth
   "Smoothed values at the nodes: local linear regression with `k` nearest neighbours, followed by `iters`
-  robustness iterations. The iterations stop earlier when the median absolute residual is below `accuracy`."
-  ^doubles [^doubles xs ^doubles ys ^doubles uw opts]
+  robustness iterations. The iterations stop earlier when the median absolute residual is below `accuracy`.
+  Returns the `LocalFits` of the final pass (see `fit-pass`)."
+  [^doubles xs ^doubles ys ^doubles uw opts]
   (let [{:keys [k iters accuracy]} opts
         k (long k)
         iters (long iters)
@@ -126,13 +152,56 @@
       (dotimes [i n]
         (Array/aset w i (m/* (if uw (Array/aget uw i) 1.0)
                              (if rw (Array/aget ^doubles rw i) 1.0))))
-      (let [yfit (fit-pass xs ys w k)]
+      (let [fits (fit-pass xs ys w uw k)
+            ^doubles yfit (:fit fits)]
         (if (m/< it iters)
           (let [med (median-abs-residual ys yfit)]
             (if (m/< med accuracy)
-              yfit
+              fits
               (recur (m/inc it) (robustness-weights ys yfit med))))
-          yfit)))))
+          fits)))))
+
+(defrecord Loess [spline stderr-spline ^double sigma ^double df ^double trace]
+  Fn ;; marker: `fn?` stays true, as for the plain function loess returned before
+  IFn
+  (invoke [_ x] (spline x))
+  (invoke [_ x stderr?]
+    (if stderr?
+      [(double (spline x)) (double (stderr-spline x))]
+      (spline x))))
+
+(def ^{:private true :const true :tag 'double} df-tolerance 1.0e-10)
+
+(defn- model
+  "The `Loess` record of the final pass `fits` (`LocalFits`, see `fit-pass`) at the nodes `xs` (data `ys`, user
+  weights `uw` or `nil`): residual scale from `delta1 = n - 2 tr(L) + tr(L^T L)` (observations with the weight zero
+  left out), standard errors at the nodes `sigma * sqrt(sum_j L[i,j]^2 / uw_j)`, a natural cubic spline through
+  both."
+  [^doubles xs ^doubles ys ^doubles uw fits]
+  (let [^doubles yfit (:fit fits)
+        ^doubles l-diag (:hat-diag fits)
+        ^doubles l-sq (:hat-sq fits)
+        ^doubles l-var (:hat-var fits)
+        n (alength xs)
+        sums (double-array 4) ;; included count, tr(L), tr(L^T L), weighted RSS
+        _ (dotimes [i n]
+            (when (or (nil? uw) (m/pos? (Array/aget uw i)))
+              (let [r (m/- (Array/aget ys i) (Array/aget yfit i))]
+                (Array/aset sums 0 (m/inc (Array/aget sums 0)))
+                (Array/aset sums 1 (m/+ (Array/aget sums 1) (Array/aget l-diag i)))
+                (Array/aset sums 2 (m/+ (Array/aget sums 2) (Array/aget l-sq i)))
+                (Array/aset sums 3 (m/+ (Array/aget sums 3) (m/* (if uw (Array/aget uw i) 1.0) r r))))))
+        trace (Array/aget sums 1)
+        rss (Array/aget sums 3)
+        delta1 (m/+ (m/- (Array/aget sums 0) (m/* 2.0 trace)) (Array/aget sums 2))
+        df (if (m/> delta1 df-tolerance) delta1 0.0)
+        sigma (if (m/pos? df) (m/sqrt (m// rss df)) ##NaN)
+        spline (cubic/cubic xs yfit)
+        stderr-spline (if (m/nan? sigma)
+                        (constantly ##NaN)
+                        (let [c (cubic/cubic xs (map (fn [^long i] (m/* sigma (m/sqrt (Array/aget l-var i)))) (range n)))]
+                          (fn ^double [x] (m/max 0.0 (double (c x))))))]
+    (->Loess spline stderr-spline sigma df trace)))
 
 (defn- check-options!
   [n bandwidth iters accuracy weights]
@@ -180,7 +249,7 @@
       - `:accuracy` (non-negative number, default: `1.0e-12`): the iterations stop when the median of absolute residuals falls below this value (for example when the data lie exactly on a line). With `0.0` the iterations always run, as statsmodels does.
       - `:weights` (sequence of non-negative numbers, default: `nil`): weights of the observations, the same count as `xs`. They are multiplied into the tricube weights (and into the robustness weights) of every local fit; an observation with the weight zero is ignored. `nil` means equal weights.
 
-  Returns a function `f` of one argument `x` returning the interpolated `double` value; it is the natural cubic spline through the smoothed values (beyond the domain the end cubic polynomials are continued). The curve does not pass through the data points unless `k` is 2 or the data is exactly linear.
+  Returns a `Loess` record, a function: `(f x)` returns the interpolated `double` value - the natural cubic spline through the smoothed values (beyond the domain the end cubic polynomials are continued); the curve does not pass through the data points unless `k` is 2 or the data is exactly linear. `(f x true)` returns `[fit stderr]`, the standard error of the fit (as R `predict.loess(se = TRUE)`, with the hat matrix `L` of the final pass, robustness weights included): `sigma * sqrt(sum_j L[i,j]^2 / w_j)` at the nodes (`w` - the user weights, 1 without them) and a natural cubic spline through these values between them (clamped at 0). The record holds `:sigma` - the residual scale `sqrt(sum w_i r_i^2 / delta1)`, `:df` - `delta1 = n - 2 tr(L) + tr(L^T L)` (R's `one.delta`, the degrees of freedom of a t interval) and `:trace` - `tr(L)`; observations with the weight zero are left out of the sums. With `k = 2` (or no residual degrees of freedom) `:df` is 0 and the standard errors are `NaN`; exactly linear data gives the standard error 0.
 
   A local fit with less than two positive weights keeps the original value. The variance of the weighted regression abscissas is bounded from below by 1e-12 times the squared window radius, so the result does not depend on the scale of `xs`. Each pass costs `O(n k)`.
 
@@ -200,4 +269,4 @@
      (let [opts {:k (window-size (double bandwidth) (alength xs))
                  :iters (long iters)
                  :accuracy (double accuracy)}]
-       (cubic/cubic xs (smooth xs ys uw opts))))))
+       (model xs ys uw (smooth xs ys uw opts))))))

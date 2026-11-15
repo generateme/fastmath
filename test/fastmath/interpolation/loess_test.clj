@@ -184,3 +184,69 @@
           :let [{:keys [xs ys]} (@datasets name)
                 f (sut/loess xs ys {:bandwidth bandwidth :iters 0 :weights weights})]]
     (t/is (<= (max-err f xs smooth) 1.0e-12) (str name " " bandwidth))))
+
+;; standard errors
+
+(defn- brute-force-l-sq
+  "`sum_j L[i,j]^2` per node of the plain (`:iters 0`, linear in y) loess: `L[i,j]` from perturbing `y_j` by 1."
+  [xs ys opts]
+  (let [base (sut/loess xs ys opts)
+        n (count xs)
+        rows (vec (for [j (range n)]
+                    (let [g (sut/loess xs (update (vec ys) j + 1.0) opts)]
+                      (mapv (fn [x] (m/- (fv g x) (fv base x))) xs))))]
+    (mapv (fn [i] (reduce m/+ 0.0 (map (fn [j] (let [v (double (get-in rows [j i]))] (m/* v v))) (range n)))) (range n))))
+
+(def ^:private noisy-xs (vec (range 0.0 30.0)))
+(def ^:private noisy-ys (mapv (fn [^double x] (m/+ (m/sin (m/* 0.3 x)) (m/* 0.1 (m/cos (m/* 7.1 x))))) noisy-xs))
+
+(t/deftest loess-stderr
+  (let [opts {:bandwidth 0.4 :iters 0}
+        f (sut/loess noisy-xs noisy-ys opts)]
+    (t/testing "record: (f x) is the fit, (f x true) adds the stderr; still fn?"
+      (t/is (fn? f))
+      (t/is (instance? fastmath.interpolation.loess.Loess f))
+      (t/is (= (fv f 5.5) (double (first (f 5.5 true)))))
+      (t/is (= (f 5.5) (f 5.5 false)))
+      (t/is (= 2 (count (f 5.5 true)))))
+    (t/testing "node stderr = sigma * sqrt(sum_j L[i,j]^2), L from a brute-force hat matrix"
+      (t/is (every? true? (map (fn [x ^double lsq] (m/delta-eq (m/* (double (:sigma f)) (m/sqrt lsq)) (double (second (f x true))) 1.0e-9))
+                               noisy-xs (brute-force-l-sq noisy-xs noisy-ys opts)))))
+    (t/testing "df and trace: 1 < trace < n, 0 < df < n"
+      (t/is (m/< 1.0 (double (:trace f)) 30.0))
+      (t/is (m/< 0.0 (double (:df f)) 30.0))
+      (t/is (m/pos? (double (:sigma f)))))
+    (t/testing "stderr between nodes is non-negative and finite"
+      (t/is (every? (fn [^double x] (let [s (double (second (f x true)))] (and (m/valid-double? s) (m/>= s 0.0))))
+                    (range -0.5 29.5 0.1)))))
+  (t/testing "robustness iterations: the hat matrix of the final pass"
+    (let [f (sut/loess noisy-xs (assoc noisy-ys 10 5.0) {:bandwidth 0.4})]
+      (t/is (m/pos? (double (:df f))))
+      (t/is (every? (fn [x] (m/valid-double? (double (second (f x true))))) noisy-xs)))))
+
+(t/deftest loess-stderr-edges
+  (t/testing "k = 2: no residual degrees of freedom - df 0, stderr NaN"
+    (let [f (sut/loess [0.0 1.0 2.0 3.0] [1.0 3.0 2.0 4.0] {:bandwidth 0.5})]
+      (t/is (zero? (double (:df f))))
+      (t/is (m/nan? (double (second (f 1.5 true)))))
+      (t/is (m/nan? (double (:sigma f))))))
+  (t/testing "exactly linear or constant data: stderr 0"
+    ;; floating point residuals of an exact line: observed ~4e-15
+    (let [f (sut/loess (range 10.0) (map #(* 2.0 (double %)) (range 10)) {:bandwidth 0.5})]
+      (t/is (m/delta-eq 0.0 (double (second (f 3.5 true))) 1.0e-12)))
+    (let [f (sut/loess (range 10.0) (repeat 10 3.0) {:bandwidth 0.5})]
+      (t/is (m/delta-eq 0.0 (double (second (f 3.5 true))) 1.0e-12))))
+  (t/testing "weights: a zero-weight observation doesn't change the error model"
+    (let [w [1.0 1.0 1.0 0.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0]
+          xs (range 12.0)
+          ys [1.0 2.0 1.5 3.0 2.5 4.0 3.0 2.0 2.5 1.0 1.5 0.5]
+          f (sut/loess xs ys {:bandwidth 0.6 :iters 0 :weights w})
+          g (sut/loess xs (assoc ys 3 100.0) {:bandwidth 0.6 :iters 0 :weights w})]
+      (t/is (m/delta-eq (double (:sigma f)) (double (:sigma g))))
+      (t/is (m/delta-eq (double (:df f)) (double (:df g))))
+      (t/is (m/delta-eq (double (second (f 6.0 true))) (double (second (g 6.0 true)))))))
+  (t/testing "weights: scaling all weights scales sigma, not the stderr (Var y_j = sigma^2 / w_j)"
+    (let [f (sut/loess noisy-xs noisy-ys {:bandwidth 0.4 :iters 0})
+          g (sut/loess noisy-xs noisy-ys {:bandwidth 0.4 :iters 0 :weights (repeat 30 4.0)})]
+      (t/is (m/delta-eq (m/* 2.0 (double (:sigma f))) (double (:sigma g)) 1.0e-12))
+      (t/is (m/delta-eq (double (second (f 7.3 true))) (double (second (g 7.3 true))) 1.0e-12)))))
