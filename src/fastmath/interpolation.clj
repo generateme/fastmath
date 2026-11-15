@@ -500,10 +500,12 @@
 (defn loess
   "Creates a 1D LOESS (locally weighted scatterplot smoothing) interpolator.
 
-  Smooths the data using a locally weighted linear regression over the `k` nearest neighbours of every
-  node with tricube weights, optionally repeated with bisquare robustness weights from residuals scaled by
-  6 times their median, then fits a natural cubic spline through the smoothed points. The smoothed values equal
-  `statsmodels` `lowess` with `frac` equal to `:bandwidth`, `it` equal to `:iters` and `delta` 0. Useful when the
+  Smooths the data using a locally weighted linear (or quadratic, `:degree 2`) regression over the `k` nearest
+  neighbours of every node with tricube weights, optionally repeated with bisquare robustness weights from residuals
+  scaled by 6 times their median, then fits a natural cubic spline through the smoothed points. With `:degree 1` the
+  smoothed values equal `statsmodels` `lowess` with `frac` equal to `:bandwidth`, `it` equal to `:iters` and `delta`
+  0; with `:degree 2` and `:iters 0` R `loess(degree = 2, family = \"gaussian\", surface = \"direct\")` (ggplot2's
+  `geom_smooth` default). Useful when the
   data contains noise and strict interpolation through every point is not desired.
 
   Parameters:
@@ -512,6 +514,7 @@
   - `ys` - a sequence of y values corresponding to each x.
   - `opts` - (optional) a map of options:
     - `:bandwidth` - fraction of points used for each local fit, in `(0, 1]` (default: `0.3`); `k = floor(bandwidth * n)` has to be at least 2, so the default needs 7 points. `k = 2` returns the data unchanged.
+    - `:degree` - `1` (local linear, default) or `2` (local quadratic).
     - `:iters` - number of robustness iterations (default: `2`).
     - `:accuracy` - the robustness iterations stop when the median absolute residual is below it (default: `1.0e-12`).
     - `:weights` - a sequence of non-negative observation weights, multiplied into the local weights; when `nil`, all points are weighted equally.

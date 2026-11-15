@@ -265,3 +265,39 @@
       (let [f (sut/loess noisy-xs noisy-ys {:bandwidth 0.4 :iters iters})]
         (t/is (m/pos? (double (:df f))) (str iters))
         (t/is (every? (fn [x] (m/valid-double? (double (second (f x true))))) noisy-xs) (str iters))))))
+
+
+;; Reference: R 4.5.2 loess(y ~ x, span = 0.5, degree = 2, family = "gaussian", surface = "direct",
+;; statistics = "exact"), predict(se = TRUE) at the nodes.
+(def ^:private degree-2-reference
+  {:xs [1 2 3 4 5 6 7 8 9 10 11 12 14 15 17 18 20 21 22 23 24 25 26 27 28 29 30 33 35 36 40]
+   :ys [1.025 3.602 5.905 6.021 8.61 9.351 9.94 11.112 8.52 10.36 7.34 5.623 2.634 1.664 -2.403 -4.733 -8.521 -9.364 -8.292 -9.737 -10.54 -10.532 -9.038 -9.394 -6.797 -5.387 -1.634 4.127 6.498 6.8 10.794]
+   :fit [0.981998470879 3.436531660532 5.504221677652 7.181680924154 8.465432641368 9.355394640511 9.855539872575 9.975369275893 9.713848250142 8.945805692897 7.819243125725 6.437383514469 2.963951063324 1.018488127621 -2.808883666610 -4.564751072309 -7.653328537708 -8.784633398830 -9.605225987033 -10.152041274186 -10.282128265334 -9.967630314149 -9.365880592673 -8.286412992067 -6.761366444709 -5.252741066710 -3.318927853278 2.267455104316 5.335342702226 6.746851010679 11.415738571065]
+   :se [0.676671416263 0.495860165525 0.387431198869 0.347559070265 0.350457514871 0.365390738429 0.375910450368 0.383315293383 0.407285348495 0.420038441521 0.406589022554 0.423121416822 0.442063607736 0.452383251540 0.452383251540 0.442063607736 0.423121416822 0.406589022554 0.420038441521 0.392085434910 0.391521451425 0.365322166898 0.388819396823 0.392041915512 0.392020481678 0.399302764701 0.440210856185 0.431022827645 0.432900708851 0.447870458948 0.865967173724]
+   :sigma 0.9484438879})
+
+(t/deftest loess-degree-2
+  (t/testing "local quadratic fits and standard errors equal R loess (degree 2, exact statistics) at the nodes"
+    (let [{:keys [xs ys fit se sigma]} degree-2-reference
+          f (sut/loess xs ys {:bandwidth 0.5 :degree 2 :iters 0})]
+      (t/is (every? true? (map #(< (m/abs (- (double (f %1)) (double %2))) 1.0e-9) xs fit)))
+      (t/is (every? true? (map #(< (m/abs (- (double (second (f %1 true))) (double %2))) 1.0e-9) xs se)))
+      (t/is (< (m/abs (- (double (:sigma f)) (double sigma))) 1.0e-9))))
+  (t/testing "exact quadratic data is reproduced, with zero standard errors"
+    (let [xs (range 10.0) ys (map #(+ 1.0 (* 2.0 %) (* -0.5 % %)) xs)
+          f (sut/loess xs ys {:bandwidth 0.5 :degree 2 :iters 0})]
+      (t/is (every? true? (map #(< (m/abs (- (double (f %1)) (double %2))) 1.0e-9) xs ys)))
+      (t/is (every? #(< (m/abs (double (second (f % true)))) 1.0e-9) xs))))
+  (t/testing "degree 1 stays the default; windows with fewer than 3 weighted points fall back to linear"
+    (let [xs (range 20.0) ys (map #(m/sin (* 0.4 %)) xs)]
+      (t/is (= (map (sut/loess xs ys) xs) (map (sut/loess xs ys {:degree 1}) xs)))
+      (t/is (= (map (sut/loess xs ys {:bandwidth 0.1 :degree 1}) xs) (map (sut/loess xs ys {:bandwidth 0.1 :degree 2}) xs))
+            "k = 2: the data itself in both")))
+  (t/testing "robustness iterations work with degree 2"
+    (let [xs (range 30.0) ys (map-indexed (fn [i x] (let [x (double x)] (if (= i 15) 50.0 (+ (* 0.1 x x) (* 0.3 (m/sin (* 7.0 x))))))) xs)
+          plain (sut/loess xs ys {:degree 2 :iters 0 :bandwidth 0.5})
+          robust (sut/loess xs ys {:degree 2 :iters 3 :bandwidth 0.5})]
+      (t/is (< (m/abs (- (double (robust 15.0)) 22.5)) (m/abs (- (double (plain 15.0)) 22.5))) "the outlier is downweighted")))
+  (t/testing ":degree other than 1 or 2"
+    (t/are [d] (= :degree (:property (ex-data (try (sut/loess (range 10) (range 10) {:degree d}) (catch Exception e e)))))
+      0 3 1.5 :two)))
