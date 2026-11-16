@@ -3049,7 +3049,10 @@
 ;;         *   `:doane`: Doane's rule (modification of Sturges' for non-normal data). $k = \lceil \log_2(n) + 1 + \log_2(1 + \frac{|g_1|}{\sigma_{g_1}}) \rceil$, where $g_1$ is sample skewness and $\sigma_{g_1}$ is its standard error.
 ;;         *   `:scott`: Scott's normal reference rule (bin width $h = 3.5 \hat{\sigma} n^{-1/3}$). $k = \lceil (max - min)/h \rceil$
 ;;         *   `:freedman-diaconis` (default): Freedman-Diaconis rule (robust to outliers, bin width $h = 2 \cdot IQR \cdot n^{-1/3}$). $k = \lceil (max - min)/h \rceil$
+;;         *   `:cross-validation`: the bin count minimizing the leave-one-out cross-validation estimate of the integrated squared error, $(2 - (n+1)\sum p_k^2)/h$ (Rudemo; `stone` in numpy). Adapts to the shape of the data.
+;;         *   `:shimazaki-shinomoto`: the bin count minimizing $(2\bar{k} - v)/h^2$, the mean and the (biased) variance of the bin counts (Shimazaki and Shinomoto, 2007). Adapts to the shape of the data.
 ;;     *   A number: Returns the number itself (useful for passing a fixed value through).
+;; *   `opts` (map, optional): `:candidates` (number of candidate bin counts, default 200) and `:shifts` (number of bin origins the cost is averaged over, default 1) of the data-driven methods.
 ;;     *   If omitted, uses the default `:freedman-diaconis` rule.
 ;; 
 ;; **Return Value (Long):**

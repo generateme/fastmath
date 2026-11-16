@@ -2760,13 +2760,19 @@
     - `:doane`: a refinement of Sturges' rule that accounts for the sample skewness (see [[skewness]]), better suited for non-normal data.
     - `:scott`: bin width `3.5 * stddev / cbrt(n)`, assumes roughly normal data.
     - `:freedman-diaconis` (default): bin width `2 * IQR / cbrt(n)` (see [[iqr]]), robust to outliers.
+    - `:cross-validation`: the bin count minimizing the leave-one-out cross-validation estimate of the integrated squared error (Rudemo 1982, `stone` in numpy), adapts to the shape of the data, see [[fastmath.stats.bins/cross-validation-bins]].
+    - `:shimazaki-shinomoto`: the bin count minimizing the cost of Shimazaki and Shinomoto (2007), adapts to the shape of the data, see [[fastmath.stats.bins/shimazaki-shinomoto-bins]].
     - a `long`: used directly as the number of bins, bypassing estimation.
+  - `opts` (map, optional): options of `:cross-validation` and `:shimazaki-shinomoto`, `:candidates` (the number of candidate bin counts, default `200`) and `:shifts` (the number of bin origins the cost is averaged over, default `1`).
+
+  The data-driven methods (`:cross-validation`, `:shimazaki-shinomoto`) pass over the data once per candidate and vary more from sample to sample than the rules of thumb. For discretized data their bin count is limited to the range divided by twice the smallest gap between values.
 
   Returns the estimated number of bins as a long, never higher than the number of samples in `vs`.
 
   See also [[histogram]]."
   (^long [vs] (estimate-bins vs :freedman-diaconis))
-  (^long [vs bins-or-estimate-method]
+  (^long [vs bins-or-estimate-method] (estimate-bins vs bins-or-estimate-method nil))
+  (^long [vs bins-or-estimate-method opts]
    (if-not (keyword? bins-or-estimate-method)
      (or bins-or-estimate-method (estimate-bins vs))
      (let [n (count vs)]
@@ -2777,29 +2783,50 @@
                        :terrell-scott (bins/terrell-scott n)
                        :doane (bins/doane (m/seq->double-array vs) n)
                        :scott (bins/scott (m/seq->double-array vs) n)
-                       :freedman-diaconis (bins/freedman-diaconis (m/seq->double-array vs) n))))))))
+                       :freedman-diaconis (bins/freedman-diaconis (m/seq->double-array vs) n)
+                       :cross-validation (bins/cross-validation-bins (m/seq->double-array vs) opts)
+                       :shimazaki-shinomoto (bins/shimazaki-shinomoto-bins (m/seq->double-array vs) opts))))))))
 
 (defn estimate-grid-size
   "Estimates a suitable [[fastmath.grid]] `size` for a 2d histogram ([[histogram2d]]) of 2d points `vs`.
 
-  Delegates the actual bin-area estimation to `fastmath.stats.bins` (mirroring how [[estimate-bins]] delegates to it for the 1d case), then converts the returned area into the `size` for the given cell `type` via [[fastmath.grid/area->size]] — so the estimated bin *area* is consistent across cell types, even though `:pointy-hex`/`:flat-hex`/`:rhombus`/`:triangle` cells have a different area-to-`size` ratio than `:square`/`:shifted-square` (see [[fastmath.grid/area]]).
+  Every method estimates a cell area (in `fastmath.stats.bins`), converted into the `size` of the cell type `:grid` via [[fastmath.grid/area->size]], so the estimated area is consistent across cell types.
 
   Parameters:
 
-  - `vs` (sequence of 2d points): Input data, each point a `[x y]` pair (or any 2-element indexable, e.g. `Vec2`).
-  - `type` (keyword): one of [[fastmath.grid/cell-names]].
-  - `estimate-method` (keyword, optional, default `:scott`): estimation method, dispatched via `case`, open to future additions alongside `:scott`:
-    - `:scott`: `fastmath.stats.bins/scott-2d`, the multivariate normal-reference rule (Scott, D.W. *Multivariate Density Estimation*, 1992, p.82) — see its docstring for the exact formula and how it differs from the KDE-bandwidth Scott's/Silverman's rule.
+  - `vs` (sequence of 2d points): each point a `[x y]` pair (or any 2-element indexable, e.g. `Vec2`).
+  - `estimate-method` (keyword, default `:scott-correlated`, `nil` means the default):
+    - `:scott-correlated`: the normal-reference rule for cells of one shape and size, taking the correlation of the axes into account ([[fastmath.stats.bins/scott-correlated]]); cheap, smaller cells than `:scott` for correlated data.
+    - `:scott`: the multivariate normal-reference rule (Scott 1992), the area of the best rectangle for uncorrelated normal data ([[fastmath.stats.bins/scott-2d]]).
+    - `:freedman-diaconis`: `:scott` with the standard deviations replaced by `IQR / 1.349` ([[fastmath.stats.bins/freedman-diaconis-2d]]); robust to outliers and heavy tails, coarse for multimodal data.
+    - `:cross-validation`: the cell size minimizing the leave-one-out cross-validation estimate of the integrated squared error, counted on the grid of [[histogram2d]] ([[fastmath.stats.bins/cross-validation-2d]]).
+    - `:shimazaki-shinomoto`: the cell size minimizing the cost of Shimazaki and Shinomoto (2007), counted on the grid of [[histogram2d]] ([[fastmath.stats.bins/shimazaki-shinomoto-2d]]).
+  - `opts` (map, optional):
+    - `:grid` - the cell type, one of [[fastmath.grid/cell-names]], default: `:square`
+    - `:sv` - the grid offset (translating vector) of [[histogram2d]], default: `[0.0 0.0]` (used by the data-driven methods)
+    - `:candidates` - the number of candidate cell sizes, default: `200` (data-driven methods)
+    - `:shifts` - the number of grid offsets the cost is averaged over, default: `1` (data-driven methods)
 
-  Returns the estimated `size` as a `double`. Falls back to `1.0` when the target area is non-positive or non-finite (e.g. `vs` has fewer than 2 points, or is constant along an axis) — this is a degenerate input for any density-based estimate, and `1.0` is a safe, usable default rather than propagating `0.0`/`NaN`/`Infinity` into [[fastmath.grid/grid]].
+  The rules of thumb (`:scott-correlated`, `:scott`, `:freedman-diaconis`) assume roughly normal data and give coarse cells for multimodal or curved data. The data-driven methods adapt to the shape of the data, pass over the data once per candidate and vary more from sample to sample; for discretized data their cell area is at least four times the product of the smallest gaps between values along the axes.
+
+  Points on a line have no 2d density, the size is then the 1d bin width along the line: for any line with `:scott-correlated` (the 1d Scott width), for a line parallel to an axis with every method (the 1d Freedman-Diaconis width with `:freedman-diaconis`, the 1d Scott width otherwise).
+
+  Returns the estimated `size` as a `double`. Falls back to `1.0` when the area cannot be estimated (`vs` has fewer than 2 points or is constant), rather than propagating `0.0`/`NaN`/`Infinity` into [[fastmath.grid/grid]]. Throws `ex-info` when `:candidates` or `:shifts` is not an integer at least 1.
 
   See also [[histogram2d]], [[estimate-bins]], [[fastmath.grid/area->size]]."
-  (^double [vs type] (estimate-grid-size vs type :scott))
-  (^double [vs type estimate-method]
-   (let [target-area (case estimate-method
-                       :scott (bins/scott-2d (m/seq->double-array (map first vs))
-                                              (m/seq->double-array (map second vs))))]
-     (if (and (Double/isFinite target-area) (m/pos? target-area))
+  (^double [vs] (estimate-grid-size vs :scott-correlated nil))
+  (^double [vs estimate-method] (estimate-grid-size vs estimate-method nil))
+  (^double [vs estimate-method opts]
+   (let [type (or (:grid opts) :square)
+         xs (m/seq->double-array (map first vs))
+         ys (m/seq->double-array (map second vs))
+         target-area (case (or estimate-method :scott-correlated)
+                       :scott-correlated (bins/scott-correlated xs ys)
+                       :scott (bins/scott-2d xs ys)
+                       :freedman-diaconis (bins/freedman-diaconis-2d xs ys)
+                       :cross-validation (bins/cross-validation-2d xs ys type opts)
+                       :shimazaki-shinomoto (bins/shimazaki-shinomoto-2d xs ys type opts))]
+     (if (and (m/valid-double? target-area) (m/pos? target-area))
        (grid/area->size type target-area)
        1.0))))
 
@@ -2908,9 +2935,13 @@
   Parameters:
 
   - `vs` (sequence of 2d points): each point a `[x y]` pair (or any 2-element indexable, e.g. `Vec2`).
-  - `type` (keyword, default `:square`): grid cell type, one of [[fastmath.grid/cell-names]].
-  - `size-or-estimate-method` (double or keyword, default `:scott`): explicit [[fastmath.grid/grid]] `size` (bin width, i.e. anchor-to-anchor spacing), or a bin-size estimation method keyword, see [[estimate-grid-size]].
-  - `sv` (2-element vector/sequence, e.g. `[sx sy]`, default `[0.0 0.0]`): grid translating vector, see [[fastmath.grid/grid]].
+  - `size-or-estimate-method` (double or keyword, default `:scott-correlated`, `nil` means the default): explicit [[fastmath.grid/grid]] `size` (bin width, i.e. anchor-to-anchor spacing), or a bin-size estimation method keyword, see [[estimate-grid-size]].
+  - `opts` (map, optional):
+    - `:grid` - the cell type (keyword), one of [[fastmath.grid/cell-names]], default: `:square`
+    - `:sv` - the grid translating vector `[sx sy]`, see [[fastmath.grid/grid]], default: `[0.0 0.0]`
+    - `:candidates`, `:shifts` - options of the data-driven estimation methods, see [[estimate-grid-size]]
+
+  The size is estimated on the same grid (cell type and offset) the histogram is built on.
 
   Returns a map, adapted key-by-key from [[histogram]]'s 1d result (some 1d keys have no 2d equivalent and are replaced or dropped — see each key below):
 
@@ -2920,19 +2951,20 @@
   - `:min`, `:max`: the 2d bounding box of `vs`, as `[x y]` pairs. `nil` when `vs` is empty.
   - `:bins`: sequence of `[cell-coords count]` pairs (cell-coords is a `[q r]` `Vec2`, from [[fastmath.grid/coords->cell]]) — the 2d analogue of 1d `[bin-lower-bound count]`.
   - `:bins-maps`: sequence of maps, one per occupied cell, with keys `:cell` (`[q r]`), `:mid` (the cell's geometric center, [[fastmath.grid/cell->mid]]), `:avg` (centroid of the *actual points* landing in that cell — distinct from `:mid`), `:count`, `:probability` (fraction of samples in the bin). No `:min`/`:max`/`:step` (no per-bin interval bounds in 2d) and no `:corners` (derivable from `:grid` + `:cell` via [[fastmath.grid/corners]]).
-  - `:grid`: the constructed grid object (satisfies [[fastmath.protocols/GridProto]]) — lets callers call [[fastmath.grid/corners]]/[[fastmath.grid/cell->anchor]]/etc. on any returned cell without reconstructing the grid. Replaces 1d `:intervals`, which has no 2d equivalent.
+  - `:grid`: the constructed grid object (satisfies [[fastmath.protocols/GridProto]]; not the cell type keyword of the `:grid` option) — lets callers call [[fastmath.grid/corners]]/[[fastmath.grid/cell->anchor]]/etc. on any returned cell without reconstructing the grid. Replaces 1d `:intervals`, which has no 2d equivalent.
   - `:frequencies`: a map from each occupied cell's coords to its count (repurposed from 1d's avg-value-keyed map, which would have duplicated `:bins` in 2d).
 
   Empty `vs` returns a well-formed, empty result (`:size` `0`, `:samples` `0`, `:min`/`:max` `nil`, `:bins`/`:bins-maps` `()`, `:frequencies` `{}`) rather than throwing.
 
   See also [[histogram]], [[estimate-grid-size]], [[fastmath.grid/grid]]."
-  ([vs] (histogram2d vs :square))
-  ([vs type] (histogram2d vs type :scott))
-  ([vs type size-or-estimate-method] (histogram2d vs type size-or-estimate-method [0.0 0.0]))
-  ([vs type size-or-estimate-method sv]
-   (let [size (double (if (number? size-or-estimate-method)
+  ([vs] (histogram2d vs nil nil))
+  ([vs size-or-estimate-method] (histogram2d vs size-or-estimate-method nil))
+  ([vs size-or-estimate-method opts]
+   (let [type (or (:grid opts) :square)
+         sv (or (:sv opts) [0.0 0.0])
+         size (double (if (number? size-or-estimate-method)
                         size-or-estimate-method
-                        (estimate-grid-size vs type size-or-estimate-method)))
+                        (estimate-grid-size vs size-or-estimate-method (assoc opts :grid type :sv sv))))
          gr (grid/grid type size sv)
          by-cell (group-by (fn [[x y]] (grid/coords->cell gr x y)) vs)
          samples (count vs)

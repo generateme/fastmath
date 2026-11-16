@@ -8,6 +8,7 @@
             [clojure.java.io :as io]
             [fastmath.vector :as v]
             [fastmath.grid :as grid]
+            [fastmath.stats.bins :as bins]
             [fastmath.random :as r]))
 
 (defn transform [spec data]
@@ -1701,7 +1702,7 @@ matches auc-roc"
         (t/is (= 32 (reduce + (map second (:bins h)))) "counts partition all samples")))))
 
 ;; estimate-grid-size: multivariate Scott's normal-reference rule (Scott 1992, p.82),
-;; b_x=3.5*stddev(xs)*n^-1/4, b_y=3.5*stddev(ys)*n^-1/4, area=b_x*b_y, size=area->size(type,area).
+;; b_x=c*stddev(xs)*n^-1/4, b_y=c*stddev(ys)*n^-1/4, c=(48*pi)^(1/4), area=b_x*b_y, size=area->size(type,area).
 ;; Hand-computed independently against the same formula (not against fastmath's own output)
 ;; for a fixed synthetic dataset; cross-type consistency checked via fastmath.grid/area
 ;; (same target area recoverable from every cell type's estimated size, since that's the
@@ -1714,33 +1715,43 @@ matches auc-roc"
   (let [xs (map first grid-2d-points)
         ys (map second grid-2d-points)
         n (double (count grid-2d-points))
-        bx (* 3.5 (sut/stddev xs) (m/pow n -0.25))
-        by (* 3.5 (sut/stddev ys) (m/pow n -0.25))
+        c (m/pow (* 48.0 m/PI) 0.25)
+        bx (* c (sut/stddev xs) (m/pow n -0.25))
+        by (* c (sut/stddev ys) (m/pow n -0.25))
         expected-area (* bx by)
         expected-size (grid/area->size :square expected-area)]
-    (t/is (m/delta-eq expected-size (sut/estimate-grid-size grid-2d-points :square)))
-    (t/is (m/delta-eq expected-size (sut/estimate-grid-size grid-2d-points :square :scott))
-          "explicit :scott matches the 2-arity default")))
+    (t/is (m/delta-eq expected-size (sut/estimate-grid-size grid-2d-points :scott)))
+    (t/is (m/delta-eq expected-size (sut/estimate-grid-size grid-2d-points :scott {:grid :square}))
+          "explicit :square matches the default cell type")))
 
 (t/deftest estimate-grid-size-cross-type-consistency-test
   ;; the estimator targets one area; size differs by type, but that area must be recoverable
   ;; from every type's (grid type size) via fastmath.grid/area — confirming the area-based
   ;; unification (added specifically for this estimator) holds end-to-end
-  (let [areas (into #{} (for [type grid/cell-names
-                              :let [size (sut/estimate-grid-size grid-2d-points type)]]
-                          (m/approx (grid/area (grid/grid type size)) 10)))]
-    (t/is (= 1 (count areas)) (str "expected one shared target area, got " areas))))
+  (doseq [method [:scott :scott-correlated :freedman-diaconis]]
+    (let [areas (into #{} (for [type grid/cell-names
+                                :let [size (sut/estimate-grid-size grid-2d-points method {:grid type})]]
+                            (m/approx (grid/area (grid/grid type size)) 10)))]
+      (t/is (= 1 (count areas)) (str method ": expected one shared target area, got " areas)))))
 
 (t/deftest estimate-grid-size-degenerate-inputs-test
-  ;; MUST NOT crash for n<2 or zero-variance axes; falls back to a usable 1.0
-  (t/is (= 1.0 (sut/estimate-grid-size [] :square)))
-  (t/is (= 1.0 (sut/estimate-grid-size [[1.0 2.0]] :square)))
-  (t/is (= 1.0 (sut/estimate-grid-size [[1.0 1.0] [1.0 2.0] [1.0 3.0] [1.0 4.0]] :square))
-        "zero variance on x axis only")
-  (t/is (= 1.0 (sut/estimate-grid-size [[1.0 1.0] [1.0 1.0] [1.0 1.0]] :square))
-        "fully constant data")
-  (doseq [type grid/cell-names]
-    (t/is (pos? (sut/estimate-grid-size [] type)) (str type " never returns non-positive"))))
+  ;; MUST NOT crash for n<2, zero-variance axes or perfectly correlated axes; falls back to a usable 1.0
+  (doseq [method [:scott :scott-correlated :freedman-diaconis :cross-validation :shimazaki-shinomoto]
+          type grid/cell-names]
+    (let [est (fn [vs] (sut/estimate-grid-size vs method {:grid type}))
+          label (str method " " type)]
+      (t/is (= 1.0 (est [])) label)
+      (t/is (= 1.0 (est [[1.0 2.0]])) label)
+      (t/is (= 1.0 (est [[1.0 1.0] [1.0 1.0] [1.0 1.0]])) (str label " fully constant data"))
+      (t/is (not= 1.0 (est [[1.0 1.0] [1.0 2.0] [1.0 3.0] [1.0 4.0]])) (str label " a line parallel to an axis has a size"))))
+  (t/is (m/delta-eq (grid/area->size :square (bins/scott-correlated (m/seq->double-array [1.0 2.0 3.0 4.0])
+                                                                    (m/seq->double-array [1.0 2.0 3.0 4.0])))
+                    (sut/estimate-grid-size [[1.0 1.0] [2.0 2.0] [3.0 3.0] [4.0 4.0]] :scott-correlated))
+        "perfectly correlated axes: the line rule")
+  (t/is (= :shifts (try (sut/estimate-grid-size [[1.0 1.0] [2.0 3.0] [3.0 2.0]] :cross-validation {:shifts 0})
+                        (catch clojure.lang.ExceptionInfo e (:option (ex-data e))))))
+  (t/is (= :candidates (try (sut/estimate-bins [1.0 2.0 5.0] :shimazaki-shinomoto {:candidates -1})
+                            (catch clojure.lang.ExceptionInfo e (:option (ex-data e)))))))
 
 ;; histogram2d: hand-verified against a small, manually-binned point set for :square
 ;; (size=10, no translation): (0,0)/(1,1)/(5,5) -> cell [0 0]; (12,3) -> cell [1 0];
@@ -1750,7 +1761,7 @@ matches auc-roc"
   [[0.0 0.0] [1.0 1.0] [5.0 5.0] [12.0 3.0] [-1.0 -1.0]])
 
 (t/deftest histogram2d-hand-verified-test
-  (let [h (sut/histogram2d histogram2d-points :square 10.0)]
+  (let [h (sut/histogram2d histogram2d-points 10.0)]
     (t/is (= 3 (:size h)))
     (t/is (= 10.0 (:step h)))
     (t/is (= 5 (:samples h)))
@@ -1766,7 +1777,7 @@ matches auc-roc"
       (t/is (m/delta-eq 0.6 (:probability origin-bin))))))
 
 (t/deftest histogram2d-grid-usable-test
-  (let [h (sut/histogram2d histogram2d-points :square 10.0)
+  (let [h (sut/histogram2d histogram2d-points 10.0)
         cell (:cell (first (:bins-maps h)))]
     (t/is (= 4 (count (grid/corners (:grid h) (grid/cell->anchor (:grid h) cell)))))
     (t/is (= :square (grid/grid-type (:grid h))))))
@@ -1774,13 +1785,15 @@ matches auc-roc"
 (t/deftest histogram2d-defaults-test
   (let [h (sut/histogram2d histogram2d-points)]
     (t/is (= :square (grid/grid-type (:grid h))) "default type is :square")
-    (t/is (= (:step h) (sut/estimate-grid-size histogram2d-points :square :scott)) "default size-or-method is :scott")))
+    (t/is (= (:step h) (sut/estimate-grid-size histogram2d-points :scott-correlated)) "default size-or-method is :scott-correlated")
+    (t/is (= (dissoc h :grid) (dissoc (sut/histogram2d histogram2d-points nil {:grid :square}) :grid))
+          "nil method and :grid are defaults")))
 
 (t/deftest histogram2d-translating-vector-test
   ;; sv shifts the whole grid; cell assignment/binning must shift with it accordingly
   (let [pts [[0.0 0.0] [1.0 1.0]]
-        h0 (sut/histogram2d pts :square 10.0)
-        hs (sut/histogram2d pts :square 10.0 [5.0 5.0])]
+        h0 (sut/histogram2d pts 10.0)
+        hs (sut/histogram2d pts 10.0 {:sv [5.0 5.0]})]
     (t/is (v/delta-eq (v/vec2 5.0 5.0) (grid/cell->anchor (:grid hs) 0 0)))
     (t/is (= (:size h0) (:size hs)) "same point set, one bin regardless of translation")
     (t/is (not= (map first (:bins h0)) (map first (:bins hs))) "cell coords differ once translated")))
@@ -1788,19 +1801,19 @@ matches auc-roc"
 (t/deftest histogram2d-cross-type-self-consistency-test
   (let [pts (vec (for [x (range -20 21 3) y (range -20 21 3)] [(double x) (double y)]))]
     (doseq [type grid/cell-names]
-      (let [h (sut/histogram2d pts type 5.0)]
+      (let [h (sut/histogram2d pts 5.0 {:grid type})]
         (t/is (= (:size h) (count (:frequencies h)) (count (:bins-maps h))) (str type))
         (t/is (= (count pts) (reduce + (map second (:bins h))) (reduce + (vals (:frequencies h))))
               (str type " counts partition all samples"))))))
 
 (t/deftest histogram2d-sparse-test
   ;; a single, isolated point in an otherwise-large bounding region must not pull in empty cells
-  (let [h (sut/histogram2d [[0.0 0.0] [1000.0 1000.0]] :square 10.0)]
+  (let [h (sut/histogram2d [[0.0 0.0] [1000.0 1000.0]] 10.0)]
     (t/is (= 2 (:size h)) "only occupied cells, not every cell spanning the bbox")))
 
 (t/deftest histogram2d-boundary-test
   (t/testing "empty input: well-formed, no crash"
-    (let [h (sut/histogram2d [] :square)]
+    (let [h (sut/histogram2d [])]
       (t/is (= 0 (:size h)))
       (t/is (= 0 (:samples h)))
       (t/is (nil? (:min h)))
@@ -1809,22 +1822,93 @@ matches auc-roc"
       (t/is (= () (:bins-maps h)))
       (t/is (= {} (:frequencies h)))))
   (t/testing "single point"
-    (let [h (sut/histogram2d [[1.0 2.0]] :square 5.0)]
+    (let [h (sut/histogram2d [[1.0 2.0]] 5.0)]
       (t/is (= 1 (:size h)))
       (t/is (= 1 (:count (first (:bins-maps h)))))))
   (t/testing "two points, same cell"
-    (let [h (sut/histogram2d [[1.0 1.0] [2.0 2.0]] :square 10.0)]
+    (let [h (sut/histogram2d [[1.0 1.0] [2.0 2.0]] 10.0)]
       (t/is (= 1 (:size h)))
       (t/is (= [2] (map second (:bins h))))))
   (t/testing "all-identical points"
-    (let [h (sut/histogram2d (repeat 5 [3.0 3.0]) :square 10.0)]
+    (let [h (sut/histogram2d (repeat 5 [3.0 3.0]) 10.0)]
       (t/is (= 1 (:size h)))
       (t/is (= [5] (map second (:bins h))))))
   (t/testing "large n"
     (let [pts (vec (for [i (range 5000)] [(double (mod i 37)) (double (mod (* i 7) 41))]))
-          h (sut/histogram2d pts :pointy-hex 3.0)]
+          h (sut/histogram2d pts 3.0 {:grid :pointy-hex})]
       (t/is (= 5000 (:samples h)))
       (t/is (= 5000 (reduce + (map second (:bins h))))))))
+
+;; estimate-grid-size methods and the histogram2d options
+
+(def ^:private mixture-2d-points
+  (let [g (r/rng :mersenne 11)]
+    (vec (concat (repeatedly 150 #(vector (r/grandom g -2.0 0.5) (r/grandom g 0.0 0.5)))
+                 (repeatedly 150 #(vector (r/grandom g 2.0 0.7) (r/grandom g 1.0 0.7)))))))
+
+;; estimate-bins: the data-driven methods through histogram
+
+(t/deftest estimate-bins-data-driven-test
+  (let [xs (map first mixture-2d-points)
+        avs (m/seq->double-array xs)]
+    (t/is (= (bins/cross-validation-bins avs) (sut/estimate-bins xs :cross-validation)
+             (:size (sut/histogram xs :cross-validation))))
+    (t/is (= (bins/shimazaki-shinomoto-bins avs) (sut/estimate-bins xs :shimazaki-shinomoto)
+             (:size (sut/histogram xs :shimazaki-shinomoto))))
+    (t/is (= (bins/cross-validation-bins avs {:shifts 4 :candidates 50})
+             (sut/estimate-bins xs :cross-validation {:shifts 4 :candidates 50})))
+    (t/is (= (sut/estimate-bins xs :scott) (sut/estimate-bins xs :scott {:shifts 4})) "options ignored by the rules of thumb")
+    (t/is (= 1 (sut/estimate-bins [5.0] :cross-validation)))
+    (t/is (= 0 (sut/estimate-bins [] :shimazaki-shinomoto)) "capped at the number of samples, as the other methods")))
+
+(t/deftest estimate-grid-size-methods-test
+  (let [xs (m/seq->double-array (map first mixture-2d-points))
+        ys (m/seq->double-array (map second mixture-2d-points))]
+    (t/is (= (sut/estimate-grid-size mixture-2d-points)
+             (sut/estimate-grid-size mixture-2d-points nil)
+             (sut/estimate-grid-size mixture-2d-points :scott-correlated {:grid :square}))
+          "the default method is :scott-correlated on :square cells")
+    (doseq [[method area] [[:scott (bins/scott-2d xs ys)]
+                           [:scott-correlated (bins/scott-correlated xs ys)]
+                           [:freedman-diaconis (bins/freedman-diaconis-2d xs ys)]
+                           [:cross-validation (bins/cross-validation-2d xs ys :pointy-hex {:sv [0.3 0.7]})]
+                           [:shimazaki-shinomoto (bins/shimazaki-shinomoto-2d xs ys :pointy-hex {:sv [0.3 0.7]})]]]
+      (t/is (m/delta-eq (grid/area->size :pointy-hex area)
+                        (sut/estimate-grid-size mixture-2d-points method {:grid :pointy-hex :sv [0.3 0.7]}))
+            (str method)))))
+
+(t/deftest histogram2d-estimates-on-its-own-grid-test
+  (let [opts {:grid :pointy-hex :sv [0.3 0.7]}
+        h (sut/histogram2d mixture-2d-points :cross-validation opts)]
+    (t/is (= (:step h) (sut/estimate-grid-size mixture-2d-points :cross-validation opts)))
+    (t/is (= :pointy-hex (grid/grid-type (:grid h))))
+    (t/is (v/delta-eq (v/vec2 0.3 0.7) (grid/cell->anchor (:grid h) 0 0))))
+  (t/testing "a number is the size"
+    (t/is (= 2.5 (:step (sut/histogram2d mixture-2d-points 2.5 {:grid :triangle}))))))
+
+(t/deftest histogram2d-data-driven-minimum-test
+  ;; the chosen size of the data-driven methods has the lowest cost among the candidates, with the
+  ;; cost recomputed from histogram2d counts (no external oracle for the non-square cells)
+  (let [pts (vec (take 120 mixture-2d-points))
+        n (double (count pts))
+        candidates 25]
+    (doseq [type grid/cell-names
+            [method cost] [[:cross-validation (fn [h a] (/ (- 2.0 (/ (* (inc n) (reduce + (map #(* % %) (vals (:frequencies h))))) (* n n))) a))]
+                           [:shimazaki-shinomoto (fn [h a] (let [cells (map first (:bins h))
+                                                                 qs (map first cells) rs (map second cells)
+                                                                 mc (* (inc (- (apply max qs) (apply min qs))) (inc (- (apply max rs) (apply min rs))))
+                                                                 kbar (/ n mc)
+                                                                 v (- (/ (reduce + (map #(* % %) (vals (:frequencies h)))) mc) (* kbar kbar))]
+                                                             (/ (- (* 2.0 kbar) v) (* a a))))]]]
+      (let [xs (m/seq->double-array (map first pts))
+            ys (m/seq->double-array (map second pts))
+            sizes (#'bins/grid-candidates xs ys type candidates)
+            chosen (sut/estimate-grid-size pts method {:grid type :candidates candidates})
+            costs (map (fn [size] (cost (sut/histogram2d pts size {:grid type}) (grid/area (grid/grid type size)))) sizes)
+            best (apply min costs)]
+        (t/is (some #(m/delta-eq chosen %) sizes) (str type " " method " chosen size is a candidate"))
+        (t/is (m/delta-eq best (cost (sut/histogram2d pts chosen {:grid type}) (grid/area (grid/grid type chosen))))
+              (str type " " method " chosen size has the lowest cost"))))))
 
 ;; dissimilarity (40 methods) / similarity (12 methods)
 ;; reference values: independent from-scratch Python re-implementation of every formula listed
