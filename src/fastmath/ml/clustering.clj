@@ -1,26 +1,30 @@
 (ns fastmath.ml.clustering
-  "Clustering of points: k-means++, fuzzy k-means and DBSCAN, with cluster validation helpers.
+  "Clustering of points: k-means++, fuzzy k-means, DBSCAN and hierarchical clustering, with cluster validation helpers.
 
-  Algorithms are backed by Apache Commons Math. Points are sequences of numbers (or arrays); a plain number is a 1-dimensional point. All points have to have the same, non-zero dimension and finite coordinates.
+  K-means++, fuzzy k-means and DBSCAN are backed by Apache Commons Math. Points are sequences of numbers (or arrays); a plain number is a 1-dimensional point. All points have to have the same, non-zero dimension and finite coordinates.
 
-  Every clustering function returns a vector of cluster maps. A cluster map contains:
+  Every clustering function returns a vector of cluster maps ([[hclust]] returns it as `:clusters`). A cluster map contains:
 
-  - `:representative` - the centre of the cluster (centroid for k-means++ and fuzzy k-means, the mean of cluster points for DBSCAN),
+  - `:representative` - the centre of the cluster (centroid for k-means++ and fuzzy k-means, the mean of cluster points for DBSCAN and hierarchical clustering),
   - `:size` - the number of points,
   - `:indices` - positions of the cluster points in the input sequence (the order within a cluster is not specified),
   - `:data` - the cluster points (vectors of doubles), unless `:add-data?` is `false`.
 
-  The order of clusters and the choice of representatives depend on the random number generator. The default `:rng` is a new generator for every call, pass a seeded generator (`fastmath.random/rng`) for reproducible results.
+  The order of clusters and the choice of representatives of k-means++, fuzzy k-means and DBSCAN depend on the random number generator. The default `:rng` is a new generator for every call, pass a seeded generator (`fastmath.random/rng`) for reproducible results.
 
   Options are validated: an invalid option throws `ex-info` with the keys `:option`, `:value` and `:expected`. `:value` is the invalid value; it is `nil` when the value is the whole input or a whole result (data can be large), and a single point when the points differ in dimension. Unknown option keys are ignored.
 
-  `:distance` is a keyword (`:euclidean`, `:chebyshev`, `:manhattan`, `:canberra`, `:earth-movers`), a function of two points (ie. a function from `fastmath.distance`) or an Apache Commons Math `DistanceMeasure`. A distance has to be non-negative and equal to 0 for equal points (`d(x, x) = 0`): the radius selection of [[dbscan]] and [[silhouette]] rely on it and return wrong values otherwise.
+  `:distance` is a keyword (`:euclidean`, `:chebyshev`, `:manhattan`, `:canberra`, `:earth-movers`), a function of two points (ie. a function from `fastmath.distance`) or an Apache Commons Math `DistanceMeasure` ([[hclust]] takes a keyword or a function only, or `:precomputed` for a distance matrix). A distance has to be non-negative and equal to 0 for equal points (`d(x, x) = 0`): the radius selection of [[dbscan]] and [[silhouette]] rely on it and return wrong values otherwise.
 
-  Functions: [[kmeans++]], [[fuzzy-kmeans]], [[dbscan]], [[infer-dbscan-radius]] (clustering and the radius selection), [[predict]], [[wcss]], [[silhouette]] (working on a clustering result)."
+  Hierarchical clustering ([[hclust]]) returns a map with the cluster maps (`:clusters`) and the tree of merges (`:tree`, a dendrogram in the format of R `hclust`); [[cut]] cuts the tree into another number of clusters, [[cophenetic]], [[cophenetic-correlation]] and [[->linkage-matrix]] work on the tree.
+
+  Functions: [[kmeans++]], [[fuzzy-kmeans]], [[dbscan]], [[infer-dbscan-radius]], [[hclust]] (clustering and the radius selection), [[predict]], [[wcss]], [[silhouette]] (working on a clustering result), [[cut]], [[cophenetic]], [[cophenetic-correlation]], [[->linkage-matrix]] (working on a result of [[hclust]])."
   (:require [fastmath.distance :as dists]
             [fastmath.random :as r]
             [fastmath.core :as m]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+            [fastmath.stats :as stats]
+            [fastmath.ml.clustering.hierarchical :as hier])
   (:import [org.apache.commons.math3.ml.clustering
             KMeansPlusPlusClusterer
             KMeansPlusPlusClusterer$EmptyClusterStrategy
@@ -32,7 +36,8 @@
             DistanceMeasure
             EuclideanDistance ManhattanDistance ChebyshevDistance CanberraDistance EarthMoversDistance]
            [org.apache.commons.math3.linear RealMatrix]
-           [org.apache.commons.math3.random RandomGenerator]))
+           [org.apache.commons.math3.random RandomGenerator]
+           [fastmath.java Array]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -449,14 +454,14 @@
   (let [clusters (when (sequential? result) (into [] (remove :noise?) result))]
     (if (and (seq clusters) (every? #(and (map? %) (:representative %)) clusters))
       clusters
-      (invalid-option :result nil "a result of kmeans++, fuzzy-kmeans or dbscan"))))
+      (invalid-option :result nil "a result of kmeans++, fuzzy-kmeans, dbscan or the :clusters of hclust (on points)"))))
 
 (defn predict
   "Finds the cluster of a point: the index of the nearest representative.
 
   Parameters:
 
-  - `result` - a result of [[kmeans++]], [[fuzzy-kmeans]] or [[dbscan]] (the noise map is ignored)
+  - `result` - a result of [[kmeans++]], [[fuzzy-kmeans]], [[dbscan]] or the `:clusters` of [[hclust]] on points (the noise map is ignored)
   - `x` - a point of the dimension of the representatives
   - `distance` - distance (keyword, function or `DistanceMeasure`), default: `:euclidean`; use the one used for the clustering
 
@@ -486,7 +491,7 @@
 
   Parameters:
 
-  - `result` - a result of [[kmeans++]], [[fuzzy-kmeans]] or [[dbscan]] with `:data` (the noise map is ignored)
+  - `result` - a result of [[kmeans++]], [[fuzzy-kmeans]], [[dbscan]] or the `:clusters` of [[hclust]] on points with `:data` (the noise map is ignored)
   - `distance` - distance (keyword, function or `DistanceMeasure`), default: `:euclidean`
 
   Returns a double, lower is better for the same number of clusters.
@@ -534,7 +539,7 @@
 
   Parameters:
 
-  - `result` - a result of [[kmeans++]], [[fuzzy-kmeans]] or [[dbscan]] with `:data` and at least 2 clusters (the noise map is ignored)
+  - `result` - a result of [[kmeans++]], [[fuzzy-kmeans]], [[dbscan]] or the `:clusters` of [[hclust]] on points with `:data` and at least 2 clusters (the noise map is ignored)
   - `distance` - distance (keyword, function or `DistanceMeasure`), default: `:euclidean`
 
   Returns a map:
@@ -570,3 +575,287 @@
        {:mean (m// (v/sum samples) (count samples))
         :samples samples
         :indices (mapv first scored)}))))
+
+;; ## Hierarchical clustering
+
+(def ^{:private true :const true :tag 'long} max-observations 65536)
+
+(def ^:private hclust-methods #{:single :complete :average :weighted :centroid :median :ward :ward-d :diana})
+(def ^:private hclust-algorithms #{:generic :fast})
+
+(def ^:private point-distances
+  {:euclidean dists/euclidean
+   :chebyshev dists/chebyshev
+   :manhattan dists/manhattan
+   :canberra dists/canberra
+   :earth-movers dists/earth-movers})
+
+(defn- ->point-distance
+  "Resolve a distance keyword or a function of two points to a function of two points."
+  [distance]
+  (let [expected (str "one of " (sort (keys point-distances)) ", :precomputed or a function of two points")]
+    (cond
+      (keyword? distance) (or (point-distances distance) (invalid-option :distance distance expected))
+      (fn? distance) distance
+      :else (invalid-option :distance distance expected))))
+
+(defn- check-observation-count
+  "Throws when `xss` has more than 65536 elements, before any element is converted."
+  [xss]
+  (when (and (seqable? xss) (not (string? xss)) (not (map? xss)))
+    (let [n (long (bounded-count (m/inc max-observations) xss))]
+      (when (m/> n max-observations)
+        (invalid-option :xss nil "at most 65536 observations")))))
+
+(defn- matrix-row
+  ^doubles [row expected]
+  (let [arr (try (v/vec->array row) (catch Exception _ nil))]
+    (if (instance? (Class/forName "[D") arr) arr (invalid-option :xss nil expected))))
+
+(defn- ->distance-rows
+  "Validate a square distance matrix and return its rows as double arrays."
+  [xss]
+  (let [expected "a square matrix of finite, non-negative and symmetric distances with zeros on the diagonal"]
+    (when-not (and (sequential? xss) (seq xss))
+      (invalid-option :xss nil expected))
+    (let [rows (mapv #(matrix-row % expected) xss)
+          n (count rows)
+          entry (fn ^double [^long i ^long j] (Array/aget ^doubles (rows i) j))]
+      (when-not (and (every? #(m/== n (alength ^doubles %)) rows)
+                     (every? (fn [^doubles row] (every? #(and (m/valid-double? %) (m/>= (double %) 0.0)) row)) rows)
+                     (every? (fn [^long i] (m/zero? (Array/aget ^doubles (rows i) i))) (range n))
+                     (every? (fn [[^long i ^long j]] (m/delta-eq (entry i j) (entry j i)))
+                             (for [i (range n) j (range i)] [i j])))
+        (invalid-option :xss nil expected))
+      rows)))
+
+(defn- hierarchy-input
+  "Observations of `xss` for the `distance` option: their number, the condensed distances (a function, every call gives a new array), the distance between two observations and the points (`nil` for a distance matrix)."
+  [xss distance]
+  (check-observation-count xss)
+  (if (= distance :precomputed)
+    (let [rows (->distance-rows xss)]
+      {:n (count rows)
+       :condensed (fn [] (hier/matrix-distances rows))
+       :pair-distance (fn ^double [^long i ^long j] (Array/aget ^doubles (rows i) j))})
+    (let [dist (->point-distance distance)
+          arrays (points->arrays (->points xss))]
+      {:n (count arrays)
+       :arrays arrays
+       :condensed (fn [] (hier/data-distances arrays dist))
+       :pair-distance (fn ^double [^long i ^long j] (hier/point-distance dist (arrays i) (arrays j)))})))
+
+(defn- check-cut-options
+  "Validates `:k` and `:h` (not both, `:k` defaults to 1)."
+  [k h]
+  (cond
+    (and (some? k) (some? h)) (invalid-option :k k "either :k or :h, not both")
+    (some? h) {:h (check-double :h h 0.0 true "a finite number, at least 0")}
+    :else {:k (check-integer :k (or k 1) 1 "an integer between 1 and the number of observations")}))
+
+(defn- cluster-count
+  "The number of clusters for the validated cut options of a tree of `n` observations."
+  ^long [{:keys [k h]} {:keys [height]} ^long n]
+  (if (some? h)
+    (if (every? true? (map <= height (rest height)))
+      (hier/clusters-for-height height n h)
+      (invalid-option :h h "a hierarchy with non-decreasing heights (no inversions), use :k"))
+    (if (m/> (long k) n)
+      (invalid-option :k k "an integer between 1 and the number of observations")
+      (long k))))
+
+(defn- tree-clusters
+  "Cluster maps of the cut of `tree` into `k` clusters."
+  [tree {:keys [n arrays pair-distance]} ^long k add-data?]
+  (mapv (fn [indices]
+          (let [res {:medoid (hier/medoid indices pair-distance)
+                     :size (count indices)
+                     :indices indices}]
+            (if arrays
+              (let [data (mapv #(vec (arrays %)) indices)
+                    res (assoc res :representative (vec (v/average-vectors data)))]
+                (if add-data? (assoc res :data data) res))
+              res)))
+        (hier/clusters-at (:merge tree) n k)))
+
+(defn- hclust-result
+  "A result of [[hclust]]: the clusters of the cut of `tree` and the tree."
+  [tree input cut-options add-data?]
+  (let [k (cluster-count cut-options tree (:n input))]
+    {:clusters (tree-clusters tree input k add-data?)
+     :tree tree}))
+
+(defn- result-tree
+  "The tree of a result of [[hclust]]."
+  [result]
+  (let [{:keys [merge height order n] :as tree} (when (map? result) (:tree result))]
+    (if (and (vector? (:clusters result)) (vector? merge) (vector? height) (vector? order) (int? n))
+      tree
+      (invalid-option :result nil "a result of hclust (a map with :clusters and :tree)"))))
+
+(defn- check-input-size
+  [input ^long n]
+  (when-not (m/== n (long (:n input)))
+    (invalid-option :xss nil (str n " observations, as clustered in the result"))))
+
+(defn hclust
+  "Hierarchical clustering: builds a tree of nested clusters (a dendrogram) and cuts it into flat clusters.
+
+  Agglomerative methods start with every observation as a cluster and repeatedly merge the two closest clusters, the distance between clusters is defined by the linkage `:method`. The divisive method (`:diana`, DIANA) starts with one cluster and splits clusters until every observation is alone: the most distant observation starts a splinter group and observations closer to it on average move to it; the height of a split is the diameter of the split cluster. The result follows R `hclust`: the merge heights and the encoding of merges are the same.
+
+  Parameters:
+
+  - `xss` - a non-empty sequence of points (sequences, arrays or numbers, see the namespace documentation) or, with `:distance` `:precomputed`, a square matrix (a sequence of rows) of distances between observations: finite, non-negative, symmetric, with zeros on the diagonal. At most 65536 observations.
+  - options (a map):
+    - `:method` - the linkage, default: `:complete`
+      - `:single` - the shortest distance between points of two clusters
+      - `:complete` - the longest distance between points of two clusters
+      - `:average` - the mean distance between points of two clusters (UPGMA)
+      - `:weighted` - the mean of distances of the two merged clusters (WPGMA, R `mcquitty`)
+      - `:centroid` - the distance between centroids (UPGMC), as SciPy `centroid` (R `centroid` on squared distances, the heights are square roots)
+      - `:median` - the distance between weighted centroids (WPGMC), as SciPy `median` (R `median` on squared distances, the heights are square roots)
+      - `:ward` - the increase of the within-cluster variance, Ward's method on squared distances (R `ward.D2`, SciPy `ward`)
+      - `:ward-d` - Ward's update applied to distances, not squared (R `ward.D`)
+      - `:diana` - divisive analysis (R `cluster::diana`)
+    - `:distance` - a keyword (`:euclidean`, `:chebyshev`, `:manhattan`, `:canberra`, `:earth-movers`), a function of two points (ie. a function from `fastmath.distance`, it gets double arrays) or `:precomputed` for a distance matrix, default: `:euclidean`
+    - `:algorithm` - `:generic` (default) or `:fast` (agglomerative methods only, it throws for `:diana`), see below
+    - `:k` - the number of clusters, an integer between 1 and the number of observations, default: `1`
+    - `:h` - the height of the cut, a finite number not smaller than 0: merges at a height not greater than `:h` are kept. Only one of `:k` and `:h` can be given.
+    - `:add-data?` - add `:data` to the clusters, default: `true`
+
+  Any distance works with any method. The `:centroid`, `:median` and `:ward` methods assume the Euclidean distance: with another distance the heights have no geometric meaning, and `:centroid` or `:median` can give `NaN` heights (a negative squared distance).
+
+  `:algorithm` `:generic` reproduces R `hclust` exactly, also for ties. `:fast` uses the minimum spanning tree (`:single`) or the nearest-neighbour chain (`:complete`, `:average`, `:weighted`, `:ward`, `:ward-d`), as SciPy, and is faster for many observations. Without ties the tree is the same and the heights agree up to rounding; with ties another tree with the same heights can be returned. `:centroid` and `:median` always use the generic algorithm.
+
+  Returns a map:
+
+  - `:clusters` - a vector of cluster maps, ordered by the first observation of every cluster (as R `cutree`)
+  - `:tree` - the tree of merges (a dendrogram)
+
+  A cluster map contains:
+
+  - `:indices` - positions of the observations in `xss`, ascending
+  - `:size` - the number of observations
+  - `:medoid` - the position of the observation with the lowest sum of distances to the other observations of the cluster (the lowest position on ties)
+  - `:representative` - the mean of the points of the cluster (only for points)
+  - `:data` - the points of the cluster (only for points, unless `:add-data?` is `false`)
+
+  The tree is a map:
+
+  - `:merge` - `n-1` merges `[a b]` as in R `hclust`: a negative number `-i` is the observation at the position `i-1` of `xss`, a positive number `j` is the cluster made by the merge `j` (counted from 1). A single observation goes first, two clusters are ordered.
+  - `:height` - `n-1` heights of the merges, non-decreasing except for `:centroid` and `:median` (inversions)
+  - `:order` - positions of the observations in the order of the leaves of the dendrogram (for plotting)
+  - `:n` - the number of observations
+  - `:method`, `:distance`, `:algorithm` - the options used (no `:algorithm` for `:diana`)
+  - `:dc` - the divisive coefficient (`:diana` only)
+
+  The `:clusters` of a result of points work with [[predict]], [[wcss]] and [[silhouette]]; for a distance matrix they have no `:representative` and `:data`, so these functions throw.
+
+  It needs O(n^2) memory, the time is between O(n^2) and O(n^3).
+
+  Throws `ex-info` for an invalid option or data, for `:h` with inversions, and for `:algorithm` with `:diana`.
+
+  See also [[cut]], [[cophenetic]], [[cophenetic-correlation]], [[->linkage-matrix]]."
+  ([xss] (hclust xss nil))
+  ([xss {:keys [method distance algorithm k h add-data?]}]
+   (let [method (check-member :method (or method :complete) hclust-methods)
+         diana? (= method :diana)
+         _ (when (and diana? (some? algorithm))
+             (invalid-option :algorithm algorithm "no :algorithm for :diana"))
+         algorithm (when-not diana? (check-member :algorithm (or algorithm :generic) hclust-algorithms))
+         distance (or distance :euclidean)
+         cut-options (check-cut-options k h)
+         input (hierarchy-input xss distance)
+         n (long (:n input))
+         d ((:condensed input))
+         tree (cond-> (assoc (if diana? (hier/diana d n) (hier/agglomerate d n method algorithm))
+                             :n n :method method :distance distance)
+                algorithm (assoc :algorithm algorithm))]
+     (hclust-result tree input cut-options (if (nil? add-data?) true add-data?)))))
+
+(defn cut
+  "Cuts the tree of a result of [[hclust]] into another number of clusters, without clustering again.
+
+  Parameters:
+
+  - `result` - a result of [[hclust]]
+  - `xss` - the data clustered by [[hclust]] (points or the distance matrix), needed for `:representative`, `:medoid` and `:data`
+  - options (a map):
+    - `:k` - the number of clusters, an integer between 1 and the number of observations, default: `1`
+    - `:h` - the height of the cut, a finite number not smaller than 0 (not for a tree with inversions)
+    - `:add-data?` - add `:data` to the clusters, default: `true`
+
+  Returns a new result, as [[hclust]], with the same `:tree`.
+
+  Throws `ex-info` for an invalid result, options, or `xss` with another number of observations.
+
+  See also [[hclust]]."
+  ([result xss] (cut result xss nil))
+  ([result xss {:keys [k h add-data?]}]
+   (let [tree (result-tree result)
+         cut-options (check-cut-options k h)
+         input (hierarchy-input xss (:distance tree))]
+     (check-input-size input (:n tree))
+     (hclust-result tree input cut-options (if (nil? add-data?) true add-data?)))))
+
+(defn cophenetic
+  "Cophenetic distances of a result of [[hclust]]: the height of the merge which first joins two observations.
+
+  Parameters:
+
+  - `result` - a result of [[hclust]]
+
+  Returns a square matrix (a vector of `n` vectors of doubles) with zeros on the diagonal, as R `cophenetic`.
+
+  Throws `ex-info` for an invalid result.
+
+  See also [[cophenetic-correlation]], [[hclust]]."
+  [result]
+  (let [{:keys [merge height n]} (result-tree result)
+        n (long n)
+        d (hier/cophenetic-distances merge height n)]
+    (mapv (fn [i] (mapv (fn [j] (hier/distance-at d n i j)) (range n))) (range n))))
+
+(defn cophenetic-correlation
+  "Cophenetic correlation of a result of [[hclust]]: how well the tree preserves the distances between observations.
+
+  The Pearson correlation between the cophenetic distances (see [[cophenetic]]) and the distances of all pairs of observations. A value close to 1 means the dendrogram is a faithful summary of the distances.
+
+  Parameters:
+
+  - `result` - a result of [[hclust]]
+  - `xss` - the data clustered by [[hclust]] (points or the distance matrix)
+
+  Returns a double, `NaN` for less than 3 observations or when the distances or the cophenetic distances are all equal.
+
+  Throws `ex-info` for an invalid result or `xss` with another number of observations.
+
+  See also [[cophenetic]], [[hclust]]."
+  ^double [result xss]
+  (let [{:keys [merge height n distance]} (result-tree result)
+        n (long n)
+        input (hierarchy-input xss distance)]
+    (check-input-size input n)
+    (if (m/< n 3)
+      ##NaN
+      (let [c (hier/cophenetic-distances merge height n)
+            d ((:condensed input))]
+        (if (or (apply m/== (seq c)) (apply m/== (seq d)))
+          ##NaN
+          (stats/pearson-correlation c d))))))
+
+(defn ->linkage-matrix
+  "Converts the tree of a result of [[hclust]] to the SciPy linkage matrix.
+
+  Parameters:
+
+  - `result` - a result of [[hclust]]
+
+  Returns a vector of `n-1` rows `[a b height count]`: clusters `a < b` merged at `height` into a cluster of `count` observations. Clusters `0..n-1` are observations, the cluster made by the row `i` (counted from 0) is `n+i`.
+
+  Throws `ex-info` for an invalid result.
+
+  See also [[hclust]]."
+  [result]
+  (let [{:keys [merge height n]} (result-tree result)]
+    (hier/linkage-matrix merge height n)))

@@ -739,3 +739,250 @@
                                (naive x k dist)
                                (k-distances (->arrays (->points x)) (->distance dname) k)))
             (str label " k=" k " " dname)))))
+
+;; ## Hierarchical clustering
+;; Reference values: R 4.5.2 stats/cluster (utils/fastmath/dev/generate_hclust_reference.R),
+;; SciPy 1.18.1 (generate_hclust_reference.py), Clustering.jl 0.15.8 (generate_hclust_reference.jl).
+
+(defn- edn-resource [name] (delay (-> (str "clustering/" name) io/resource slurp edn/read-string)))
+
+(def ^:private hclust-r (edn-resource "hclust_reference.edn"))
+(def ^:private hclust-scipy (edn-resource "hclust_scipy_reference.edn"))
+(def ^:private hclust-julia (edn-resource "hclust_julia_reference.edn"))
+
+(def ^:private agglomerative-methods [:single :complete :average :weighted :centroid :median :ward :ward-d])
+(def ^:private tie-free-sets #{:x8 :x30 :manhattan :triangle :pair})
+
+(defn- labels
+  "Label of every observation (the position of its cluster)."
+  [{:keys [clusters]}]
+  (reduce (fn [acc [label {:keys [indices]}]] (reduce #(assoc %1 %2 label) acc indices))
+          (vec (repeat (reduce + (map :size clusters)) nil))
+          (map-indexed vector clusters)))
+
+(defn- heights= [a b] (and (= (count a) (count b)) (every? true? (map m/delta-eq a b))))
+
+(defn- matrix= [a b] (and (= (count a) (count b)) (every? true? (map heights= a b))))
+
+(defn- nan= [a b] (if (m/nan? a) (m/nan? b) (m/delta-eq a b)))
+
+(defn- run-hclust [{:keys [data distance]} opts] (sut/hclust data (assoc opts :distance distance)))
+
+(t/deftest hclust-r-reference
+  (doseq [[set-name ref] @hclust-r
+          method (conj agglomerative-methods :diana)
+          algorithm (if (= method :diana) [nil] [:generic :fast])
+          :when (or (= algorithm :generic) (nil? algorithm) (tie-free-sets set-name))
+          :let [expected (ref method)
+                result (run-hclust ref (cond-> {:method method} algorithm (assoc :algorithm algorithm)))
+                tree (:tree result)
+                n (count (:data ref))
+                label (str set-name " " method " " algorithm)]]
+    (t/testing label
+      (t/is (= (:merge expected) (:merge tree)))
+      (t/is (heights= (:height expected) (:height tree)))
+      (t/is (= (:order expected) (:order tree)))
+      (t/is (matrix= (:cophenetic expected) (sut/cophenetic result)))
+      (t/is (nan= (:cophenetic-correlation expected) (sut/cophenetic-correlation result (:data ref))))
+      (when (= method :diana) (t/is (m/delta-eq (:dc expected) (:dc tree))))
+      (doseq [[k expected-labels] (map vector (range 1 (inc n)) (:k expected))]
+        (t/is (= expected-labels (labels (sut/cut result (:data ref) {:k k}))) (str label " k=" k)))
+      ;; :fast heights agree with R up to rounding, so a cut exactly at a height is checked for :generic only
+      (doseq [[h expected-labels] (map vector (:h expected) (:h-labels expected))
+              :when (or (not= algorithm :fast) (not-any? #(== h %) (:height expected)))]
+        (t/is (= expected-labels (labels (sut/cut result (:data ref) {:h h}))) (str label " h=" h))))))
+
+(t/deftest hclust-scipy-reference
+  (doseq [[set-name ref] @hclust-scipy
+          [scipy-method expected] ref
+          algorithm [:generic :fast]
+          :let [r-ref (@hclust-r set-name)
+                result (run-hclust r-ref {:method scipy-method :algorithm algorithm})
+                label (str set-name " " scipy-method " " algorithm)]]
+    (t/testing label
+      (let [z (sut/->linkage-matrix result)]
+        (t/is (= (map #(nth % 0) (:linkage expected)) (map #(nth % 0) z)))
+        (t/is (= (map #(nth % 1) (:linkage expected)) (map #(nth % 1) z)))
+        (t/is (= (map #(nth % 3) (:linkage expected)) (map #(nth % 3) z)))
+        (t/is (heights= (map #(nth % 2) (:linkage expected)) (map #(nth % 2) z))))
+      (t/is (nan= (:cophenetic-correlation expected) (sut/cophenetic-correlation result (:data r-ref)))))))
+
+(t/deftest hclust-julia-reference
+  (doseq [[set-name ref] @hclust-julia
+          [method expected] ref
+          algorithm [:generic :fast]
+          :let [tree (:tree (run-hclust (@hclust-r set-name) {:method method :algorithm algorithm}))]]
+    (t/testing (str set-name " " method " " algorithm)
+      (t/is (= (:merge expected) (:merge tree)))
+      (t/is (heights= (:height expected) (:height tree)))
+      (t/is (= (:order expected) (:order tree))))))
+
+(defn- random-points [seed n dim]
+  (let [g (rng seed)] (vec (repeatedly n #(vec (repeatedly dim (fn [] (r/drandom g))))))))
+
+(t/deftest hclust-invariants
+  (doseq [n [1 2 3 17 40]
+          method (conj agglomerative-methods :diana)
+          algorithm (if (= method :diana) [nil] [:generic :fast])
+          :let [x (random-points n n 3)
+                result (sut/hclust x (cond-> {:method method :k (max 1 (quot n 3))}
+                                       algorithm (assoc :algorithm algorithm)))
+                {:keys [merge height order] :as tree} (:tree result)
+                clusters (:clusters result)
+                label (str n " " method " " algorithm)]]
+    (t/testing label
+      (when (> n 1)
+        (t/is (= (concat (range (- n) 0) (range 1 (dec n))) (sort (flatten merge))) "a valid R merge"))
+      (t/is (= (dec n) (count merge) (count height)))
+      (when-not (#{:centroid :median} method)
+        (t/is (every? true? (map <= height (rest height))) "non-decreasing heights"))
+      (t/is (= (range n) (sort order)) "order is a permutation")
+      (t/is (= (range n) (sort (mapcat :indices clusters))) "clusters partition the observations")
+      (t/is (every? #(apply < (:indices %)) clusters) "ascending indices")
+      (t/is (apply < (map (comp first :indices) clusters)) "clusters ordered by the first observation")
+      (t/is (every? (fn [[_ v]] (or (keyword? v) (number? v) (fn? v)
+                                    (and (vector? v) (<= (count v) (max n (* 2 (dec n)))))))
+                    tree)
+            "the tree keeps only small persistent values"))))
+
+(t/deftest hclust-fast-equals-generic
+  ;; random data has no ties: the nearest-neighbour chain and the MST give the R tree
+  (doseq [n [50 300]
+          distance [:euclidean :manhattan]
+          method [:single :complete :average :weighted :ward :ward-d :centroid :median]
+          :let [x (random-points (+ n 7) n 4)
+                generic (:tree (sut/hclust x {:method method :distance distance}))
+                fast (:tree (sut/hclust x {:method method :distance distance :algorithm :fast}))]]
+    (t/testing (str n " " distance " " method)
+      (t/is (= (:merge generic) (:merge fast)))
+      (t/is (heights= (:height generic) (:height fast)))
+      (t/is (= (:order generic) (:order fast))))))
+
+(t/deftest hclust-clusters
+  (let [x (:data (:x30 @hclust-r))
+        result (sut/hclust x {:method :average :k 4})]
+    (t/testing "medoid, representative and data"
+      (doseq [{:keys [indices medoid representative data size]} (:clusters result)
+              :let [sums (map (fn [i] (reduce + (map #(d/euclidean (x i) (x %)) indices))) indices)
+                    best (apply min sums)]]
+        (t/is (= size (count indices) (count data)))
+        (t/is (= medoid (first (keep (fn [[i s]] (when (== s best) i)) (map vector indices sums)))))
+        (t/is (v/delta-eq (mean-point (map x indices)) representative))
+        (t/is (= (mapv #(mapv double (x %)) indices) data))))
+    (t/testing "without data"
+      (t/is (not-any? :data (:clusters (sut/hclust x {:k 4 :add-data? false}))))
+      (t/is (every? :data (:clusters (sut/hclust x {:k 4 :add-data? nil})))))
+    (t/testing "a distance matrix gives no representative and data"
+      (let [dm (:data (:manhattan @hclust-r))
+            res (:clusters (sut/hclust dm {:distance :precomputed :k 3}))]
+        (t/is (not-any? #(or (:representative %) (:data %)) res))
+        (t/is (every? :medoid res))
+        (t/is (= :result (thrown-option #(sut/predict res [0 0]))))
+        (t/is (= :result (thrown-option #(sut/wcss res))))
+        (t/is (= :result (thrown-option #(sut/silhouette res))))))
+    (t/testing "predict, wcss and silhouette work for points"
+      (t/is (int? (sut/predict (:clusters result) (x 0))))
+      (t/is (pos? (sut/wcss (:clusters result))))
+      (t/is (<= -1.0 (:mean (sut/silhouette (:clusters result))) 1.0)))
+    (t/testing "cut equals clustering again"
+      (doseq [k (range 1 31)]
+        (t/is (= (sut/hclust x {:method :average :k k}) (sut/cut result x {:k k})) (str "k=" k))
+        (t/is (= (:tree result) (:tree (sut/cut result x {:k k}))))))
+    (t/testing "cut keeps the distance of the result"
+      (let [res (sut/hclust x {:method :single :distance :manhattan})]
+        (t/is (= (sut/hclust x {:method :single :distance :manhattan :k 5}) (sut/cut res x {:k 5})))))))
+
+(t/deftest hclust-boundaries
+  (t/testing "one observation"
+    (doseq [method (conj agglomerative-methods :diana)
+            [xss distance] [[[[1 2]] :euclidean] [[5] :euclidean] [[[0]] :precomputed]]]
+      (let [res (sut/hclust xss {:method method :distance distance})]
+        (t/is (= [0] (:indices (first (:clusters res)))))
+        (t/is (= {:merge [] :height [] :order [0] :n 1} (select-keys (:tree res) [:merge :height :order :n])))
+        (t/is (= [[0.0]] (sut/cophenetic res)))
+        (t/is (= [] (sut/->linkage-matrix res)))
+        (t/is (m/nan? (sut/cophenetic-correlation res xss))))))
+  (t/testing "two observations"
+    (let [res (sut/hclust [[0 0] [3 4]] {:k 2})]
+      (t/is (= [[-1 -2]] (:merge (:tree res))))
+      (t/is (= [5.0] (:height (:tree res))))
+      (t/is (= [[0 1 5.0 2]] (sut/->linkage-matrix res)))
+      (t/is (m/nan? (sut/cophenetic-correlation res [[0 0] [3 4]])))))
+  (t/testing "identical points: zero heights, cut at 0 keeps them together"
+    (let [x [[1 1] [1 1] [1 1] [5 5]]
+          res (sut/hclust x {:h 0})]
+      (t/is (= [0.0 0.0] (take 2 (:height (:tree res)))))
+      (t/is (= [[0 1 2] [3]] (map :indices (:clusters res))))
+      (t/is (= [[0 1 2 3]] (map :indices (:clusters (sut/cut res x {:h 1e6})))))
+      (t/is (m/nan? (:dc (:tree (sut/hclust [[1 1] [1 1] [1 1]] {:method :diana})))))))
+  (t/testing "numbers are 1-dimensional points"
+    (t/is (= (sut/hclust [0 1 3 7] {:k 2}) (sut/hclust [[0] [1] [3] [7]] {:k 2}))))
+  (t/testing "nil options are missing options"
+    (t/is (= (sut/hclust [0 1 3 7]) (sut/hclust [0 1 3 7] {:method nil :distance nil :k nil :h nil :algorithm nil}))))
+  (t/testing "a non-Euclidean distance with :centroid can give NaN heights, :k still works"
+    (let [res (sut/hclust [[0 0] [1 0] [0.51 0.85] [3 3]] {:method :centroid :distance :chebyshev :k 2})]
+      (t/is (= 2 (count (:clusters res))))))
+  (t/testing "a function of two points as the distance"
+    (let [x (:data (:x8 @hclust-r))]
+      (t/is (= (sut/hclust x {:distance :manhattan :k 3})
+               (assoc-in (sut/hclust x {:distance (fn [a b] (d/manhattan a b)) :k 3}) [:tree :distance] :manhattan)))
+      (t/is (= (:clusters (sut/hclust x {:distance :euclidean :k 3}))
+               (:clusters (sut/hclust x {:distance d/euclidean :k 3}))))
+      (t/is (= (:tree (sut/hclust x {:distance d/euclidean-sq :method :single}))
+               (update (:tree (sut/hclust (mapv (fn [a] (mapv #(d/euclidean-sq a %) x)) x)
+                                          {:distance :precomputed :method :single}))
+                       :distance (constantly d/euclidean-sq)))))))
+
+(t/deftest hclust-validation
+  (let [x [[0 0] [1 0] [0 2] [5 5]]
+        dm [[0 1 2] [1 0 3] [2 3 0]]
+        triangle (:data (:triangle @hclust-r))
+        res (sut/hclust x)]
+    (doseq [[option f] [[:method #(sut/hclust x {:method :bogus})]
+                        [:method #(sut/hclust x {:method "single"})]
+                        [:algorithm #(sut/hclust x {:algorithm :slow})]
+                        [:algorithm #(sut/hclust x {:method :diana :algorithm :generic})]
+                        [:algorithm #(sut/hclust x {:method :diana :algorithm :fast})]
+                        [:k #(sut/hclust x {:k 0})]
+                        [:k #(sut/hclust x {:k 5})]
+                        [:k #(sut/hclust x {:k 1.5})]
+                        [:k #(sut/hclust x {:k 2 :h 1.0})]
+                        [:h #(sut/hclust x {:h -1.0})]
+                        [:h #(sut/hclust x {:h ##NaN})]
+                        [:h #(sut/hclust x {:h ##Inf})]
+                        [:h #(sut/hclust triangle {:method :centroid :h 0.5})]
+                        [:h #(sut/hclust triangle {:method :median :h 0.5})]
+                        [:distance #(sut/hclust x {:distance :cosine})]
+                        [:distance #(sut/hclust x {:distance (org.apache.commons.math3.ml.distance.EuclideanDistance.)})]
+                        [:distance #(sut/hclust x {:distance "euclidean"})]
+                        [:xss #(sut/hclust [] {})]
+                        [:xss #(sut/hclust [[1 2] [3]] {})]
+                        [:xss #(sut/hclust (repeat 65537 [1.0]) {})]
+                        [:xss #(sut/hclust [[0 1] [1 0] [2 3]] {:distance :precomputed})]
+                        [:xss #(sut/hclust [[0 -1] [-1 0]] {:distance :precomputed})]
+                        [:xss #(sut/hclust [[1 1] [1 0]] {:distance :precomputed})]
+                        [:xss #(sut/hclust [[0 1] [2 0]] {:distance :precomputed})]
+                        [:xss #(sut/hclust [[0 ##NaN] [##NaN 0]] {:distance :precomputed})]
+                        [:xss #(sut/hclust [[0 1] [1]] {:distance :precomputed})]
+                        [:xss #(sut/hclust [] {:distance :precomputed})]
+                        [:xss #(sut/hclust 5 {:distance :precomputed})]
+                        [:result #(sut/cut (sut/kmeans++ x) x {:k 2})]
+                        [:result #(sut/cut [] x {:k 2})]
+                        [:result #(sut/cut (:clusters res) x {:k 2})]
+                        [:result #(sut/cophenetic (:tree res))]
+                        [:result #(sut/cophenetic {:merge []})]
+                        [:result #(sut/->linkage-matrix (sut/dbscan x {:eps 1.0}))]
+                        [:xss #(sut/cut res (take 3 x) {:k 2})]
+                        [:xss #(sut/cophenetic-correlation res (take 3 x))]
+                        [:xss #(sut/cut (sut/hclust dm {:distance :precomputed}) x {:k 2})]
+                        [:k #(sut/cut res x {:k 5})]
+                        [:h #(sut/cut (sut/hclust triangle {:method :centroid}) triangle {:h 0.5})]]]
+      (t/is (= option (thrown-option f)) (str option)))
+    (t/testing "boundary valid values"
+      (t/is (= 4 (count (:clusters (sut/hclust x {:k 4})))))
+      (t/is (= 1 (count (:clusters (sut/hclust x {:k 1})))))
+      (t/is (= 4 (count (:clusters (sut/hclust x {:h 0.0})))))
+      (t/is (= 2 (count (:clusters (sut/hclust triangle {:method :centroid :k 2})))))
+      (t/is (= 3 (count (:clusters (sut/hclust dm {:distance :precomputed :k 3})))))
+      (t/is (= 3 (count (:clusters (sut/hclust [[0 1 2] [1.0000000000000002 0 3] [2 3 0]] {:distance :precomputed :k 3}))))
+            "symmetric within the default tolerance"))))
