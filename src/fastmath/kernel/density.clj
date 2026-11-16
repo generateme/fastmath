@@ -1,11 +1,11 @@
 (ns fastmath.kernel.density
-  "One dimensional kernel density estimation: kernel functions, bandwidth selectors and the density estimators.
+  "Kernel density estimation: kernel functions, bandwidth selectors and the one and two dimensional density estimators.
 
   A kernel density estimate of the sample `x_1 ... x_n` is `f(x) = 1/(n h) * sum K((x - x_i) / h)` for a kernel `K` (a symmetric probability density) and a bandwidth `h > 0`.
 
   Kernels (standard forms, the compact ones have support `[-1, 1]`; `gaussian` has standard deviation `1`, which is not the convention of `density` in R, where the bandwidth is the standard deviation of the kernel): [[uniform]], [[triangular]], [[epanechnikov]], [[quartic]], [[triweight]], [[tricube]], [[gaussian]], [[cosine]], [[logistic]], [[sigmoid]], [[silverman]], [[laplace]], [[wigner]], [[cauchy]]. Their constants (roughness, second moment, canonical bandwidth, efficiency, radius) are in [[kde-data]].
 
-  Estimators: [[kernel-density]] (the function), [[kernel-density+]] (the function with the fitting details), [[kernel-density-ci]] (with pointwise confidence intervals).
+  Estimators: [[kernel-density]] (the function), [[kernel-density+]] (the function with the fitting details), [[kernel-density-ci]] (with pointwise confidence intervals); two dimensional, a product kernel with a bandwidth per axis: [[kernel-density-2d]], [[kernel-density-2d+]].
 
   Bandwidth selection: [[bandwidth]] with the rules of thumb `:nrd`, `:nrd0`, `:nrd-adjust`, the plug-in selectors `:sj`, `:sj-dpi` (as `bw.SJ` in R) and the cross-validation selectors `:lscv`, `:lcv`, `:rlcv`.
 
@@ -990,3 +990,237 @@
        (let [^double fx (kde x)
              band (m/* za (m/sqrt (m/* factor kded (m/max fx 0.0))))]
          [fx (m/- fx band) (m/+ fx band)])))))
+
+;; two dimensional density
+
+(def ^:private bandwidth-2d-keywords (conj bandwidth-keywords :scott))
+
+(defn- paired-data
+  "Validates `xs` and `ys` (finite numbers, equal non-zero lengths) and returns `[xs ys]` as `double[]` sorted by `x`
+  (pairs kept; the inputs are not modified)."
+  [function xs ys]
+  (let [as-array (fn [property data]
+                   (let [^doubles a (try (m/seq->double-array data)
+                                         (catch Exception _
+                                           (invalid-input! function property "must be a sequence of numbers" data
+                                                           "a sequence of finite numbers")))]
+                     (when (or (nil? a) (m/zero? (alength a)))
+                       (invalid-input! function property "must not be empty" data "a non-empty sequence of finite numbers"))
+                     (dotimes [i (alength a)]
+                       (when-not (m/valid-double? (Array/aget a i))
+                         (invalid-input! function property (str "contains a non finite value at index " i) (Array/aget a i)
+                                         "finite numbers")))
+                     a))
+        ^doubles ax (as-array :xs xs)
+        ^doubles ay (as-array :ys ys)
+        n (alength ax)]
+    (when-not (m/== n (alength ay))
+      (invalid-input! function :ys (str "must have the length of xs (" n ")") (alength ay) "as many values as xs"))
+    (let [order (sort-by (fn [^long i] (Array/aget ax i)) (range n))
+          sx (double-array n)
+          sy (double-array n)]
+      (doseq [[^long j ^long i] (map-indexed vector order)]
+        (Array/aset sx j (Array/aget ax i))
+        (Array/aset sy j (Array/aget ay i)))
+      [sx sy])))
+
+(defn- scott-2d
+  "Scott's rule of a two dimensional sample of `n` points: `s * n^(-1/6)`, `s` the sample standard deviation of `data`
+  (sorted `double[]`), with the fallback chain of [[nrd]] (`abs(x_1)`, then `1.0`) for a zero spread."
+  ^double [^doubles data]
+  (check-sample-size! :kernel-density-2d (alength data) "Scott's rule")
+  (let [[_ ^double sd] (mean-sd data)
+        s (double (cond
+                    (m/pos? sd) sd
+                    (m/pos? (m/abs (Array/aget data 0))) (m/abs (Array/aget data 0))
+                    :else 1.0))]
+    (m/* s (m/pow (alength data) (m// -1.0 6.0)))))
+
+(defn- axis-bandwidth
+  "Bandwidth of one axis: `h` a number, `nil` (`:nrd`), `:scott` or a selector of [[bandwidth]] for `kdata` of that
+  axis."
+  ^double [kdata h opts]
+  (if (= :scott h)
+    (scott-2d (:data kdata))
+    (double (:h (infer-h :kernel-density-2d kdata h opts)))))
+
+(defn- bandwidth-pair
+  "`[hx hy]` of the bandwidth specification `bandwidth` (a number, a keyword, or a pair of them)."
+  [kxdata kydata bandwidth opts]
+  (let [[bx by] (if (sequential? bandwidth)
+                  (if (m/== 2 (count bandwidth))
+                    bandwidth
+                    (invalid-input! :kernel-density-2d :bandwidth "a pair must have two elements" bandwidth "[hx hy]"))
+                  [bandwidth bandwidth])
+        check (fn [b] (when-not (or (nil? b) (number? b) (keyword? b))
+                        (invalid-input! :kernel-density-2d :bandwidth
+                                        (str "must be a number, one of " bandwidth-2d-keywords " or a pair of them")
+                                        bandwidth "a number, a selector keyword or a pair")))]
+    (check bx)
+    (check by)
+    [(axis-bandwidth kxdata bx opts) (axis-bandwidth kydata by opts)]))
+
+(defn- add-weight!
+  "Adds weight `w` to node `idx` of `counts` when it is positive."
+  [^doubles counts ^long idx ^double w]
+  (when (m/pos? w) (Array/add counts idx w)))
+
+(defn- binned-nodes-2d
+  "Linear binning of the points `xs`, `ys` on the regular grid `(gx0 + i dx, gy0 + j dy)` of `[nx ny]` nodes,
+  returns the node weights, row major in `j` (`i + j nx`)."
+  ^doubles [^doubles xs ^doubles ys [gx0 dx gy0 dy] [nx ny]]
+  (let [gx0 (double gx0) dx (double dx) gy0 (double gy0) dy (double dy) nx (long nx) ny (long ny)
+        counts (double-array (m/* nx ny))
+        lx (m/long-dec nx)
+        ly (m/long-dec ny)]
+    (dotimes [k (alength xs)]
+      (let [tx (m// (m/- (Array/aget xs k) gx0) dx)
+            ty (m// (m/- (Array/aget ys k) gy0) dy)
+            i (m/long-min lx (long (m/floor tx)))
+            j (m/long-min ly (long (m/floor ty)))
+            fx (m/- tx (double i))
+            fy (m/- ty (double j))
+            row (m/* j nx)
+            row1 (m/* (m/inc j) nx)
+            right? (m/< i lx)
+            up? (m/< j ly)]
+        (add-weight! counts (m/+ i row) (m/* (m/- 1.0 fx) (m/- 1.0 fy)))
+        (when right? (add-weight! counts (m/+ (m/inc i) row) (m/* fx (m/- 1.0 fy))))
+        (when up? (add-weight! counts (m/+ i row1) (m/* (m/- 1.0 fx) fy)))
+        (when (and right? up?) (add-weight! counts (m/+ (m/inc i) row1) (m/* fx fy)))))
+    counts))
+
+(defn- kde-2d
+  "The two dimensional estimator of the points `xs`, `ys` (sorted by `x`) with the kernel `kernel`, its `[radius
+  extent]`, the bandwidths `[hx hy]` and `binned?`. Returns a map with `:kde`, `:factor`, `:h`, `:mn` and `:mx`."
+  [^doubles xs ^doubles ys ^IFn$DD kernel [radius extent] [hx hy] binned?]
+  (let [radius (double radius) extent (double extent) hx (double hx) hy (double hy)
+        n (alength xs)
+        factor (m// (m/* (double n) hx hy))
+        span-x (m/* 1.01 hx radius)
+        span-y (m/* 1.01 hy radius)
+        x-min (Array/aget xs 0)
+        x-max (Array/aget xs (m/dec n))
+        y-min (double (loop [i 1 v (Array/aget ys 0)] (if (m/< i n) (recur (m/inc i) (m/min v (Array/aget ys i))) v)))
+        y-max (double (loop [i 1 v (Array/aget ys 0)] (if (m/< i n) (recur (m/inc i) (m/max v (Array/aget ys i))) v)))
+        kde-fn (if binned?
+                 (let [divisor (if (number? binned?) (double binned?) 5.0)
+                       dx (m// hx divisor)
+                       dy (m// hy divisor)
+                       nx-d (m/inc (m/ceil (m// (m/- x-max x-min) dx)))
+                       ny-d (m/inc (m/ceil (m// (m/- y-max y-min) dy)))]
+                   (when (m/> (m/* nx-d ny-d) (double MAX-BINNED-NODES))
+                     (invalid-input! :kernel-density-2d :binned?
+                                     (str "the grid would have " (long (m/* nx-d ny-d)) " nodes, more than " MAX-BINNED-NODES
+                                          ", use larger bandwidths or divisor, or no binning")
+                                     binned? (str "at most " MAX-BINNED-NODES " grid nodes")))
+                   (let [nx (long nx-d)
+                         ny (long ny-d)
+                         ^doubles counts (binned-nodes-2d xs ys [x-min dx y-min dy] [nx ny])]
+                     (fn ^double [^double x ^double y]
+                       (if (or (m/nan? x) (m/nan? y))
+                         ##NaN
+                         (let [i0 (long (m/max 0.0 (m/ceil (m// (m/- (m/- x span-x) x-min) dx))))
+                               i1 (long (m/min (double (m/dec nx)) (m/floor (m// (m/- (m/+ x span-x) x-min) dx))))
+                               j0 (long (m/max 0.0 (m/ceil (m// (m/- (m/- y span-y) y-min) dy))))
+                               j1 (long (m/min (double (m/dec ny)) (m/floor (m// (m/- (m/+ y span-y) y-min) dy))))
+                               ;; the x kernel of every column in reach, once per evaluation
+                               kx (double-array (m/max 0 (m/inc (m/- i1 i0))))]
+                           (dotimes [c (alength kx)]
+                             (Array/aset kx c (.invokePrim kernel (m// (m/- x (m/+ x-min (m/* (double (m/+ i0 c)) dx))) hx))))
+                           (m/* factor
+                                (double
+                                 (loop [j j0 s 0.0]
+                                   (if (m/<= j j1)
+                                     (let [ky (.invokePrim kernel (m// (m/- y (m/+ y-min (m/* (double j) dy))) hy))
+                                           row (m/* j nx)]
+                                       (recur (m/inc j)
+                                              (if (m/zero? ky)
+                                                s
+                                                (double
+                                                 (loop [i i0 s s]
+                                                   (if (m/<= i i1)
+                                                     (let [c (Array/aget counts (m/+ i row))]
+                                                       (recur (m/inc i)
+                                                              (if (m/pos? c)
+                                                                (m/+ s (m/* c ky (Array/aget kx (m/- i i0))))
+                                                                s)))
+                                                     s))))))
+                                     s)))))))))
+                 (fn ^double [^double x ^double y]
+                   (if (or (m/nan? x) (m/nan? y))
+                     ##NaN
+                     (let [to (upper-bound xs (m/+ x span-x))]
+                       (m/* factor
+                            (double
+                             (loop [i (lower-bound xs (m/- x span-x))
+                                    s 0.0]
+                               (if (m/< i to)
+                                 (let [dy (m/- y (Array/aget ys i))]
+                                   (recur (m/inc i)
+                                          (if (m/<= (m/abs dy) span-y)
+                                            (m/+ s (m/* (.invokePrim kernel (m// (m/- x (Array/aget xs i)) hx))
+                                                        (.invokePrim kernel (m// dy hy))))
+                                            s)))
+                                 s))))))))
+        reach-x (m/* 1.01 hx extent)
+        reach-y (m/* 1.01 hy extent)]
+    {:kde kde-fn
+     :factor factor
+     :h [hx hy]
+     :mn [(m/- x-min reach-x) (m/- y-min reach-y)]
+     :mx [(m/+ x-max reach-x) (m/+ y-max reach-y)]}))
+
+(defn kernel-density-2d+
+  "Builds a two dimensional kernel density estimator of the points `(xs_i, ys_i)` and returns it together with the
+  fitting details.
+
+  The estimate uses the product kernel `f(x, y) = 1/(n hx hy) * sum K((x - x_i) / hx) K((y - y_i) / hy)` with one
+  bandwidth per axis (no rotation: the bandwidth matrix is diagonal).
+
+  Parameters:
+
+  - `kernel` - a keyword naming one of the predefined kernels of [[kde-data]], or a custom kernel function accepting and returning a double; the same kernel is used on both axes.
+  - `xs`, `ys` - sequences of numbers of the same length (finite, not empty), the coordinates of the points; not modified.
+  - `params` (optional map):
+      - `:bandwidth` - `[hx hy]`, or one specification used for both axes. A specification is a number greater than 0, a selector of [[bandwidth]] applied to the coordinates of that axis alone (`:nrd`, `:nrd0`, `:nrd-adjust`, `:sj`, `:sj-dpi`, `:rlcv`, `:lcv`, `:lscv`), or `:scott` - Scott's rule of a two dimensional sample `s * n^(-1/6)`, `s` the standard deviation of the axis. Default: `:nrd` on both axes, which is `MASS::kde2d` of R with its default bandwidth (`bandwidth.nrd` there is four times the standard deviation of the gaussian kernel).
+      - `:bandwidth-options` - a map of the options of [[bandwidth]] (`:bounds`, `:grid`, `:bins`, `:rlcv-form`).
+      - `:binned?` - `false` (default) for the exact evaluation. When `true` or a number, the points are replaced by a two dimensional linear binning on a regular grid with the spacing `hx / divisor`, `hy / divisor` (the divisor is `5` for `true`, the number otherwise); the cost of an evaluation does not depend on the number of points. A grid of more than `2^24` nodes throws.
+      - `:radius`, `:extent` - for a custom kernel function: the distance beyond which the kernel is ignored (default `##Inf`) and beyond which the density is treated as zero (default `5.0`), in bandwidths. Ignored for the predefined kernels.
+
+  The evaluation is exact: the density at `(x, y)` sums the points within `1.01 * radius` bandwidths of it on both axes.
+
+  Returns a map:
+
+  - `:kde` - the density function of two doubles `x`, `y` (`##NaN` when either is `##NaN`).
+  - `:factor` - the normalizing factor `1/(n hx hy)`.
+  - `:h` - the bandwidths used, `[hx hy]`.
+  - `:mn`, `:mx` - the corners `[x y]` of the support: the range of the points on each axis extended by `1.01 * h * extent`.
+
+  Throws `ex-info` (`:type :invalid-input`) for empty data, coordinates which are not finite or of different lengths, an unknown kernel or bandwidth selector, a bandwidth which is not finite and positive, a selector on fewer than 2 points, or an invalid `:binned?`.
+
+  See also [[kernel-density-2d]], [[kernel-density+]], [[bandwidth]]."
+  ([kernel xs ys] (kernel-density-2d+ kernel xs ys nil))
+  ([kernel xs ys {:keys [bandwidth binned? bandwidth-options] :as params}]
+   (let [[^doubles sx ^doubles sy] (paired-data :kernel-density-2d xs ys)
+         binned? (check-binned! :kernel-density-2d binned?)
+         opts (merge bandwidth-options (select-keys params [:radius :extent]))
+         kxdata (->kdata :kernel-density-2d sx kernel nil params)
+         kydata (->kdata :kernel-density-2d sy kernel nil params)
+         [hx hy] (bandwidth-pair kxdata kydata bandwidth opts)]
+     (kde-2d sx sy (:kernel kxdata) [(:radius kxdata) (:extent kxdata)] [hx hy] binned?))))
+
+(defn kernel-density-2d
+  "Returns a two dimensional kernel density estimation function of the points `(xs_i, ys_i)`: a product kernel with
+  one bandwidth per axis.
+
+  Parameters: `kernel`, `xs`, `ys` and the optional `params` (`:bandwidth`, `:bandwidth-options`, `:binned?`,
+  `:radius`, `:extent`) as in [[kernel-density-2d+]].
+
+  Returns a function of two doubles `x`, `y` returning the estimated density as a double.
+
+  Throws `ex-info` (`:type :invalid-input`) for invalid input, see [[kernel-density-2d+]].
+
+  See also [[kernel-density-2d+]] (the function and the bandwidths, the factor and the support), [[kernel-density]]."
+  ([kernel xs ys] (kernel-density-2d kernel xs ys nil))
+  ([kernel xs ys params] (:kde (kernel-density-2d+ kernel xs ys params))))

@@ -475,6 +475,46 @@
   ([kernel data bandwidth-or-params]
    (dens/kernel-density-ci kernel data (density-params bandwidth-or-params))))
 
+(defn- density-2d-params
+  "The map of parameters of the 2d density functions: a number, a keyword or a pair is a bandwidth."
+  [bandwidth]
+  (if (or (number? bandwidth) (keyword? bandwidth) (sequential? bandwidth))
+    {:bandwidth bandwidth}
+    bandwidth))
+
+(defn kernel-density-2d
+  "Returns a 2d kernel density estimation (KDE) for the points `(xs_i, ys_i)`.
+
+  The estimate places a product kernel `K((x - x_i) / hx) K((y - y_i) / hy)` at every point, with one bandwidth per axis (no rotation), and sums the contributions: `f(x, y) = 1/(n hx hy) * sum ...`. The evaluation is exact (every point within the radius of the kernel on both axes contributes) unless `:binned?` is set.
+
+  Parameters:
+
+  - `kernel` - a keyword naming a kernel registered in [[kernel-list]] under `:kde` (used on both axes), or a custom kernel function accepting and returning a `double`.
+  - `xs`, `ys` - sequences of numbers of the same length, the coordinates of the points (finite, not empty).
+  - `bandwidth` (optional) - a bandwidth specification used for both axes, a pair `[hx hy]` of them, or a map `params`:
+      - `:bandwidth` - a specification or a pair. A specification is a number, `:scott` (Scott's rule of a 2d sample, `sd * n^(-1/6)` of the axis) or a selector of [[bandwidth]] applied to that axis alone (`:nrd`, `:nrd0`, `:nrd-adjust`, `:sj`, `:sj-dpi`, `:rlcv`, `:lcv`, `:lscv`). Default: `:nrd` on both axes - the default of `MASS::kde2d` in R.
+      - `:bandwidth-options` - a map of the options of [[bandwidth]].
+      - `:binned?` - `false` (default) for the exact sum; `true` or a number: a 2d linear binning of the points on a grid with the spacing `h / divisor` per axis (`5` for `true`).
+      - `:radius`, `:extent` - for a custom kernel: the distance (in bandwidths) beyond which the kernel is ignored (default `##Inf`) and beyond which the density is zero for the support (default `5.0`).
+  - `info?` (optional, default `false`) - when `true`, returns the estimator together with its fitting details.
+
+  Returns a function of two doubles `x`, `y` returning the density estimate. When `info?` is `true`, returns a map:
+
+  - `:kde` - the density function.
+  - `:factor` - the normalizing factor `1/(n hx hy)`.
+  - `:h` - the bandwidths used, `[hx hy]`.
+  - `:mn`, `:mx` - the corners `[x y]` of the support (the range of the points extended by `1.01 * h * extent` per axis).
+
+  Throws `ex-info` (`:type :invalid-input`) for invalid input: empty or non finite coordinates, `xs` and `ys` of different lengths, an unknown kernel or selector, a selector on a single point, an invalid bandwidth or `:binned?`.
+
+  See also [[kernel-density]] (1d), [[bandwidth]]."
+  ([kernel xs ys] (kernel-density-2d kernel xs ys {:bandwidth :nrd}))
+  ([kernel xs ys bandwidth] (kernel-density-2d kernel xs ys bandwidth false))
+  ([kernel xs ys bandwidth info?]
+   (let [params (density-2d-params bandwidth)
+         f (if info? dens/kernel-density-2d+ dens/kernel-density-2d)]
+     (f kernel xs ys params))))
+
 ;; window
 
 (def ^:private windows

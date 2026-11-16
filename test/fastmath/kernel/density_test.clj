@@ -404,8 +404,8 @@
     (let [doc (:doc (meta (the-ns 'fastmath.kernel.density)))]
       (is (every? #(re-find (re-pattern (str "\\[\\[" % "\\]\\]")) doc)
                   ["kernel-density" "kernel-density+" "kernel-density-ci" "bandwidth" "kde-data"]))))
-  (testing "public API: functions in kde-data and the three estimators plus bandwidth"
-    (is (= #{'kde-data 'bandwidth 'kernel-density 'kernel-density+ 'kernel-density-ci
+  (testing "public API: functions in kde-data, the three 1d and two 2d estimators plus bandwidth"
+    (is (= #{'kde-data 'bandwidth 'kernel-density 'kernel-density+ 'kernel-density-ci 'kernel-density-2d 'kernel-density-2d+
              'uniform 'gaussian 'triangular 'epanechnikov 'quartic 'triweight 'tricube 'cosine 'logistic
              'sigmoid 'silverman 'laplace 'wigner 'cauchy}
            (set (keys (ns-publics 'fastmath.kernel.density)))))))
