@@ -21,3 +21,19 @@
     (let [d (sut/matrix-distances (mapv double-array [[0 1 2] [1 0 3] [2 3 0]]))]
       (t/is (= [[0.0 1.0 2.0] [1.0 0.0 3.0] [2.0 3.0 0.0]]
                (mapv (fn [i] (mapv #(sut/distance-at d 3 i %) (range 3))) (range 3)))))))
+
+(t/deftest array-checks
+  (t/testing "valid distances are finite and non-negative"
+    (t/is (sut/valid-distances? (double-array [])))
+    (t/is (sut/valid-distances? (double-array [0.0 1.0 1e300])))
+    (doseq [bad [##NaN ##Inf ##-Inf -1.0 -0.0001]]
+      (t/is (not (sut/valid-distances? (double-array [1.0 bad 2.0]))) (str bad))))
+  (t/testing "constant arrays"
+    (t/is (sut/constant? (double-array [])))
+    (t/is (sut/constant? (double-array [2.0])))
+    (t/is (sut/constant? (double-array [2.0 2.0 2.0])))
+    (t/is (not (sut/constant? (double-array [2.0 2.0 3.0]))))
+    (t/is (not (sut/constant? (double-array [##NaN ##NaN])))))
+  (t/testing "a distance function returning a non-number gives NaN"
+    (t/is (Double/isNaN (sut/point-distance (fn [_ _] nil) [0] [1])))
+    (t/is (= 3.0 (sut/point-distance (fn [_ _] 3) [0] [1])))))

@@ -3,7 +3,7 @@
 
   Agglomerative clustering (a port of R `stats::hclust`, and the minimum spanning tree and nearest-neighbour chain algorithms as in SciPy), divisive clustering (a port of DIANA from R `cluster`), tree cutting, cophenetic distances and the conversion to the SciPy linkage matrix.
 
-  Distances are stored in a condensed array: the pairs `i < j` (0-based) of `n` observations in row order. A hierarchy is a map with `:merge` (rows of the R encoding: `-i` is the observation `i` counted from 1, `j` is the cluster made in the step `j`), `:height` and `:order` (0-based)."
+  Distances are stored in a condensed array: the pairs `i < j` (0-based) of `n` observations in row order. A tree is a map with `:merge` (rows of the R encoding: `-i` is the observation `i` counted from 1, `j` is the cluster made in the step `j`), `:height` and `:order` (0-based)."
   {:no-doc true}
   (:require [fastmath.core :as m])
   (:import [fastmath.java Array]
@@ -34,11 +34,12 @@
     :else 0.0))
 
 (defn point-distance
-  "Distance between points `a` and `b` for `dist`, a function of two points (a primitive call for a function returning a double)."
+  "Distance between points `a` and `b` for `dist`, a function of two points (a primitive call for a function returning a double). `NaN` when `dist` does not return a number."
   ^double [dist a b]
   (if (instance? IFn$OOD dist)
     (.invokePrim ^IFn$OOD dist a b)
-    (double (dist a b))))
+    (let [x (dist a b)]
+      (if (number? x) (double x) ##NaN))))
 
 (defn data-distances
   "Condensed distances between `points` (a vector of double arrays) for `dist`, a function of two points."
@@ -56,6 +57,27 @@
           (recur (m/long-inc i) next-idx))
         d))))
 
+(defn valid-distances?
+  "`true` when all condensed distances are finite and non-negative."
+  [^doubles d]
+  (let [size (alength d)]
+    (loop [i (long 0)]
+      (cond
+        (m/>= i size) true
+        (let [x (Array/aget d i)] (and (m/valid-double? x) (m/>= x 0.0))) (recur (m/long-inc i))
+        :else false))))
+
+(defn constant?
+  "`true` when all values of `xs` are equal (`false` for `NaN`)."
+  [^doubles xs]
+  (let [size (alength xs)
+        x0 (if (m/pos? size) (Array/aget xs 0) 0.0)]
+    (loop [i (long 1)]
+      (cond
+        (m/>= i size) true
+        (m/== x0 (Array/aget xs i)) (recur (m/long-inc i))
+        :else false))))
+
 (defn matrix-distances
   "Condensed distances from the lower triangle of a square matrix (a vector of double arrays)."
   ^doubles [rows]
@@ -67,7 +89,7 @@
           (Array/aset d (condensed-index n i j) (Array/aget row i)))))
     d))
 
-;; ## Hierarchy encoding
+;; ## Tree encoding
 
 (defn- canonical-row
   "A merge row in the R order: a singleton before a cluster, two singletons by observation, two clusters by step."
@@ -114,8 +136,8 @@
 
 (deftype ^:private Merges [^longs as ^longs bs ^doubles heights])
 
-(defn- merges->hierarchy
-  "Hierarchy from merges of clusters given by any of their observations (`as`, `bs`, 0-based) at `heights`, in the order of `steps` (indices of the merges)."
+(defn- merges->tree
+  "Tree from merges of clusters given by any of their observations (`as`, `bs`, 0-based) at `heights`, in the order of `steps` (indices of the merges)."
   [^long n ^Merges merges steps]
   (let [^longs as (.as merges)
         ^longs bs (.bs merges)
@@ -312,7 +334,7 @@
     (Merges. as bs heights)))
 
 (defn agglomerate
-  "Agglomerative hierarchy of `n` observations with condensed distances `d` (consumed) for a linkage `method` and an `algorithm` (`:generic` or `:fast`)."
+  "Agglomerative tree of `n` observations with condensed distances `d` (consumed) for a linkage `method` and an `algorithm` (`:generic` or `:fast`)."
   [^doubles d ^long n method algorithm]
   (if (m/< n 2)
     {:merge [] :height [] :order (vec (range n))}
@@ -324,7 +346,7 @@
           ^doubles heights (.heights merges)
           steps (range (m/long-dec n))
           steps (if fast? (sort-by (fn [^long t] (Array/aget heights t)) steps) steps)]
-      (merges->hierarchy n merges steps))))
+      (merges->tree n merges steps))))
 
 ;; ## Divisive clustering (DIANA)
 
@@ -506,10 +528,10 @@
         merge))))
 
 (defn diana
-  "Divisive hierarchy of `n` observations with condensed distances `d` (R `cluster` `diana`, mapped as `as.hclust`). Adds `:dc`, the divisive coefficient."
+  "Divisive tree of `n` observations with condensed distances `d` (R `cluster` `diana`, mapped as `as.hclust`). Adds `:dc`, the divisive coefficient (`NaN` for less than 2 observations)."
   [^doubles d ^long n]
   (if (m/< n 2)
-    {:merge [] :height [] :order (vec (range n)) :dc 0.0}
+    {:merge [] :height [] :order (vec (range n)) :dc ##NaN}
     (let [kwan (long-array (m/long-inc n))
           ner (long-array (range (m/long-inc n)))
           ban (double-array (m/long-inc n))
@@ -529,7 +551,7 @@
 ;; ## Cutting
 
 (defn clusters-at
-  "Clusters (vectors of observations, ascending, ordered by the first observation) of the hierarchy `merge` of `n` observations cut into `k` clusters."
+  "Clusters (vectors of observations, ascending, ordered by the first observation) of the tree `merge` of `n` observations cut into `k` clusters."
   [merge ^long n ^long k]
   (let [last-kept (m/long-sub n k)
         roots (if (m/== k 1)

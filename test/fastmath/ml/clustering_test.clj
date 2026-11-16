@@ -899,6 +899,7 @@
       (let [res (sut/hclust xss {:method method :distance distance})]
         (t/is (= [0] (:indices (first (:clusters res)))))
         (t/is (= {:merge [] :height [] :order [0] :n 1} (select-keys (:tree res) [:merge :height :order :n])))
+        (when (= method :diana) (t/is (m/nan? (:dc (:tree res)))))
         (t/is (= [[0.0]] (sut/cophenetic res)))
         (t/is (= [] (sut/->linkage-matrix res)))
         (t/is (m/nan? (sut/cophenetic-correlation res xss))))))
@@ -915,6 +916,14 @@
       (t/is (= [[0 1 2] [3]] (map :indices (:clusters res))))
       (t/is (= [[0 1 2 3]] (map :indices (:clusters (sut/cut res x {:h 1e6})))))
       (t/is (m/nan? (:dc (:tree (sut/hclust [[1 1] [1 1] [1 1]] {:method :diana})))))))
+  (t/testing "a distance matrix as a 2d array"
+    (let [dm (:data (:manhattan @hclust-r))]
+      (t/is (= (sut/hclust dm {:distance :precomputed :k 3})
+               (sut/hclust (into-array (map double-array dm)) {:distance :precomputed :k 3})))))
+  (t/testing "the tree alone is enough for cophenetic and the linkage matrix"
+    (let [res (sut/hclust [[0 0] [1 0] [5 5]])]
+      (t/is (= (sut/cophenetic res) (sut/cophenetic {:tree (:tree res)})))
+      (t/is (= (sut/->linkage-matrix res) (sut/->linkage-matrix (select-keys res [:tree]))))))
   (t/testing "numbers are 1-dimensional points"
     (t/is (= (sut/hclust [0 1 3 7] {:k 2}) (sut/hclust [[0] [1] [3] [7]] {:k 2}))))
   (t/testing "nil options are missing options"
@@ -932,6 +941,24 @@
                (update (:tree (sut/hclust (mapv (fn [a] (mapv #(d/euclidean-sq a %) x)) x)
                                           {:distance :precomputed :method :single}))
                        :distance (constantly d/euclidean-sq)))))))
+
+(t/deftest hclust-distance-calls
+  (let [x (:data (:x30 @hclust-r))
+        n (count x)
+        calls (atom 0)
+        counting (fn [a b] (swap! calls inc) (d/euclidean a b))]
+    (t/testing "every pair is measured once, medoids use the same distances"
+      (doseq [method [:average :single :diana]
+              k [1 4 n]]
+        (reset! calls 0)
+        (let [res (sut/hclust x {:distance counting :method method :k k})]
+          (t/is (= (/ (* n (dec n)) 2) @calls) (str method " k=" k))
+          (t/is (= (:clusters (sut/hclust x {:method method :k k}))
+                   (:clusters res))))))
+    (t/testing "an invalid :k throws before any distance is computed"
+      (reset! calls 0)
+      (t/is (= :k (thrown-option #(sut/hclust x {:distance counting :k (inc n)}))))
+      (t/is (zero? @calls)))))
 
 (t/deftest hclust-validation
   (let [x [[0 0] [1 0] [0 2] [5 5]]
@@ -955,6 +982,15 @@
                         [:distance #(sut/hclust x {:distance :cosine})]
                         [:distance #(sut/hclust x {:distance (org.apache.commons.math3.ml.distance.EuclideanDistance.)})]
                         [:distance #(sut/hclust x {:distance "euclidean"})]
+                        [:distance #(sut/hclust x {:distance (fn [_ _] ##NaN)})]
+                        [:distance #(sut/hclust x {:distance (fn [_ _] ##NaN) :method :average :algorithm :fast})]
+                        [:distance #(sut/hclust x {:distance (fn [_ _] ##Inf)})]
+                        [:distance #(sut/hclust x {:distance (fn [_ _] nil)})]
+                        [:distance #(sut/hclust x {:distance (fn [_ _] "1")})]
+                        [:distance #(sut/hclust x {:distance (fn [_ _] -1.0)})]
+                        [:distance #(sut/hclust x {:distance (fn [_ _] -1.0) :method :diana})]
+                        [:distance #(sut/hclust x {:distance (fn [_ _] ##NaN) :method :single :algorithm :fast})]
+                        [:distance #(sut/cophenetic-correlation (assoc-in res [:tree :distance] (fn [_ _] ##NaN)) x)]
                         [:xss #(sut/hclust [] {})]
                         [:xss #(sut/hclust [[1 2] [3]] {})]
                         [:xss #(sut/hclust (repeat 65537 [1.0]) {})]
@@ -964,6 +1000,8 @@
                         [:xss #(sut/hclust [[0 1] [2 0]] {:distance :precomputed})]
                         [:xss #(sut/hclust [[0 ##NaN] [##NaN 0]] {:distance :precomputed})]
                         [:xss #(sut/hclust [[0 1] [1]] {:distance :precomputed})]
+                        [:xss #(sut/hclust [[0 1e-9] [2e-9 0]] {:distance :precomputed})]
+                        [:xss #(sut/hclust [[0 1] [1.0000001 0]] {:distance :precomputed})]
                         [:xss #(sut/hclust [] {:distance :precomputed})]
                         [:xss #(sut/hclust 5 {:distance :precomputed})]
                         [:result #(sut/cut (sut/kmeans++ x) x {:k 2})]
@@ -984,5 +1022,7 @@
       (t/is (= 4 (count (:clusters (sut/hclust x {:h 0.0})))))
       (t/is (= 2 (count (:clusters (sut/hclust triangle {:method :centroid :k 2})))))
       (t/is (= 3 (count (:clusters (sut/hclust dm {:distance :precomputed :k 3})))))
+      (t/is (= 2 (count (:clusters (sut/hclust [[0 1e9] [(+ 1e9 2.4e-7) 0]] {:distance :precomputed :k 2}))))
+            "large distances symmetric up to rounding")
       (t/is (= 3 (count (:clusters (sut/hclust [[0 1 2] [1.0000000000000002 0 3] [2 3 0]] {:distance :precomputed :k 3}))))
             "symmetric within the default tolerance"))))

@@ -116,10 +116,15 @@
       (invalid-option option x expected))
     arr))
 
+(defn- collection?
+  "A sequence or an array of points (or rows), not a string or a map."
+  [xss]
+  (and (seqable? xss) (not (string? xss)) (not (map? xss))))
+
 (defn- ->points
   "Validate the data and return a vector of `IndexedPoint`."
   [xss]
-  (when-not (and (seqable? xss) (not (string? xss)) (not (map? xss)) (seq xss))
+  (when-not (and (collection? xss) (seq xss))
     (invalid-option :xss (when-not (coll? xss) xss) "a non-empty sequence of points"))
   (let [points (into [] (map-indexed (fn [^long i x] (IndexedPoint. (point-array :xss x) i))) xss)
         dim (alength ^doubles (.-point ^IndexedPoint (first points)))]
@@ -580,6 +585,9 @@
 
 (def ^{:private true :const true :tag 'long} max-observations 65536)
 
+;; relative tolerance of the symmetry of a distance matrix: equal up to rounding
+(def ^{:private true :const true :tag 'double} symmetry-tolerance (m/* 4096.0 m/MACHINE-EPSILON2))
+
 (def ^:private hclust-methods #{:single :complete :average :weighted :centroid :median :ward :ward-d :diana})
 (def ^:private hclust-algorithms #{:generic :fast})
 
@@ -602,7 +610,7 @@
 (defn- check-observation-count
   "Throws when `xss` has more than 65536 elements, before any element is converted."
   [xss]
-  (when (and (seqable? xss) (not (string? xss)) (not (map? xss)))
+  (when (collection? xss)
     (let [n (long (bounded-count (m/inc max-observations) xss))]
       (when (m/> n max-observations)
         (invalid-option :xss nil "at most 65536 observations")))))
@@ -616,7 +624,7 @@
   "Validate a square distance matrix and return its rows as double arrays."
   [xss]
   (let [expected "a square matrix of finite, non-negative and symmetric distances with zeros on the diagonal"]
-    (when-not (and (sequential? xss) (seq xss))
+    (when-not (and (collection? xss) (seq xss))
       (invalid-option :xss nil expected))
     (let [rows (mapv #(matrix-row % expected) xss)
           n (count rows)
@@ -624,13 +632,13 @@
       (when-not (and (every? #(m/== n (alength ^doubles %)) rows)
                      (every? (fn [^doubles row] (every? #(and (m/valid-double? %) (m/>= (double %) 0.0)) row)) rows)
                      (every? (fn [^long i] (m/zero? (Array/aget ^doubles (rows i) i))) (range n))
-                     (every? (fn [[^long i ^long j]] (m/delta-eq (entry i j) (entry j i)))
+                     (every? (fn [[^long i ^long j]] (m/delta-eq (entry i j) (entry j i) 0.0 symmetry-tolerance))
                              (for [i (range n) j (range i)] [i j])))
         (invalid-option :xss nil expected))
       rows)))
 
-(defn- hierarchy-input
-  "Observations of `xss` for the `distance` option: their number, the condensed distances (a function, every call gives a new array), the distance between two observations and the points (`nil` for a distance matrix)."
+(defn- ->observations
+  "Observations of `xss` for the `distance` option: their number, the condensed distances (a function, every call gives a new validated array), the distance between two observations and the points (`nil` for a distance matrix)."
   [xss distance]
   (check-observation-count xss)
   (if (= distance :precomputed)
@@ -642,27 +650,30 @@
           arrays (points->arrays (->points xss))]
       {:n (count arrays)
        :arrays arrays
-       :condensed (fn [] (hier/data-distances arrays dist))
+       :condensed (fn [] (let [d (hier/data-distances arrays dist)]
+                           (if (hier/valid-distances? d)
+                             d
+                             (invalid-option :distance distance "a distance returning finite, non-negative numbers"))))
        :pair-distance (fn ^double [^long i ^long j] (hier/point-distance dist (arrays i) (arrays j)))})))
 
 (defn- check-cut-options
-  "Validates `:k` and `:h` (not both, `:k` defaults to 1)."
-  [k h]
-  (cond
-    (and (some? k) (some? h)) (invalid-option :k k "either :k or :h, not both")
-    (some? h) {:h (check-double :h h 0.0 true "a finite number, at least 0")}
-    :else {:k (check-integer :k (or k 1) 1 "an integer between 1 and the number of observations")}))
+  "Validates `:k` (between 1 and `n`, default 1) and `:h` (not both)."
+  [k h ^long n]
+  (let [expected "an integer between 1 and the number of observations"]
+    (cond
+      (and (some? k) (some? h)) (invalid-option :k k "either :k or :h, not both")
+      (some? h) {:h (check-double :h h 0.0 true "a finite number, at least 0")}
+      :else (let [k (check-integer :k (or k 1) 1 expected)]
+              (if (m/> k n) (invalid-option :k k expected) {:k k})))))
 
 (defn- cluster-count
-  "The number of clusters for the validated cut options of a tree of `n` observations."
-  ^long [{:keys [k h]} {:keys [height]} ^long n]
+  "The number of clusters for the validated cut options of `tree`."
+  ^long [{:keys [k h]} {:keys [height n]}]
   (if (some? h)
     (if (every? true? (map <= height (rest height)))
       (hier/clusters-for-height height n h)
-      (invalid-option :h h "a hierarchy with non-decreasing heights (no inversions), use :k"))
-    (if (m/> (long k) n)
-      (invalid-option :k k "an integer between 1 and the number of observations")
-      (long k))))
+      (invalid-option :h h "a tree with non-decreasing heights (no inversions), use :k"))
+    (long k)))
 
 (defn- tree-clusters
   "Cluster maps of the cut of `tree` into `k` clusters."
@@ -680,22 +691,21 @@
 
 (defn- hclust-result
   "A result of [[hclust]]: the clusters of the cut of `tree` and the tree."
-  [tree input cut-options add-data?]
-  (let [k (cluster-count cut-options tree (:n input))]
-    {:clusters (tree-clusters tree input k add-data?)
-     :tree tree}))
+  [tree observations cut-options add-data?]
+  {:clusters (tree-clusters tree observations (cluster-count cut-options tree) add-data?)
+   :tree tree})
 
 (defn- result-tree
   "The tree of a result of [[hclust]]."
   [result]
   (let [{:keys [merge height order n] :as tree} (when (map? result) (:tree result))]
-    (if (and (vector? (:clusters result)) (vector? merge) (vector? height) (vector? order) (int? n))
+    (if (and (vector? merge) (vector? height) (vector? order) (int? n))
       tree
-      (invalid-option :result nil "a result of hclust (a map with :clusters and :tree)"))))
+      (invalid-option :result nil "a result of hclust (a map with :tree)"))))
 
-(defn- check-input-size
-  [input ^long n]
-  (when-not (m/== n (long (:n input)))
+(defn- check-observation-size
+  [observations ^long n]
+  (when-not (m/== n (long (:n observations)))
     (invalid-option :xss nil (str n " observations, as clustered in the result"))))
 
 (defn hclust
@@ -705,7 +715,7 @@
 
   Parameters:
 
-  - `xss` - a non-empty sequence of points (sequences, arrays or numbers, see the namespace documentation) or, with `:distance` `:precomputed`, a square matrix (a sequence of rows) of distances between observations: finite, non-negative, symmetric, with zeros on the diagonal. At most 65536 observations.
+  - `xss` - a non-empty sequence of points (sequences, arrays or numbers, see the namespace documentation) or, with `:distance` `:precomputed`, a square matrix (a sequence or an array of rows) of distances between observations: finite, non-negative, symmetric up to rounding, with zeros on the diagonal (only the lower triangle is used). At most 65536 observations.
   - options (a map):
     - `:method` - the linkage, default: `:complete`
       - `:single` - the shortest distance between points of two clusters
@@ -717,7 +727,7 @@
       - `:ward` - the increase of the within-cluster variance, Ward's method on squared distances (R `ward.D2`, SciPy `ward`)
       - `:ward-d` - Ward's update applied to distances, not squared (R `ward.D`)
       - `:diana` - divisive analysis (R `cluster::diana`)
-    - `:distance` - a keyword (`:euclidean`, `:chebyshev`, `:manhattan`, `:canberra`, `:earth-movers`), a function of two points (ie. a function from `fastmath.distance`, it gets double arrays) or `:precomputed` for a distance matrix, default: `:euclidean`
+    - `:distance` - a keyword (`:euclidean`, `:chebyshev`, `:manhattan`, `:canberra`, `:earth-movers`), a function of two points (ie. a function from `fastmath.distance`, it gets double arrays) or `:precomputed` for a distance matrix, default: `:euclidean`. A function has to return finite, non-negative numbers.
     - `:algorithm` - `:generic` (default) or `:fast` (agglomerative methods only, it throws for `:diana`), see below
     - `:k` - the number of clusters, an integer between 1 and the number of observations, default: `1`
     - `:h` - the height of the cut, a finite number not smaller than 0: merges at a height not greater than `:h` are kept. Only one of `:k` and `:h` can be given.
@@ -747,13 +757,13 @@
   - `:order` - positions of the observations in the order of the leaves of the dendrogram (for plotting)
   - `:n` - the number of observations
   - `:method`, `:distance`, `:algorithm` - the options used (no `:algorithm` for `:diana`)
-  - `:dc` - the divisive coefficient (`:diana` only)
+  - `:dc` - the divisive coefficient (`:diana` only, `NaN` for one observation or identical observations)
 
   The `:clusters` of a result of points work with [[predict]], [[wcss]] and [[silhouette]]; for a distance matrix they have no `:representative` and `:data`, so these functions throw.
 
-  It needs O(n^2) memory, the time is between O(n^2) and O(n^3).
+  It needs O(n^2) memory (two arrays of the `n(n-1)/2` distances for agglomerative methods), the time is between O(n^2) and O(n^3).
 
-  Throws `ex-info` for an invalid option or data, for `:h` with inversions, and for `:algorithm` with `:diana`.
+  Throws `ex-info` for an invalid option or data, for a `:distance` function returning a value which is not a finite, non-negative number, for `:h` with inversions, and for `:algorithm` with `:diana`.
 
   See also [[cut]], [[cophenetic]], [[cophenetic-correlation]], [[->linkage-matrix]]."
   ([xss] (hclust xss nil))
@@ -764,14 +774,16 @@
              (invalid-option :algorithm algorithm "no :algorithm for :diana"))
          algorithm (when-not diana? (check-member :algorithm (or algorithm :generic) hclust-algorithms))
          distance (or distance :euclidean)
-         cut-options (check-cut-options k h)
-         input (hierarchy-input xss distance)
-         n (long (:n input))
-         d ((:condensed input))
-         tree (cond-> (assoc (if diana? (hier/diana d n) (hier/agglomerate d n method algorithm))
+         observations (->observations xss distance)
+         n (long (:n observations))
+         cut-options (check-cut-options k h n)
+         ^doubles d ((:condensed observations))
+         ;; agglomeration consumes its distances, `d` stays intact for the medoids
+         tree (cond-> (assoc (if diana? (hier/diana d n) (hier/agglomerate (aclone d) n method algorithm))
                              :n n :method method :distance distance)
-                algorithm (assoc :algorithm algorithm))]
-     (hclust-result tree input cut-options (if (nil? add-data?) true add-data?)))))
+                algorithm (assoc :algorithm algorithm))
+         observations (assoc observations :pair-distance (fn ^double [^long i ^long j] (hier/distance-at d n i j)))]
+     (hclust-result tree observations cut-options (if (nil? add-data?) true add-data?)))))
 
 (defn cut
   "Cuts the tree of a result of [[hclust]] into another number of clusters, without clustering again.
@@ -793,10 +805,9 @@
   ([result xss] (cut result xss nil))
   ([result xss {:keys [k h add-data?]}]
    (let [tree (result-tree result)
-         cut-options (check-cut-options k h)
-         input (hierarchy-input xss (:distance tree))]
-     (check-input-size input (:n tree))
-     (hclust-result tree input cut-options (if (nil? add-data?) true add-data?)))))
+         observations (->observations xss (:distance tree))]
+     (check-observation-size observations (:n tree))
+     (hclust-result tree observations (check-cut-options k h (:n tree)) (if (nil? add-data?) true add-data?)))))
 
 (defn cophenetic
   "Cophenetic distances of a result of [[hclust]]: the height of the merge which first joins two observations.
@@ -834,13 +845,13 @@
   ^double [result xss]
   (let [{:keys [merge height n distance]} (result-tree result)
         n (long n)
-        input (hierarchy-input xss distance)]
-    (check-input-size input n)
+        observations (->observations xss distance)]
+    (check-observation-size observations n)
     (if (m/< n 3)
       ##NaN
       (let [c (hier/cophenetic-distances merge height n)
-            d ((:condensed input))]
-        (if (or (apply m/== (seq c)) (apply m/== (seq d)))
+            d ((:condensed observations))]
+        (if (or (hier/constant? c) (hier/constant? d))
           ##NaN
           (stats/pearson-correlation c d))))))
 
