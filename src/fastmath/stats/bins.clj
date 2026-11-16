@@ -171,6 +171,9 @@
                  (m/cbrt n))]
       (scott-fd-helper avs h))))
 
+(defn- iqr ^double [^doubles avs] (m/- (StatUtils/percentile avs 75)
+                                       (StatUtils/percentile avs 25)))
+
 (defn freedman-diaconis
   "Estimates the number of histogram bins for `avs` using the Freedman-Diaconis rule.
 
@@ -196,8 +199,7 @@
   ^long [^doubles avs ^long n]
   (if (m/< n 1)
     1
-    (let [h (m// (m/* 2.0 (m/- (StatUtils/percentile avs 75)
-                               (StatUtils/percentile avs 25)))
+    (let [h (m// (m/* 2.0 (iqr avs))
                  (m/cbrt n))]
       (scott-fd-helper avs h))))
 
@@ -208,8 +210,7 @@
 (defn- line-area
   "Square of the 1d bin width `c * spread * n^(-1/3)`: the cell area for points lying on a line."
   ^double [^double c ^double spread ^long n]
-  (let [h (m/* c spread (m/pow (double n) (m// -1.0 3.0)))]
-    (m/* h h)))
+  (m/sq (m/* c spread (m/pow n (m// -1.0 3.0)))))
 
 (defn- one-zero?
   "`true` when exactly one of `a`, `b` is zero."
@@ -294,10 +295,6 @@
               (m/sqrt (m// (m/* 96.0 m/PI (m/sqrt (m/* vx vy)) (m/pow one-rho2 1.5))
                            (m/* (double n) (m/+ (m// vx) (m// vy)))))))))
 
-(defn- iqr
-  ^double [^doubles avs]
-  (m/- (StatUtils/percentile avs 75.0) (StatUtils/percentile avs 25.0)))
-
 (defn freedman-diaconis-2d
   "Estimates a 2d histogram bin area for `xs`/`ys` using the 2d Freedman-Diaconis rule: [[scott-2d]] with each standard deviation replaced by the robust estimate `IQR / 1.349`.
 
@@ -318,7 +315,7 @@
         iy (iqr ys)]
     (if (and (m/>= n 2) (one-zero? ix iy))
       (line-area 2.0 (m/+ ix iy) n)
-      (let [factor (m/pow (double n) -0.25)]
+      (let [factor (m/pow n -0.25)]
         (m/* (m/* normal-reference-2d (m// ix 1.349) factor)
              (m/* normal-reference-2d (m// iy 1.349) factor))))))
 
@@ -343,7 +340,7 @@
   [^double lo ^double hi ^long k]
   (if (or (m/< k 2) (m/== lo hi))
     [lo]
-    (let [step (m// (m/log (m// hi lo)) (double (m/long-dec k)))]
+    (let [step (m// (m/log (m// hi lo)) (m/long-dec k))]
       (mapv (fn [^long i] (m/* lo (m/exp (m/* step i)))) (range k)))))
 
 (defn- positive-integer-option
@@ -371,14 +368,14 @@
         last-bin (m/long-dec nbins)]
     (dotimes [i (alength avs)]
       (let [idx (long (m/floor (m// (m/- (Array/aget avs i) origin) h)))]
-        (Array/inc counts (m/long-max 0 (m/long-min idx last-bin)))))
+        (Array/inc counts (m/constrain idx 0 last-bin))))
     counts))
 
 (defn- sum-of-squares
   ^double [^longs counts]
   (loop [i (long 0) acc 0.0]
     (if (m/< i (alength counts))
-      (let [c (double (Array/get counts i))] (recur (m/long-inc i) (m/+ acc (m/* c c))))
+      (recur (m/long-inc i) (m/+ acc (m/sq (Array/get counts i))))
       acc)))
 
 (deftype ^:private Sample1d [^doubles avs ^double mn ^double mx ^long shifts])
@@ -390,29 +387,28 @@
         mn (.mn sample)
         shifts (.shifts sample)
         n (double (alength avs))
-        h (m// (m/- (.mx sample) mn) (double nbins))]
-    (m// (double (reduce m/+ 0.0
-                         (map (fn [^long j]
-                                (let [nb (if (m/zero? j) nbins (m/long-inc nbins))
-                                      counts (bin-counts avs (m/- mn (m// (m/* j h) (double shifts))) h nb)
-                                      ss (sum-of-squares counts)]
-                                  (if (= method :cross-validation)
-                                    (m// (m/- 2.0 (m// (m/* (m/inc n) ss) (m/* n n))) h)
-                                    (let [kbar (m// n (double nb))
-                                          var (m/- (m// ss (double nb)) (m/* kbar kbar))]
-                                      (m// (m/- (m/* 2.0 kbar) var) (m/* h h))))))
-                              (range shifts))))
-         (double shifts))))
+        h (m// (m/- (.mx sample) mn) nbins)]
+    (m// (v/sum (map (fn [^long j]
+                       (let [nb (if (m/zero? j) nbins (m/long-inc nbins))
+                             counts (bin-counts avs (m/- mn (m// (m/* j h) (double shifts))) h nb)
+                             ss (sum-of-squares counts)]
+                         (if (= method :cross-validation)
+                           (m// (m/- 2.0 (m// (m/* (m/inc n) ss) (m/* n n))) h)
+                           (let [kbar (m// n nb)
+                                 var (m/- (m// ss nb) (m/* kbar kbar))]
+                             (m// (m/- (m/* 2.0 kbar) var) (m/* h h))))))
+                     (range shifts)))
+         shifts)))
 
 (defn- bins-candidates
   "Candidate bin counts, ascending: log-spaced between a quarter and twenty times the Freedman-Diaconis count, at most `n` and at most the range over twice the smallest gap."
   [^doubles avs ^long n ^double range ^long k]
   (let [fd (freedman-diaconis avs n)
         gap-limit (m/max 1.0 (m/floor (m// range (m/* 2.0 (smallest-gap avs)))))
-        hi (long (m/min (double (m/long-mult 20 fd)) (m/min (double n) gap-limit)))
+        hi (long (m/min (m/long-mult 20 fd) n gap-limit))
         lo (m/long-min hi (m/long-max 1 (long (m/floor (m// (double fd) 4.0)))))]
-    (->> (log-spaced (double lo) (double hi) k)
-         (map (fn [^double x] (long (m/round x))))
+    (->> (log-spaced lo hi k)
+         (map m/round)
          (distinct)
          (vec))))
 
